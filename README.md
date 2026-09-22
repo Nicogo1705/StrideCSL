@@ -1,22 +1,76 @@
-# StrideCSL: Stride shaders in C#, both ways
+# StrideCSL
 
-C#SL ("CSL") lets Stride shaders be written, read, extended and modified as C#. A `partial class`
-marked `[Shader]` is translated to SDSL at build time by a Roslyn source generator and reaches the
-effect compiler in memory; an `.sdsl` shader, the engine's included, is converted to such a class by
-`csl convert`. The C# is typed against HLSL types (`float3`, `Texture2D<T>`, `float4x4`…), so the
-compiler checks shader code, and the engine's own shaders exist as typed C# classes (`Csl.Engine`)
-to inherit, mix in and call.
+**Write [Stride](https://stride3d.net) shaders in C#**: typed, checked by the C# compiler, reloaded
+live. The engine's own SDSL shaders are available as C# classes to inherit, call and modify, and any
+`.sdsl` converts to C# and back.
 
-The two directions are checked against each other on the whole engine: every engine shader is
-converted SDSL → C# → SDSL and both versions go through the engine's SDSL compiler; the SPIR-V is
-compared instruction for instruction (see [Validation](#validation)).
+![The demo: seven shaders written in C#, redrawn when their file is saved](docs/demo.png)
 
-Built against Stride 4.4 (`StrideVersion` in `Directory.Build.props`, the published 4.4.0-beta8;
-`-p:StrideUseDevPackages=true` picks the packages a local Stride checkout packs).
+> [!NOTE]
+> **Experimental.** This project was written by Claude (Anthropic's AI) under my direction; I could
+> not have built it on my own, so take it as an experiment rather than a finished tool. It is tested
+> though: 442 of the engine's shaders go SDSL → C# → SDSL and compile to identical SPIR-V.
 
-## Try it: the demo
+```csharp
+[Shader, Mixin(typeof(Global))]
+public partial class DemoRings : ImageEffectShader
+{
+    [Stage]
+    public override float4 Shading()
+    {
+        float2 p = streams.TexCoord - 0.5f;
+        float d = length(p);
+        float wave = 0.5f + 0.5f * sin(d * 60.0f - Time * 5.0f);
+        float fade = saturate(1.0f - d * 1.6f);
+        float3 color = lerp(new float3(0.05f, 0.1f, 0.3f), new float3(1.0f, 0.8f, 0.3f), wave) * fade;
+        return new float4(color, 1.0f);
+    }
+}
+```
+
+is translated at build time, by a Roslyn source generator, to the SDSL the engine compiles:
+
+```hlsl
+shader DemoRings : ImageEffectShader, Global
+{
+    stage override float4 Shading()
+    {
+        float2 p = streams.TexCoord - 0.5;
+        float d = length(p);
+        float wave = 0.5 + 0.5 * sin(d * 60.0 - Time * 5.0);
+        float fade = saturate(1.0 - d * 1.6);
+        float3 color = lerp(float3(0.05, 0.1, 0.3), float3(1.0, 0.8, 0.3), wave) * fade;
+        return float4(color, 1.0);
+    }
+};
+```
+
+## Features
+
+- **Shaders as C# classes.** A `partial class` marked `[Shader]`, written with HLSL's types
+  (`float3`, `float4x4`, `Texture2D<T>`, swizzles, intrinsics): IntelliSense, go to definition,
+  refactoring, and compile errors before the shader compiler sees anything.
+- **The whole engine, typed.** 476 of Stride's 479 shaders as C# classes (`Csl.Engine`), so a shader
+  inherits `ImageEffectShader`, mixes in `ColorUtility` or calls `LuminanceUtils.Luma` with checked types.
+- **Compute wrappers.** Each compute shader gets a generated `…Effect` class: one typed property per
+  parameter, resource checks, `Dispatch(width, height)`.
+- **SDSL → C#.** `csl convert` turns any `.sdsl`, the engine's included, into such a class, to read
+  or to modify; the modified shader replaces the engine's under the same name.
+- **Checked on the whole engine.** Every engine shader is converted SDSL → C# → SDSL and both
+  versions are compiled by the engine; the SPIR-V is compared instruction for instruction.
+- **Live reload** in the demo: save a shader, see it redrawn.
+
+## Requirements
+
+Windows, the .NET 10 SDK and a Direct3D 11 GPU (feature level 11_0). Stride 4.4.0-beta8 comes from
+NuGet on restore (`StrideVersion` in `Directory.Build.props`; `-p:StrideUseDevPackages=true` picks
+the packages a local Stride checkout packs).
+
+## Try it
 
 ```
+git clone https://github.com/Nicogo1705/StrideCSL
+cd StrideCSL
 dotnet run --project demo/Csl.Demo
 ```
 
@@ -46,7 +100,7 @@ name (`DemoRings_2`), so the effect compiler has nothing cached for it. For `Dem
 new name (`DemoBlur_2.Radius`) are registered as aliases of `DemoBlurKeys`, so the wrapper keeps
 setting them; a parameter added while the demo runs needs a rebuild.
 
-`Csl.Demo --shot FILE.png [--time T]` compiles the shaders from their files, draws once, saves the
+`Csl.Demo --shot FILE.png [--time T] [--blur R]` compiles the shaders from their files, draws once, saves the
 image and exits, the window hidden.
 
 ## Projects
@@ -239,18 +293,16 @@ On the GPU (`gpu`, Direct3D 11, feature level 11_0): the five C# shaders compute
 `tests/Csl.Tests` (`dotnet test`) checks the generator on sample shaders, the wrappers against the
 engine, and compiles the generated SDSL with the engine compiler.
 
-### Engine issues found on the way (Stride 4.4.0-beta8, Direct3D 11)
+### Engine issues found on the way (Stride 4.4.0-beta8)
 
-`Csl.TestApp probes` (CPU) and `gpu` report them as `ENGINE` lines, outside the tests.
+Each has a fix proposed upstream; until they ship, the translator and the tests work around them.
 
-- A typed buffer with an unordered access view (`RWBuffer<T>`) needs feature level 11_0 on Direct3D 11,
-  and a game without GameSettings runs at `RenderingSettings.DefaultGraphicsProfile`, 10_0: the
-  engine then fails with a bare `E_INVALIDARG`. The gpu tests ask for 11_0.
-- `float3(i / 4, 0, 0)` with a `uint i` divides in float (`i = 1` gives 0.25): the constructor's
-  float type reaches the literal `4` inside the integer division. The same division through a local
-  is right.
-- An integer suffix after a leading 0 does not parse: `0u`, `0x10u` (`1u`, `10u` do). The translator
-  writes `(uint)0`, `(uint)0x10`.
+- [stride3d/stride#3467](https://github.com/stride3d/stride/pull/3467): an integer suffix after a lone
+  0 or on a hexadecimal literal does not parse (`0u`, `0x10u`). The translator writes `(uint)0`.
+- [stride3d/stride#3468](https://github.com/stride3d/stride/pull/3468): `float3(i / 4, 0, 0)` with a
+  `uint i` divides in float. The same division through a local is right.
+- [stride3d/stride#3469](https://github.com/stride3d/stride/pull/3469): a typed UAV buffer
+  (`RWBuffer<T>`) below feature level 11_0 fails with a bare `E_INVALIDARG`. The tests ask for 11_0.
 
 ## Compute wrappers
 
@@ -289,3 +341,8 @@ allocate with the format of the element type and the views the slots need; `MipV
   reflection; a remote compiler cannot take C# shaders.
 - The conversion needs Roslyn 5 (C# 14, for the scalar swizzles): `csl` and the test app carry it;
   the generator itself builds against Roslyn 4.12 and runs in any recent SDK.
+
+## License
+
+[MIT](LICENSE). `Csl.Engine` declares the engine's shaders from Stride's sources, which are MIT
+licensed by the .NET Foundation and contributors; their headers are kept.

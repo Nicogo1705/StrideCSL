@@ -91,6 +91,13 @@ internal sealed class Gallery : IDisposable
         }
     }
 
+    /// <summary>The blur's radius; 0 turns it off.</summary>
+    public void SetBlur(int radius)
+    {
+        blur.Radius = Math.Clamp(radius, 0, 16);
+        blur.Enabled = radius > 0;
+    }
+
     private void Touch()
     {
         lock (changeLock)

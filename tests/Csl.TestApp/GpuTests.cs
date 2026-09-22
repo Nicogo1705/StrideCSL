@@ -16,7 +16,6 @@ internal sealed class GpuTests : Game
 {
     private const int Count = 64;
     private readonly List<(string Name, bool Passed, string Detail)> results = new();
-    private readonly List<(string Name, string Observed)> probes = new();
     private int frame;
 
     public static int Run(string[] args)
@@ -58,14 +57,10 @@ internal sealed class GpuTests : Game
         Test("an engine shader replaced by its modified C# (LuminanceUtils)", Luma);
         Test("an engine graphics shader extended (ImageEffectShader)", Invert);
         Test("a typed buffer with unordered access (RWBuffer<T>)", TypedBuffer);
-        Probe("uint division inside a vector constructor", ProbeDivision);
         foreach (var (name, passed, detail) in results)
             Console.WriteLine($"{(passed ? "PASS" : "FAIL")} {name}{(detail.Length > 0 ? ": " + detail : string.Empty)}");
         if (results.Count == 0)
             Console.WriteLine("FAIL no test ran");
-        // What the engine does, whatever the C# shaders: reported, not counted.
-        foreach (var (name, observed) in probes)
-            Console.WriteLine($"ENGINE {name}: {observed}");
     }
 
     private void Test(string name, Func<string?> test)
@@ -79,18 +74,6 @@ internal sealed class GpuTests : Game
         {
             var frames = (e.StackTrace ?? string.Empty).Split('\n').Take(6).Select(l => l.Trim());
             results.Add((name, false, e.GetType().Name + ": " + e.Message + Environment.NewLine + "      " + string.Join(Environment.NewLine + "      ", frames)));
-        }
-    }
-
-    private void Probe(string name, Func<string> probe)
-    {
-        try
-        {
-            probes.Add((name, probe()));
-        }
-        catch (Exception e)
-        {
-            probes.Add((name, e.GetType().Name + ": " + e.Message));
         }
     }
 
@@ -154,20 +137,6 @@ internal sealed class GpuTests : Game
             return failure + (engine == null ? " (the engine's LuminanceUtils ran: the C# replacement was not used)" : string.Empty);
         }
         return null;
-    }
-
-    private string ProbeDivision()
-    {
-        using var output = Csl.Buffers.NewStructured<Vector2>(GraphicsDevice, Count, EngineProbeDivisionEffect.Slots.Output);
-        using var effect = new EngineProbeDivisionEffect(Services) { Output = output };
-        effect.Dispatch(Count);
-        var actual = output.GetData<Vector2>(CommandList);
-        // HLSL: float3(i / 4, 0, 0).x is floor(i / 4), as the local is.
-        var wrong = Enumerable.Range(0, Count).Where(i => actual[i].X != actual[i].Y).ToList();
-        if (wrong.Count == 0)
-            return "divides as integers, as HLSL does";
-        int first = wrong[0];
-        return $"float3(i / 4, 0, 0).x is {actual[first].X} for i = {first}, the local i / 4 is {actual[first].Y}: the division is done in float ({wrong.Count} of {Count} threads)";
     }
 
     private string? Invert()

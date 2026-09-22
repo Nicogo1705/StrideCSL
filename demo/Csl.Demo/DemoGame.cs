@@ -13,13 +13,16 @@ internal sealed class DemoGame : Game
 {
     private readonly string? shotPath;
     private readonly float shotTime;
+    private readonly int? blurRadius;
     private Gallery? gallery;
 
     /// <param name="shotPath">Draw once at <paramref name="shotTime"/>, save the image there and exit, the window hidden.</param>
-    public DemoGame(string? shotPath = null, float shotTime = 2.0f)
+    /// <param name="blurRadius">The blur's radius at start; 0 turns it off.</param>
+    public DemoGame(string? shotPath = null, float shotTime = 2.0f, int? blurRadius = null)
     {
         this.shotPath = shotPath;
         this.shotTime = shotTime;
+        this.blurRadius = blurRadius;
         AutoLoadDefaultSettings = false;
         GraphicsDeviceManager.PreferredGraphicsProfile = new[] { GraphicsProfile.Level_11_0 };
         GraphicsDeviceManager.PreferredBackBufferWidth = 1280;
@@ -52,7 +55,12 @@ internal sealed class DemoGame : Game
     {
         base.Draw(gameTime);
         var context = ShaderContext.Get(Services);
-        gallery ??= new Gallery(Services, GraphicsDevice, context.RenderContext);
+        if (gallery == null)
+        {
+            gallery = new Gallery(Services, GraphicsDevice, context.RenderContext);
+            if (blurRadius is { } radius)
+                gallery.SetBlur(radius);
+        }
         var backBuffer = GraphicsDevice.Presenter.BackBuffer;
         if (shotPath == null)
         {

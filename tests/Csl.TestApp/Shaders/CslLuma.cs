@@ -17,7 +17,7 @@ public partial class CslLuma : ComputeShaderBase
     public override void Compute()
     {
         uint i = streams.DispatchThreadId.x;
-        // The channels as uint locals: see EngineProbeDivision for why not in the constructor.
+        // The channels as uint locals: in the constructor the division would be done in float (stride3d/stride#3468).
         uint r = i % 4;
         uint g = i / 4 % 4;
         uint b = i / 16 % 4;
