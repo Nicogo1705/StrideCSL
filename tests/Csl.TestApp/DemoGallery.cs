@@ -1,0 +1,276 @@
+using System.Text.RegularExpressions;
+using Stride.Core.Mathematics;
+using Stride.Graphics;
+using Stride.Input;
+using Stride.Rendering;
+using Stride.Rendering.Images;
+
+namespace Csl.TestApp;
+
+/// <summary>
+/// The image shaders of Demos/ drawn side by side, and redrawn from their C# as it is saved: the
+/// folder is compiled again (<see cref="DemoCompiler"/>) and each shader whose SDSL changed comes back
+/// under a new name, so the effect compiler has nothing cached for it. One that does not compile
+/// leaves the previous one on screen and its errors in the console.
+/// </summary>
+internal sealed class DemoGallery : IDisposable
+{
+    private sealed class Tile(string name, string sdsl, ImageEffectShader? effect)
+    {
+        public string Name { get; } = name;
+        /// <summary>The C# class name without the prefix, for the title.</summary>
+        public string Label => Name.StartsWith("Demo", StringComparison.Ordinal) ? Name[4..] : Name;
+        public string Sdsl = sdsl;
+        public ImageEffectShader? Effect = effect;
+        public int Version;
+        public (string Sdsl, ImageEffectShader Effect)? Candidate;
+        /// <summary>SDSL the effect compiler refused: not tried again until the C# changes.</summary>
+        public string? Rejected;
+    }
+
+    private readonly List<Tile> tiles = new();
+    private readonly RenderContext renderContext;
+    private readonly Texture checker;
+    private readonly DemoCompiler? compiler;
+    private readonly FileSystemWatcher? watcher;
+    private readonly object changeLock = new();
+    private DateTime? changedAt;
+    private Task<DemoCompiler.Result>? compiling;
+    private bool hadErrors;
+    private int solo = -1;
+
+    public DemoGallery(GraphicsDevice device, RenderContext renderContext)
+    {
+        this.renderContext = renderContext;
+        // The demos are the C# shaders of this app that live in a Demos folder: their SDSL was
+        // registered at start-up by the build, so they draw before anything is compiled here.
+        var demos = ShaderSourceRegistry.Sources
+            .Where(s => string.Equals(Path.GetFileName(Path.GetDirectoryName(s.Value.Path)), "Demos", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(s => s.Key, StringComparer.Ordinal)
+            .ToList();
+        foreach (var (name, (source, _)) in demos)
+            tiles.Add(new Tile(name, source, NewEffect(name)));
+
+        checker = MakeChecker(device);
+
+        var directory = demos.Select(s => Path.GetDirectoryName(s.Value.Path)).FirstOrDefault();
+        if (directory != null && Directory.Exists(directory))
+        {
+            compiler = new DemoCompiler(directory);
+            watcher = new FileSystemWatcher(directory, "*.cs") { NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size };
+            watcher.Changed += (_, _) => Touch();
+            watcher.Created += (_, _) => Touch();
+            watcher.Renamed += (_, _) => Touch();
+            watcher.EnableRaisingEvents = true;
+            // Roslyn takes a few seconds the first time: warm it up now rather than on the first save.
+            compiling = Task.Run(() => compiler.Compile());
+            Console.WriteLine($"Watching {directory}: save a .cs there and its tile is redrawn from it.");
+        }
+        else
+        {
+            Console.WriteLine("The Demos folder is not where the build found it: no reload, the demos stay as built.");
+        }
+    }
+
+    /// <summary>What the window title says.</summary>
+    public string Title
+    {
+        get
+        {
+            var names = string.Join("  ", tiles.Select((t, i) => $"{i + 1} {t.Label}"));
+            var shown = solo >= 0 ? $"{tiles[solo].Label} (0: all)" : names;
+            return $"StrideCSL gpu - {shown} - edit Demos/*.cs, it redraws";
+        }
+    }
+
+    private void Touch()
+    {
+        lock (changeLock)
+            changedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>Keys, and the compilation of what was saved; on the game's thread.</summary>
+    public void Update(InputManager input)
+    {
+        for (int i = 0; i < Math.Min(tiles.Count, 9); i++)
+        {
+            if (input.IsKeyPressed(Keys.D1 + i) || input.IsKeyPressed(Keys.NumPad1 + i))
+                solo = solo == i ? -1 : i;
+        }
+        if (input.IsKeyPressed(Keys.D0) || input.IsKeyPressed(Keys.NumPad0) || input.IsKeyPressed(Keys.Space))
+            solo = -1;
+
+        if (compiler == null)
+            return;
+        if (compiling == null)
+        {
+            lock (changeLock)
+            {
+                // Editors write a file in several steps: wait for them to be done.
+                if (changedAt is { } at && DateTime.UtcNow - at > TimeSpan.FromMilliseconds(200))
+                {
+                    changedAt = null;
+                    compiling = Task.Run(() => compiler.Compile());
+                }
+            }
+        }
+        else if (compiling.IsCompleted)
+        {
+            var task = compiling;
+            compiling = null;
+            if (task.IsFaulted)
+                Console.WriteLine("Compiling Demos/ failed: " + task.Exception!.GetBaseException().Message);
+            else
+                Apply(task.Result, force: false);
+        }
+    }
+
+    /// <summary>Compiles Demos/ now and takes every shader of it, changed or not: the whole reload path at once.</summary>
+    public bool ReloadAllNow()
+    {
+        if (compiler == null)
+            return false;
+        compiling?.Wait();
+        compiling = null;
+        return Apply(compiler.Compile(), force: true);
+    }
+
+    private bool Apply(DemoCompiler.Result result, bool force)
+    {
+        if (result.Errors.Count > 0)
+        {
+            Console.WriteLine($"C# errors in Demos/ ({result.Errors.Count}), the tiles stay as they were:");
+            foreach (var error in result.Errors)
+                Console.WriteLine("  " + error);
+            hadErrors = true;
+            return false;
+        }
+        if (hadErrors)
+            Console.WriteLine("Demos/ compiles again.");
+        hadErrors = false;
+
+        foreach (var (name, sdsl, path) in result.Shaders)
+        {
+            var tile = tiles.FirstOrDefault(t => t.Name == name);
+            if (tile == null)
+            {
+                tile = new Tile(name, string.Empty, null);
+                tiles.Add(tile);
+                Console.WriteLine($"{name}: new demo, tile {tiles.Count}");
+            }
+            if (!force && (sdsl == tile.Sdsl || sdsl == tile.Rejected || sdsl == tile.Candidate?.Sdsl))
+                continue;
+            tile.Candidate?.Effect.Dispose();
+            tile.Rejected = null;
+            // A new name each time: the effect compiler caches by shader, and this one is new to it.
+            var version = $"{name}_{++tile.Version}";
+            var renamed = Regex.Replace(sdsl, $@"\bshader\s+{Regex.Escape(name)}\b", "shader " + version);
+            ShaderSourceRegistry.Add(version, renamed, path);
+            tile.Candidate = (sdsl, NewEffect(version));
+        }
+        return true;
+    }
+
+    public void Draw(RenderDrawContext context, Texture target, float time)
+    {
+        context.CommandList.Clear(target, new Color4(0.08f, 0.08f, 0.09f, 1.0f));
+        if (tiles.Count == 0)
+            return;
+        if (solo >= tiles.Count)
+            solo = -1;
+
+        const int gap = 4;
+        int count = solo >= 0 ? 1 : tiles.Count;
+        int columns = (int)Math.Ceiling(Math.Sqrt(count));
+        int rows = (count + columns - 1) / columns;
+        float width = (target.Width - gap * (columns + 1)) / (float)columns;
+        float height = (target.Height - gap * (rows + 1)) / (float)rows;
+        for (int slot = 0; slot < count; slot++)
+        {
+            var tile = tiles[solo >= 0 ? solo : slot];
+            int column = slot % columns, row = slot / columns;
+            var viewport = new Viewport(gap + column * (width + gap), gap + row * (height + gap), width, height);
+            DrawTile(context, tile, target, viewport, time);
+        }
+    }
+
+    private void DrawTile(RenderDrawContext context, Tile tile, Texture target, Viewport viewport, float time)
+    {
+        if (tile.Candidate is { } candidate)
+        {
+            tile.Candidate = null;
+            var error = TryDraw(context, candidate.Effect, target, viewport, time);
+            if (error == null)
+            {
+                tile.Effect?.Dispose();
+                tile.Effect = candidate.Effect;
+                tile.Sdsl = candidate.Sdsl;
+                Console.WriteLine($"{tile.Name}: redrawn from its C# ({candidate.Effect.EffectName})");
+                return;
+            }
+            candidate.Effect.Dispose();
+            tile.Rejected = candidate.Sdsl;
+            Console.WriteLine($"{tile.Name}: the SDSL does not compile, the previous one stays:");
+            Console.WriteLine("  " + error.Replace("\n", "\n  "));
+        }
+        if (tile.Effect != null && TryDraw(context, tile.Effect, target, viewport, time) is { } failure)
+        {
+            Console.WriteLine($"{tile.Name}: {failure}");
+            tile.Effect.Dispose();
+            tile.Effect = null;
+        }
+    }
+
+    private ImageEffectShader NewEffect(string shaderName)
+    {
+        var effect = new ImageEffectShader(shaderName);
+        effect.Initialize(renderContext);
+        return effect;
+    }
+
+    private string? TryDraw(RenderDrawContext context, ImageEffectShader effect, Texture target, Viewport viewport, float time)
+    {
+        try
+        {
+            effect.Parameters.Set(GlobalKeys.Time, time);
+            effect.SetInput(0, checker);
+            effect.SetOutput(target);
+            effect.SetViewport(viewport);
+            effect.Draw(context);
+            return null;
+        }
+        catch (Exception e)
+        {
+            return e.GetBaseException().Message.Trim();
+        }
+    }
+
+    /// <summary>Texture0 of the demos: 8 by 8 coloured cells.</summary>
+    private static Texture MakeChecker(GraphicsDevice device)
+    {
+        const int size = 256, cells = 8;
+        var pixels = new Color[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                int cx = x * cells / size, cy = y * cells / size;
+                bool dark = ((cx + cy) & 1) == 0;
+                var hue = new Color((byte)(60 + cx * 25), (byte)(60 + cy * 25), (byte)(220 - cx * 12 - cy * 12));
+                pixels[y * size + x] = dark ? new Color((byte)(hue.R / 4), (byte)(hue.G / 4), (byte)(hue.B / 4)) : hue;
+            }
+        }
+        return Texture.New2D(device, size, size, PixelFormat.R8G8B8A8_UNorm, pixels);
+    }
+
+    public void Dispose()
+    {
+        watcher?.Dispose();
+        foreach (var tile in tiles)
+        {
+            tile.Effect?.Dispose();
+            tile.Candidate?.Effect.Dispose();
+        }
+        checker.Dispose();
+    }
+}

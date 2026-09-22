@@ -23,7 +23,10 @@ switch (command)
         Console.WriteLine("                                          convert the engine's shaders SDSL to C# to SDSL, report what fails");
         Console.WriteLine("Csl.TestApp roundtrip [--out DIR] [--only NAME,...]");
         Console.WriteLine("                                          compile each shader from its SDSL and from its round trip, compare the SPIR-V");
-        Console.WriteLine("Csl.TestApp gpu                           run the C# shaders of Shaders/ on the GPU (a hidden game window) and check what they compute");
+        Console.WriteLine("Csl.TestApp gpu [--check] [--shot FILE.png [--time T]]");
+        Console.WriteLine("                                          run the C# shaders of Shaders/ on the GPU and check what they compute, then show the");
+        Console.WriteLine("                                          image shaders of Demos/ in a window, redrawn from their C# on each save;");
+        Console.WriteLine("                                          --check: the tests only, hidden; --shot: the demos compiled from their files, saved as an image");
         Console.WriteLine("Csl.TestApp probes                        what the engine's SDSL compiler does with the constructs the conversion works around (CPU)");
         Console.WriteLine("Csl.TestApp compile NAME...               compile engine shaders, mixed in this order, with the engine's SDSL compiler");
         return command == "help" ? 0 : 2;

@@ -184,7 +184,21 @@ any mix of parts in their constructors (`new float4(v.xyz, 1)`), scalars have sw
 | `convert [--out DIR]` | Converts every engine shader SDSL → C# → SDSL; writes both and a report of what fails. |
 | `roundtrip [--out DIR]` | Compiles each converted engine shader with the engine's SDSL compiler (`ShaderMixer`, to SPIR-V) from its original source and from its round trip (its bases round-tripped too) and compares the SPIR-V without debug instructions. A shader without an entry point is hosted after `ShaderBase` or `ComputeShaderBase`; a generic one is instantiated with sample arguments. A difference is traced to the base that causes it. |
 | `compile NAME...` | Compiles engine shaders (and this app's C# shaders), mixed in this order. |
-| `gpu` | A code-only Stride game (hidden window) that runs the C# shaders of `Shaders/` and checks what they compute: a shader written in C#, an engine shader mixed in, an engine shader replaced by its modified C#, the engine's `ImageEffectShader` extended. |
+| `gpu` | A code-only Stride game that runs the C# shaders of `Shaders/` and checks what they compute: a shader written in C#, an engine shader mixed in, an engine shader replaced by its modified C#, the engine's `ImageEffectShader` extended. Then it shows the image shaders of `Demos/` in a window, redrawn from their C# on each save (see [Live demos](#live-demos)). `--check`: the tests only, window hidden. `--shot FILE.png [--time T]`: the demos compiled from their files, drawn once and saved, window hidden. |
+
+### Live demos
+
+`Demos/` holds six image shaders in C#, each an `ImageEffectShader` with `Shading()` overridden and
+`Global` mixed in for `Time`: `DemoGradient` (start here), `DemoRings`, `DemoPlasma` (a method called
+from `Shading`), `DemoMandelbrot` (a loop with a break), `DemoWobble` (samples `Texture0`, a
+checkerboard the app makes) and `DemoLuma` (calls the engine's `LuminanceUtils.Luma`, which this app
+replaces). `gpu` draws them side by side; keys 1-9 show one alone, 0 or space all of them.
+
+Saving a file of `Demos/` while it runs recompiles the folder the way the build does (Roslyn, the Csl
+generator, the translator: `DemoCompiler`) and each shader whose SDSL changed is drawn again under a
+new name (`DemoRings_2`), so the effect compiler has nothing cached for it. C# errors are printed as
+the build prints them and the tiles stay as they were; an SDSL the effect compiler refuses leaves the
+previous shader on screen. A new `[Shader]` class in the folder gets a new tile.
 
 Results on Stride 4.4.0-beta7 (479 shaders in the packages):
 
