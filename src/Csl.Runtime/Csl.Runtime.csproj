@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- What the generated shader wrappers run on: the base class that owns the ComputeEffectShader
+       and the draw context, and the helpers that allocate what a shader binds. No shaders, no
+       content: reference it from the project that owns the .sdsl files, next to Csl.Generators. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Csl</RootNamespace>
+    <AssemblyName>Csl.Runtime</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- A plain library: no asset manifest, no asset types to load into the asset compiler. -->
+    <StrideAssetBuildManifest>false</StrideAssetBuildManifest>
+    <StrideContainsAssetTypes>false</StrideContainsAssetTypes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" />
+  </ItemGroup>
+
+</Project>

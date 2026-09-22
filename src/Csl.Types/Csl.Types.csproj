@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- What shader code written in C# is made of: the HLSL types (float3, int3, RWTexture3D<T>…), the
+       intrinsics, the attributes ([Shader], [Stage], [Stream]…) and the stubs of the engine's base
+       shaders. No Stride dependency, so nothing here collides with Stride.Core.Mathematics; a shader
+       file uses Csl.Hlsl, game code uses Stride. Only the generator has to be netstandard2.0; this is
+       referenced by game code, so it targets what the game does. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Csl</RootNamespace>
+    <AssemblyName>Csl.Types</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS8981</NoWarn>
+  </PropertyGroup>
+
+</Project>

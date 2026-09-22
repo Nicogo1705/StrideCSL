@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Csl.Generators/Csl.Generators.csproj" />
+    <Project Path="src/Csl.Runtime/Csl.Runtime.csproj" />
+    <Project Path="src/Csl.Types/Csl.Types.csproj" />
+    <Project Path="src/Csl.Stubs/Csl.Stubs.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Csl.Tests/Csl.Tests.csproj" />
+  </Folder>
+</Solution>

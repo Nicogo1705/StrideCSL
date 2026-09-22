@@ -1,0 +1,64 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+namespace Demo
+{
+    /// One level of the field's mip chain from the level above it, for the bricks whose sources changed.
+    /// Sample j stands over sample 2j of the finer level, filtered over its two neighbours along each
+    /// axis (weights 2 and 1) so the surface smooths rather than aliases and keeps its place; the
+    /// material is the centre sample's. One thread per cell of this level, one group per 8x8x8 brick.
+    shader VoxelWaterMip : ComputeShaderBase, VoxelWaterBricks
+    {
+        /// Single-mip views: the finer level to read, this level to write.
+        stage Texture3D<float2> Source;
+        stage RWTexture3D<float2> Target;
+        stage int3 SourceSize;
+        stage int3 TargetSize;
+
+        /// Which mip this is, 1 for the first below the field.
+        stage int Level;
+
+        override void Compute()
+        {
+            // The brick's cells at this level, widened by one at every level down for the filter's reach,
+            // give the level-0 box this brick depends on.
+            int3 brick = int3(streams.GroupId);
+            int3 lo = brick * 8;
+            int3 hi = lo + 7;
+            [loop]
+            for (int i = 0; i < Level; i++)
+            {
+                lo = lo * 2 - 1;
+                hi = hi * 2 + 1;
+            }
+            if (!BoxDirty(lo, hi))
+                return;
+
+            int3 c = int3(streams.DispatchThreadId);
+            if (any(c >= TargetSize))
+                return;
+
+            int3 centre = min(c * 2, SourceSize - 1);
+            float sum = 0.0;
+            float weight = 0.0;
+            [unroll]
+            for (int dz = -1; dz <= 1; dz++)
+            {
+                [unroll]
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    [unroll]
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        int3 s = centre + int3(dx, dy, dz);
+                        if (any(s < 0) || any(s >= SourceSize))
+                            continue;
+                        float w = (dx == 0 ? 2.0 : 1.0) * (dy == 0 ? 2.0 : 1.0) * (dz == 0 ? 2.0 : 1.0);
+                        sum += Source.Load(int4(s, 0)).r * w;
+                        weight += w;
+                    }
+                }
+            }
+            Target[c] = float2(sum / weight, Source.Load(int4(centre, 0)).g);
+        }
+    };
+}

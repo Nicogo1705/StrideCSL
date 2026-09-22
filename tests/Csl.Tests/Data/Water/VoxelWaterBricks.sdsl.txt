@@ -1,0 +1,44 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+namespace Demo
+{
+    /// The water lives in bricks of 8x8x8 cells. A brick is active for one step when something in it
+    /// or next to it changed on the previous step; every pass that rebuilds something derived from
+    /// the field asks here whether the level-0 box it depends on touches an active brick.
+    shader VoxelWaterBricks
+    {
+        /// One byte per brick, non-zero where the brick is simulated and recomposed this step.
+        stage Texture3D<uint> ActiveBricks;
+
+        /// Samples per axis of the field, and bricks per axis (samples / 8, rounded up).
+        stage int3 SampleCount;
+        stage int3 BrickCount;
+
+        /// Whether any active brick overlaps the inclusive box [lo, hi] of level-0 samples.
+        bool BoxDirty(int3 lo, int3 hi)
+        {
+            int3 b0 = max(lo, int3(0, 0, 0)) >> 3;
+            int3 b1 = min(max(hi, int3(0, 0, 0)) >> 3, BrickCount - 1);
+            [loop]
+            for (int z = b0.z; z <= b1.z; z++)
+            {
+                [loop]
+                for (int y = b0.y; y <= b1.y; y++)
+                {
+                    [loop]
+                    for (int x = b0.x; x <= b1.x; x++)
+                    {
+                        if (ActiveBricks.Load(int4(x, y, z, 0)) != 0)
+                            return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        bool BrickActive(int3 brick)
+        {
+            return ActiveBricks.Load(int4(brick, 0)) != 0;
+        }
+    };
+}

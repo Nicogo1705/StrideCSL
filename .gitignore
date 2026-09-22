@@ -1,0 +1,6 @@
+*.user
+.vs/
+[Bb]in/
+obj/
+TestResults/
+/artifacts/

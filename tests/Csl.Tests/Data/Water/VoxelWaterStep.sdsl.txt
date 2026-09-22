@@ -1,0 +1,187 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+namespace Demo
+{
+    /// One flow step of the water, one thread per cell, one group per brick; inactive bricks return at once.
+    ///
+    /// The water is an amount per cell, nominally up to one, a little over under pressure. Each step every
+    /// cell hands some of its water to its neighbours: down first, as much as the cell below can take; then
+    /// sideways, an eighth of the difference to each lower neighbour, out of what is left; then up, whatever
+    /// exceeds the resting share of the pair with the cell above - which is how a column pushes water back
+    /// up the other side of a bend. Every hand-over is a pure function of the two cells' amounts and of
+    /// the sender's own neighbourhood, so the receiver computes exactly the same number as the sender
+    /// and nothing is created or lost: this is a gather, written to a second texture, no atomics.
+    ///
+    /// The bricks that were not written keep equal contents in both textures, which is what lets the
+    /// two swap without a copy: a brick is written whenever it or a neighbour changed, and a brick that
+    /// nobody wrote holds, in both, the value it settled on.
+    shader VoxelWaterStep : ComputeShaderBase, VoxelWaterBricks
+    {
+        /// Set to one for the group's brick when any of its cells changed, cleared otherwise.
+        stage RWTexture3D<uint> ChangedOut;
+
+        /// The dry field: density in red. A sample at or over the iso level is solid and holds no water.
+        stage Texture3D<float2> Terrain;
+
+        /// Amounts read this step, and where the new ones go.
+        stage Texture3D<float> Amounts;
+        stage RWTexture3D<float> AmountsOut;
+
+        stage float IsoLevel;
+
+        /// How much a cell can hold over one, per cell of water above it; the pressure that lifts water.
+        stage float MaxCompress;
+
+        /// Amounts and hand-overs are multiples of this (a power of two, exact in a half float), so a
+        /// sheet at rest is exactly still: no crumb is traded forever, and a brick that nobody wrote
+        /// holds the same bits in both textures.
+        stage float Quantum;
+
+        /// A film thinner than this soaks away.
+        stage float Soak;
+
+        /// Water poured this step: a ball in cell units, and how much each cell inside gains. Radius zero for none.
+        stage float3 PourCentre;
+        stage float PourRadius;
+        stage float PourAmount;
+
+        groupshared uint anyChanged;
+
+        bool Solid(int3 c)
+        {
+            if (any(c < 0) || any(c >= SampleCount))
+                return true;
+            return Terrain.Load(int4(c, 0)).r >= IsoLevel;
+        }
+
+        float Amount(int3 c)
+        {
+            if (any(c < 0) || any(c >= SampleCount))
+                return 0.0;
+            return Amounts.Load(int4(c, 0));
+        }
+
+        /// What the lower cell of a vertical pair holds at rest, given the pair's total.
+        float StableBelow(float total)
+        {
+            if (total <= 1.0)
+                return 1.0;
+            if (total < 2.0 + MaxCompress)
+                return (1.0 + total * MaxCompress) / (1.0 + MaxCompress);
+            return (total + MaxCompress) * 0.5;
+        }
+
+        float Quantized(float flow)
+        {
+            return floor(flow / Quantum + 1e-4) * Quantum;
+        }
+
+        /// Water a sender at s holding a hands to the cell below it.
+        float Down(int3 s, float a)
+        {
+            int3 below = s - int3(0, 1, 0);
+            if (Solid(below))
+                return 0.0;
+            float b = Amount(below);
+            return Quantized(clamp(StableBelow(a + b) - b, 0.0, a));
+        }
+
+        /// Water a sender holding rem (after its downward hand-over) hands to a lateral neighbour n:
+        /// a fifth of the difference - the most four neighbours can take at once while the sender
+        /// keeps a share, which is what stops a checkerboard - and never under one quantum, so two
+        /// neighbours end within a quantum of each other rather than a fifth apart.
+        float Lateral(int3 n, float rem)
+        {
+            if (Solid(n))
+                return 0.0;
+            float diff = rem - Amount(n);
+            if (diff < 2.0 * Quantum)
+                return 0.0;
+            return Quantized(min(max(diff * 0.2, Quantum), rem * 0.25));
+        }
+
+        /// What is left in a sender after down and sideways, from which the upward hand-over is taken.
+        float Remaining(int3 s, float a)
+        {
+            float rem = a - Down(s, a);
+            float lateral = Lateral(s + int3(1, 0, 0), rem) + Lateral(s - int3(1, 0, 0), rem)
+                          + Lateral(s + int3(0, 0, 1), rem) + Lateral(s - int3(0, 0, 1), rem);
+            return rem - lateral;
+        }
+
+        /// Water a sender at s with rem2 left hands to the cell above it.
+        float Up(int3 s, float rem2)
+        {
+            int3 above = s + int3(0, 1, 0);
+            if (Solid(above))
+                return 0.0;
+            float u = Amount(above);
+            return Quantized(clamp(rem2 - StableBelow(rem2 + u), 0.0, rem2));
+        }
+
+        override void Compute()
+        {
+            int3 brick = int3(streams.GroupId);
+            if (!BrickActive(brick))
+                return;
+
+            if (streams.GroupIndex == 0)
+                anyChanged = 0;
+            GroupMemoryBarrierWithGroupSync();
+
+            int3 c = int3(streams.DispatchThreadId);
+            if (all(c < SampleCount))
+            {
+                float a = Amount(c);
+                float value;
+                if (Solid(c))
+                {
+                    // Earth filled in over water: the water is gone, not lifted.
+                    value = 0.0;
+                }
+                else
+                {
+                    // Out: the three hand-overs, in order, each from what the one before left.
+                    float down = Down(c, a);
+                    float rem = a - down;
+                    int3 xp = c + int3(1, 0, 0), xm = c - int3(1, 0, 0);
+                    int3 zp = c + int3(0, 0, 1), zm = c - int3(0, 0, 1);
+                    float lateral = Lateral(xp, rem) + Lateral(xm, rem) + Lateral(zp, rem) + Lateral(zm, rem);
+                    float rem2 = rem - lateral;
+                    float up = Up(c, rem2);
+
+                    // In: what the cell above lets fall, what the four beside hand across, what the one below pushes up.
+                    int3 above = c + int3(0, 1, 0), below = c - int3(0, 1, 0);
+                    float inflow = 0.0;
+                    if (!Solid(above))
+                        inflow += Down(above, Amount(above));
+                    if (!Solid(xp)) inflow += Lateral(c, Amount(xp) - Down(xp, Amount(xp)));
+                    if (!Solid(xm)) inflow += Lateral(c, Amount(xm) - Down(xm, Amount(xm)));
+                    if (!Solid(zp)) inflow += Lateral(c, Amount(zp) - Down(zp, Amount(zp)));
+                    if (!Solid(zm)) inflow += Lateral(c, Amount(zm) - Down(zm, Amount(zm)));
+                    if (!Solid(below))
+                        inflow += Up(below, Remaining(below, Amount(below)));
+
+                    value = round((rem2 - up + inflow) / Quantum) * Quantum;
+                    if (value < Soak)
+                        value = 0.0;
+
+                    if (PourRadius > 0.0)
+                    {
+                        float3 d = float3(c) - PourCentre;
+                        if (dot(d, d) <= PourRadius * PourRadius)
+                            value = min(1.0, value + PourAmount);
+                    }
+                }
+
+                AmountsOut[c] = value;
+                if (value != a)
+                    InterlockedOr(anyChanged, 1);
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+            if (streams.GroupIndex == 0)
+                ChangedOut[brick] = anyChanged;
+        }
+    };
+}

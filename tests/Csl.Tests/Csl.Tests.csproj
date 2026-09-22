@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Tests of the generator and the analyzer, run without a GPU. The demo's shaders are also
+       compiled through the generator for real here, against the engine: the generated wrappers
+       have to build, not just look right. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Csl.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);CS1591;xUnit1004</NoWarn>
+    <StrideAssetBuildManifest>false</StrideAssetBuildManifest>
+    <StrideContainsAssetTypes>false</StrideContainsAssetTypes>
+    <!-- Keep the generator's output on disk, to read what it produced. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Data/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Csl.Runtime/Csl.Runtime.csproj" />
+    <ProjectReference Include="../../src/Csl.Types/Csl.Types.csproj" />
+    <!-- Referenced as a library for the driver tests, and applied as an analyzer to this very project. -->
+    <ProjectReference Include="../../src/Csl.Generators/Csl.Generators.csproj" />
+    <Analyzer Include="../../src/Csl.Generators/bin/$(Configuration)/netstandard2.0/Csl.Generators.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The water shaders of the StrideVoxelGI demo, written in C# (Demo/), and the SDSL they replaced
+         (Data/Water), which is test data for the parser and the reference for the translation. -->
+    <Content Include="Data/Water/*.sdsl.txt" Link="Shaders/%(Filename)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Engine shaders kept as parser test data only, not shaders of this project: out of the SDK's glob. -->
+    <Content Include="Data/*.sdsl" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

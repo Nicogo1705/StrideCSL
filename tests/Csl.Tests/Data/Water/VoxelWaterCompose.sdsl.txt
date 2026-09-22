@@ -1,0 +1,78 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+namespace Demo
+{
+    /// Writes the drawn field's finest level for the active bricks: the dry terrain where it is denser,
+    /// the water elsewhere. One thread per cell, one group per brick.
+    ///
+    /// The water's density is laid out so the iso surface lands where the water stands: a partial cell
+    /// puts the surface inside itself at its fraction, a full cell reads the cell above for where the
+    /// surface is, an empty cell the cell below - the same ramp of half a density per cell that a
+    /// column of water at a known level would have, so the trilinear surface comes out flat and level.
+    shader VoxelWaterCompose : ComputeShaderBase, VoxelWaterBricks
+    {
+        stage Texture3D<float2> Terrain;
+        stage Texture3D<float> Amounts;
+        stage RWTexture3D<float2> FieldOut;
+
+        /// The water's material id, as the texture stores it: id / 255.
+        stage float WaterMaterial;
+
+        /// A cell holding at least FilmMin, with less than a full cell under it, is drawn as a film at
+        /// least FilmDensity dense: the ramp alone puts a thin layer's surface under its own sample,
+        /// inside whatever is below, so a trickle down a slope was invisible until it pooled, and the
+        /// rim of a spreading sheet flickered in and out across the iso level.
+        stage float FilmMin;
+        stage float FilmDensity;
+
+        float Amount(int3 c)
+        {
+            if (any(c < 0) || any(c >= SampleCount))
+                return 0.0;
+            return Amounts.Load(int4(c, 0));
+        }
+
+        /// Height of the water surface above this cell's sample, in cells, from the cell and its vertical neighbours.
+        float SurfaceOffset(int3 c, float f)
+        {
+            if (f >= 1.0)
+            {
+                float above = Amount(c + int3(0, 1, 0));
+                if (above >= 1.0)
+                    return 2.0;
+                if (above > 0.0)
+                    return 0.5 + above;
+                return 0.5;
+            }
+            if (f > 0.0)
+                return f - 0.5;
+            float below = Amount(c - int3(0, 1, 0));
+            if (below >= 1.0)
+                return -0.5;
+            if (below > 0.0)
+                return below - 1.5;
+            return -2.0;
+        }
+
+        override void Compute()
+        {
+            int3 brick = int3(streams.GroupId);
+            if (!BrickActive(brick))
+                return;
+            int3 c = int3(streams.DispatchThreadId);
+            if (any(c >= SampleCount))
+                return;
+
+            float2 terrain = Terrain.Load(int4(c, 0));
+            float f = Amount(c);
+            float water = saturate(0.5 + 0.5 * SurfaceOffset(c, f));
+            if (f >= FilmMin && f < 1.0 && Amount(c - int3(0, 1, 0)) < 1.0)
+                water = max(water, FilmDensity);
+            // Never under what the terrain already holds there, and nothing for a trace that would not draw.
+            if (water > terrain.r && water >= 8.0 / 255.0)
+                FieldOut[c] = float2(water, WaterMaterial);
+            else
+                FieldOut[c] = terrain;
+        }
+    };
+}

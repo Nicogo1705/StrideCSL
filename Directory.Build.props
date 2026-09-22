@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <!-- Stride version every project references: the latest published beta, which carries the new
+         SDSL compiler (SDSL to SPIR-V) the tests check the generated shaders with. -->
+    <StrideVersion>4.4.0-beta7</StrideVersion>
+
+    <!-- Opt in to the packages a local Stride checkout packs into its dev feed (NuGet.config
+         registers it): -p:StrideUseDevPackages=true. -->
+    <StrideDevFeed>$(LOCALAPPDATA)\stride\nugetdev</StrideDevFeed>
+    <StrideVersion Condition="'$(StrideUseDevPackages)' == 'true' and Exists('$(StrideDevFeed)\Stride.Engine.4.4.0-dev.nupkg')">4.4.0-dev</StrideVersion>
+  </PropertyGroup>
+</Project>

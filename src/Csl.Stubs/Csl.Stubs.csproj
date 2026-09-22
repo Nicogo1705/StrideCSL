@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Writes C# stubs of existing shaders (the engine's, from the .sdsl in the Stride.Rendering
+       package) so shaders written in C# can inherit them:
+         dotnet run - -project CSharpShaders/Csl.Stubs - - - -out Csl.Types/Engine - -namespace Csl.Engine path/to/ComputeShaderBase.sdsl -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Csl.Stubs</RootNamespace>
+    <StrideAssetBuildManifest>false</StrideAssetBuildManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Csl.Generators/Csl.Generators.csproj" />
+  </ItemGroup>
+
+</Project>
