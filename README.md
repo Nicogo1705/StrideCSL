@@ -1,267 +1,239 @@
-# C#SL: Stride shaders from C#
+# StrideCSL: Stride shaders in C#, both ways
 
-Tooling for writing and driving Stride compute shaders from C# without GPU plumbing. Two bricks:
+C#SL ("CSL") lets Stride shaders be written, read, extended and modified as C#. A `partial class`
+marked `[Shader]` is translated to SDSL at build time by a Roslyn source generator and reaches the
+effect compiler in memory; an `.sdsl` shader, the engine's included, is converted to such a class by
+`csl convert`. The C# is typed against HLSL types (`float3`, `Texture2D<T>`, `float4x4`…), so the
+compiler checks shader code, and the engine's own shaders exist as typed C# classes (`Csl.Engine`)
+to inherit, mix in and call.
 
-1. **Typed wrappers** (`Csl.Generators` + `Csl.Runtime`): every compute shader of the project gets a
-   `<Shader>Effect` class with a property per parameter, resource slots that say what to allocate,
-   and a `Dispatch(cells)` that computes the thread groups. Generated at build time from the
-   `.sdsl` files, so nothing to run and nothing to commit.
-2. **C# to SDSL** (`Csl.Types` + the same generator): a `partial class` marked `[Shader]` becomes an
-   SDSL shader, with its `*Keys` class and its wrapper, and reaches the effect compiler in memory.
+The two directions are checked against each other on the whole engine: every engine shader is
+converted SDSL → C# → SDSL and both versions go through the engine's SDSL compiler; the SPIR-V is
+compared instruction for instruction (see [Validation](#validation)).
 
-Built against Stride 4.4 (the `StrideVersion` in `Directory.Build.props`). The engine already
-declares `**/*.sdsl` as `AdditionalFiles` and generates the `*Keys` classes from them with its own
-Roslyn generator; `Csl.Generators` reads the same files and builds on those keys.
+Built against Stride 4.4 (`StrideVersion` in `Directory.Build.props`, the published 4.4.0-beta7;
+`-p:StrideUseDevPackages=true` picks the packages a local Stride checkout packs).
 
 ## Projects
 
 | Project | Target | Role |
 |---------|--------|------|
-| `Csl.Generators` | netstandard2.0 | Roslyn source generator (`ShaderEffectGenerator`: wrappers from `.sdsl`, and SDSL + keys + wrappers from `[Shader]` classes) and analyzer (`TypedUavFormatAnalyzer`). Has its own SDSL declaration parser: no engine dependency. |
-| `Csl.Runtime` | net10.0 | `ComputeEffect` base class, `ShaderContext`, `ResourceSlot`, `Textures`/`Buffers` allocation, `MipChain`, `PingPong<T>`, region uploads, `ShaderSourceRegistry`. |
-| `Csl.Types` | net10.0 | What shader code is written with: `Csl.Hlsl` (the HLSL types and intrinsics), the attributes, `Csl.Engine` (stubs of the engine's base shaders). No Stride dependency. |
-| `Csl.Stubs` | net10.0, tool | Writes the `Csl.Engine` stubs from the engine's `.sdsl` files. |
-| `Csl.Tests` | net10.0, xunit | Parser, generator, translator and analyzer tests, without a GPU. Compiles the demo's C# shaders and `Demo/VoxelWater.cs` against the engine, and compiles every generated SDSL with the engine's own shader compiler (`ShaderMixer`, to SPIR-V). |
+| `src/Csl.Generators` | netstandard2.0 | The code generation, both ways. As a Roslyn generator: C# `[Shader]` classes → SDSL, `*Keys` classes and compute wrappers; the stubs every shader class gets. As a library: the SDSL parser (whole files, bodies, preprocessor structure), the SDSL → C# converter and its compiler-guided fixes. |
+| `src/Csl.Types` | net10.0 | What shader code is written with: `Csl.Hlsl` (every HLSL scalar, vector and matrix type with HLSL's conversions and swizzles, the resources, the intrinsics), the attributes for what SDSL declares and C# has no keyword for, the `Sdsl` markers. No Stride dependency. |
+| `src/Csl.Engine` | net10.0 | The engine's shaders (476 of 479) as `[Shader(External = true)]` classes, declarations only: what C# shaders inherit and call. Written by `csl engine`. |
+| `src/Csl.Runtime` | net10.0 | Running C# compute shaders: `ComputeEffect` wrappers, `ShaderContext`, allocation helpers, `ShaderSourceRegistry` (hands the generated SDSL to the effect compiler). |
+| `src/Csl.Tool` | net10.0, exe `csl` | `csl convert`: `.sdsl` files, or engine shaders by name, to C#. `csl engine`: regenerates `Csl.Engine`. |
+| `tests/Csl.TestApp` | net10.0, exe | The test bench: the whole-engine round trip checked by the engine compiler, and C# shaders run on the GPU. |
+| `tests/Csl.Tests` | net10.0, xunit | Unit tests of the generator, the wrappers, the analyzer and the runtime, without a GPU. |
 
-Reference them from the project that owns the shaders:
+A project that writes shaders in C# references:
 
 ```xml
-<ProjectReference Include="..\CSharpShaders\Csl.Runtime\Csl.Runtime.csproj" />
-<ProjectReference Include="..\CSharpShaders\Csl.Types\Csl.Types.csproj" />
-<ProjectReference Include="..\CSharpShaders\Csl.Generators\Csl.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+<ProjectReference Include="..\StrideCSL\src\Csl.Types\Csl.Types.csproj" />
+<ProjectReference Include="..\StrideCSL\src\Csl.Engine\Csl.Engine.csproj" />
+<ProjectReference Include="..\StrideCSL\src\Csl.Runtime\Csl.Runtime.csproj" />
+<ProjectReference Include="..\StrideCSL\src\Csl.Generators\Csl.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 ```
 
-## The wrappers
-
-For `shader VoxelWaterStep : ComputeShaderBase, VoxelWaterBricks` in namespace `Demo`, the generator
-emits `Demo.VoxelWaterStepEffect`:
-
-- **Base class**: the wrapper of the first base declared in the project (`VoxelWaterBricksEffect`,
-  abstract, carrying `ActiveBricks`, `SampleCount`, `BrickCount` once for every pass that mixes it
-  in), or `Csl.ComputeEffect` when there is none. Other project mixins are flattened into the class.
-  Engine shaders (`ComputeShaderBase`) are not wrapped; a shader is "compute" when its inheritance
-  reaches `ComputeShaderBase`.
-- **Constructor**: `new VoxelWaterStepEffect(services, threadNumbers)` with an `Int3` or a single
-  `int` for all axes. The `.sdsl` does not know its thread numbers (they are macros the effect sets),
-  so they are given here; changing `ThreadNumbers` later recompiles the effect on the next dispatch.
-- **One property per parameter**: every member that is not `stream`, `compose`, `const`, `static` or
-  `groupshared`, typed as the engine's key is (`float`, `Int3`, `Vector3`, `Texture?`, `Buffer?`,
-  `SamplerState?`). Setting one sets the key. The `///` comment of the member is the property's doc.
-- **`Slots`**: a nested static class with one `ResourceSlot` per resource: its HLSL type, its element
-  type and the access the shader makes of it, found by reading the method bodies (`Load`/`Sample`/
-  `Res[i]` read, `Res[i] = ` write, `Interlocked*` both). `Texture3D<T>` is always a read slot;
-  `RWTexture3D<T>` a write slot, or read-write when the body reads it back.
-- **`Dispatch(Int3 cells)`**: thread group counts are `ceil(cells / threadNumbers)` per axis;
-  `DispatchGroups(groups)` takes the counts directly. `Parameters` and `Shader` expose the engine
-  objects underneath.
-- **`IDisposable`**: disposes the `ComputeEffectShader`.
-
-`ShaderContext.Get(services)` holds the `RenderContext`, one `RenderDrawContext` and the command
-list, made once per game and registered as a service; every effect shares it.
-
-### Allocation helpers
-
-```csharp
-// Format from the element type, views from the slots: R16_Float, SRV|UAV.
-var amounts = Textures.New3D<Half>(device, size, VoxelWaterStepEffect.Slots.Amounts, VoxelWaterStepEffect.Slots.AmountsOut);
-// Whole mip chain, R8G8_UNorm.
-var field = Textures.New3D<Texels.Rg8>(device, size, MipMapCount.Auto, VoxelWaterComposeEffect.Slots.FieldOut, VoxelWaterMipEffect.Slots.Source);
-var levels = field.MipViews();          // MipChain: one single-mip view per level, levels[i], levels.SizeAt(i)
-var pair = new PingPong<Texture>(() => Textures.New3D<Half>(device, size, slots)); // pair.Current, pair.Next, pair.Swap()
-terrain.UploadRegion(commandList, MemoryMarshal.Cast<byte, Texels.Rg8>(texels), size, lo, hi); // a box of a whole-texture array
-changed.FillRegion(commandList, 1u, lo, hi);                                                   // one value over a box
-```
-
-Element types: `float`, `Half`, `uint`, `int`, `byte`, `ushort`, `Vector2/4`, `Half2/4`, `Int2/4`,
-`Color`, and `Csl.Texels.Rg8/R8/R16` for the unorm formats without a struct of their own.
-`Buffers.NewTyped<T>`, `NewStructured<T>` and `NewRaw` do the same for buffers.
-
-### Diagnostics
-
-| Id | Where | Says |
-|----|-------|------|
-| CSL001 | `.sdsl` | A declaration the parser did not understand; the wrapper may be incomplete. The engine's own parser still validates the shader. |
-| CSL002 | `.sdsl` | A parameter whose type has no C# key type (a struct, `float3x3`): use `Parameters`. |
-| CSL003 | `.sdsl` | An array parameter, not wrapped: use `Parameters`. |
-| CSL004 | `.sdsl` | The same shader name in two files; only the first is wrapped. |
-| CSL010 | C# | `Textures.New3D<T>(…, slot)` with a slot the shader both reads and writes through its RW view and a `T` other than `float`, `uint`, `int`: Direct3D 11 only allows a typed UAV load on R32 single-channel formats. The same check runs when a texture is bound to such a slot, whatever it was allocated with. |
-
-Binding a texture that lacks a view the slot needs (no UAV on a `RW` slot) throws with the slot's
-name; so does allocating with the wrong element type on a read-write slot.
-
-## Shaders in C#
-
-A shader is a `partial class` marked `[Shader]`, in a file that uses `Csl.Hlsl` and the intrinsics:
+## C# to SDSL: writing shaders in C#
 
 ```csharp
 using Csl; using Csl.Engine; using Csl.Hlsl; using static Csl.Hlsl.Intrinsics;
 
-[Shader, NumThreads(8, 8, 8), Mixin(typeof(VoxelWaterBricks))]
-public partial class VoxelWaterMip : ComputeShaderBase
+/// <summary>Output[i] = ToLinear(i / 63): an engine shader mixed in, its method called with types.</summary>
+[Shader, NumThreads(64), Mixin(typeof(ColorUtility))]
+public partial class CslColorLinear : ComputeShaderBase
 {
-    [Stage] public Texture3D<float2> Source;
-    [Stage] public RWTexture3D<float2> Target;
-    [Stage] public int3 SourceSize, TargetSize;
-    [Stage] public int Level;
+    [Stage] public RWBuffer<float> Output;
 
     public override void Compute()
     {
-        int3 brick = (int3)GroupId;              // a [Stream] of the base: streams.GroupId
-        int3 lo = brick * 8, hi = lo + 7;
-        Loop();                                  // [loop] on the for that follows
-        for (int i = 0; i < Level; i++) { lo = lo * 2 - 1; hi = hi * 2 + 1; }
-        if (!BoxDirty(lo, hi))                   // a method of the mixin
-            return;
-        ...
-        Target[c] = new float2(sum / weight, Source.Load(new int4(centre, 0)).g);
+        uint i = streams.DispatchThreadId.x;
+        Output[i] = ToLinear(i / 63.0f);
     }
 }
 ```
 
-The generator writes, next to the class:
+The generator writes, next to the class, the SDSL (`CslColorLinear.SdslSource`, registered at
+start-up in `ShaderSourceRegistry`), `CslColorLinearKeys` in the shape the engine gives a `.sdsl`,
+and for a compute shader `CslColorLinearEffect`, a typed wrapper:
 
-- the SDSL (`shader VoxelWaterMip : ComputeShaderBase, VoxelWaterBricks { ... }`), kept as
-  `VoxelWaterMip.SdslSource` and registered at start-up in `Csl.ShaderSourceRegistry`;
-- `VoxelWaterMipKeys`, in the shape the engine gives a `.sdsl` (the engine's assembly processor
-  names the keys `VoxelWaterMip.Source` etc. from the class name, exactly as for a file);
-- `VoxelWaterMipEffect`, the wrapper of the section above, with a constructor that takes the
-  `[NumThreads]` and `DefaultThreadNumbers`;
-- C# stubs of the members of every `[Mixin]` shader, so `BoxDirty` and `ActiveBricks` compile.
+```csharp
+using var output = Csl.Buffers.NewTyped<float>(GraphicsDevice, 64, CslColorLinearEffect.Slots.Output);
+using var effect = new CslColorLinearEffect(Services) { Output = output };
+effect.Dispatch(64);
+```
 
-**How the SDSL reaches the engine.** There is no `.sdsl` file. Each assembly's module initializer
-adds its shaders to `ShaderSourceRegistry`; the first `ShaderContext` (created by any
-`ComputeEffect`) hands them to the game's `EffectCompiler` through `ShaderSourceManager.AddShaderSource`,
-reached by reflection through the `EffectCompilerCache` the engine wraps it in. The effect cache
-keys on the source hash, so an edit recompiles. A shader used before any `ComputeEffect` exists
-(in a material) needs `ShaderSourceRegistry.InstallInto(effectSystem)` first. `--dump-sdsl=DIR`
-in the demo, or `ShaderSourceRegistry.DumpTo`, writes the sources as files. Game Studio does not
-see these shaders; assets cannot reference them by name.
+A shader of any other kind (a material feature, an image effect) is used by name like any engine
+shader: `new ImageEffectShader(nameof(CslInvert))`.
 
-### Mapping
+C# has one base class where SDSL has many: the first SDSL base is the C# base, the others are
+`[Mixin(...)]`. The generated half of every shader class declares the mixins' members as stubs (so
+they are in scope, typed) and `streams`, typed as the class itself, so `streams.Position` reads as in
+SDSL and is checked.
 
-| C# | SDSL |
-|----|------|
-| `partial class X : Base` | `shader X : Base` (the base must be a `[Shader]` class; `Csl.Engine.ComputeShaderBase` is one) |
-| `[Mixin(typeof(A), typeof(B))]` | `shader X : Base, A, B`; their members are stubbed on the class. Not virtual: to `override` a method, make its shader the C# base. |
-| `[Shader(Name = "Y")]`, `[Shader(External = true)]` | the SDSL name; a class that only describes a shader that exists elsewhere (no output) |
-| `[Stage] T f;` `[Stream("SV_X")] T f;` `[Compose] S f;` `[GroupShared] T f;` `const T f = v;` `[Link("K")]` `[Color]` | `stage T f;` `stream T f : SV_X;` `compose S f;` `groupshared T f;` `static const T f = v;` `[Link("K")]` `[Color]` |
-| reading a `[Stream]` field, `base.M()`, `override`, `abstract` | `streams.f`, `base.M()`, `override`, `abstract` |
-| `float`, `int`, `uint`, `bool`, `double`, `float3`, `int4`, `uint2`, `bool3`, `float4x4`, `Texture3D<T>`, `RWTexture3D<T>`, `Buffer<T>`, `StructuredBuffer<T>`, `SamplerState`… | the same names |
-| `new float3(a, b, c)`, `(int3)v`, `default(float2)` | `float3(a, b, c)`, `(int3)v`, `(float2)0` |
-| `v.xyz`, `v.rg`, `v[i]` | the same swizzles and indexing |
-| `min`, `max`, `any`, `all`, `floor`, `saturate`, `dot`, `InterlockedOr(ref x, v)`, `GroupMemoryBarrierWithGroupSync()`… | the same intrinsic, `ref`/`out` dropped |
-| `Loop();` `Unroll();` `Unroll(n);` `Branch();` `Flatten();` as the statement before a loop or an `if` | `[loop]` `[unroll]` `[unroll(n)]` `[branch]` `[flatten]` |
-| `2.0f`, `1e-4f`, `1u`, `8` | `2.0`, `1e-4`, `1`, `8` |
-| a `struct` nested in the class | `struct` at shader scope |
-| `///` comments | `///` comments, and the wrapper's documentation |
+### Extending an engine shader
 
-Allowed in methods: locals (`var` resolves to its type), assignments, the operators, `if`/`else`,
-`for`, `while`, `do`, `switch` on constants, `break`/`continue`/`return`, the ternary, casts, calls
-to the class's methods, the mixins', the resources' and the intrinsics.
+`Csl.Engine` has the engine's shaders as C# classes; inherit one, override its methods:
 
-Not allowed, each a `CSL1xx` error on its line: any other type (`string`, `object`, classes,
-arrays, delegates, `Half`, Stride's `Vector3`), `new` of a reference type, calls outside the
-shader (`MathF`, `Math`, LINQ), `foreach`, `try`/`throw`, lambdas, `is`/`as`/`??`, tuples, `this`
-on its own, properties, events, constructors, nested classes, generic or nested shader classes,
-a non-`partial` shader class, a base that is not a `[Shader]`, and a C# shader with the same name
-as a `.sdsl` of the project.
+```csharp
+[Shader]
+public partial class CslInvert : ImageEffectShader
+{
+    [Stage]
+    public override float4 Shading()
+    {
+        float4 color = Texture0.Sample(PointSampler, streams.TexCoord);   // Texturing's, through SpriteBase
+        return new float4(1.0f - color.rgb, color.a);
+    }
+}
+```
+
+A method of a mixin (not of the C# base class) is overridden with `[Override]`; a mixin's method
+reached through `base` is `Sdsl.Base(this).Method()`.
+
+### Modifying an engine shader
+
+`csl convert --engine LuminanceUtils --namespace My.Shaders --out Shaders` writes the engine's
+`LuminanceUtils` as a full C# class, bodies included. Edit it; it keeps the engine's SDSL name, so
+once registered (at the first `ComputeEffect`, or `ShaderSourceRegistry.InstallInto(effectSystem)`)
+it replaces the engine's shader in every effect that uses it. `tests/Csl.TestApp/Modified` does this
+and the gpu tests check the result.
+
+## SDSL to C#: converting shaders
+
+```
+csl convert Shaders/MyShader.sdsl --out Shaders/Cs              # a project's shaders, bodies included
+csl convert --engine ComputeColorTexture --out Shaders/Cs        # an engine shader, to modify
+csl convert Shaders/MyShader.sdsl --declarations --out External  # external classes, to extend .sdsl shaders from C#
+```
+
+The converter parses whole files (bodies, the `#if` structure, comments and doc comments), writes C#
+from the tree, then compiles it with the generator and makes explicit, error after error, what HLSL
+does implicitly and C# does not accept. Each fix is a marker the translator leaves out, so the SDSL
+the C# translates back to is the original: `Sdsl.Implicit<float3>(v)` is `v` (a narrowing, an int
+used as a condition), `= default` on a local is no initializer, `Sdsl.Undefined(out x)` is nothing.
+
+Converting `ShadingBase` gives, for instance:
+
+```csharp
+[Shader]
+[Define("STRIDE_RENDER_TARGET_COUNT", "1", If = "!defined(STRIDE_RENDER_TARGET_COUNT)")]
+public abstract partial class ShadingBase : ShaderBase
+{
+    [Compose] public ComputeColor ShadingColor0;
+    [If("STRIDE_RENDER_TARGET_COUNT > 1"), Compose] public ComputeColor ShadingColor1;
+    ...
+    [Stage]
+    public override void PSMain()
+    {
+        base.PSMain();
+        streams.ColorTarget = this.Shading();
+
+        if (Sdsl.If("STRIDE_RENDER_TARGET_COUNT > 1"))
+        {
+            streams.ColorTarget1 = ShadingColor1.Compute();
+        }
+        ...
+```
+
+and back exactly the SDSL it came from.
+
+### What C# says for what SDSL says
+
+| SDSL | C# |
+|------|----|
+| `shader X : A, B<T, 2>, C` | `[Mixin(typeof(B), Generics = "T, 2"), Mixin(typeof(C))] partial class X : A`; generic first base: `[Shader(BaseGenerics = "...")]` |
+| `shader X<LinkType TName, int TCount>` | `[Generic] public static LinkType TName; [Generic] public static int TCount;` |
+| `internal shader X` | `[Shader(Internal = true)]` |
+| `stage`, `stream T x : SEM`, `patchstream`, `compose`, `groupshared`, `clone` | `[Stage]`, `[Stream("SEM")]`, `[PatchStream]`, `[Compose]`, `[GroupShared]`, `[Clone]` |
+| `static const T x = v;` | `public const T x = v;`, or `public static readonly T x = v;` for vectors |
+| `cbuffer PerMaterial { ... }`, `rgroup`, `tbuffer` | `[CBuffer("PerMaterial")]` on each member (`NewBlock = true` for a second block of the same name) |
+| `[Link("X")]`, `[Color]`, any other attribute | `[Link("X")]`, `[Color]`, `[Hlsl("maxvertexcount(3)")]` |
+| `T x[N]`, `compose T x[]` | `[Size("N")] T[] x`, `[Compose] T[] x` |
+| `T x : SEMANTIC`, `nointerpolation`, parameter `triangle`, `const` | `[Semantic("SEMANTIC")]`, `[Modifiers("nointerpolation")]` |
+| `SamplerState S { Filter = ...; }` | `[Sampler(Filter = "...", AddressU = "Wrap")] SamplerState S` |
+| `#if C` around a member | `[If("C")]`; versions of one member under different `#if`: `[Variant("SDSL", If = "C")]` |
+| `#define N V`, `#ifndef N / #define N V / #endif`, `#error` | `[Define("N", "V")]`, `[Define("N", "V", If = "!defined(N)")]`, `[PreprocessorError("...")]` |
+| `#if` / `#elif` / `#else` in a body | `if (Sdsl.If("C")) { } else if (Sdsl.If("D")) { } else { }` |
+| a macro in an expression, a macro statement | `Sdsl.Macro("N")`, `Sdsl.MacroStatement("N");` |
+| `override` a mixin's method | `[Override]` (C#'s `override` only reaches the C# base class) |
+| `streams.x`, `streams.TName` (MemberName), a stream the effect brings | `streams.x`, `streams[TName]`, `streams["x"]` |
+| `v.TName` (MemberName), `m._m00_m11` | `Sdsl.Member(v, TName)`, `Sdsl.Member(m, "_m00_m11")` (assignable) |
+| `Shader.Method()` without an instance | `Sdsl.Static<Shader>().Method()` (a static method is called directly) |
+| `in`, `out`, `inout` | `in`, `out`, `ref` |
+| `[unroll]`, `[loop]`, `[branch]`, `[flatten]`, `[fastopt]` | `Unroll();`, `Loop();`, `Branch();`, `Flatten();`, `Attribute("fastopt");` before the statement |
+| `discard;` | `discard();` |
+| `float3(a, b, c)`, `(float3)x`, `(S)0` | `new float3(a, b, c)`, `(float3)x`, `default(S)` |
+| `const` / `static const` locals | `const` when C# can, else `Sdsl.Const(v)` / `Sdsl.StaticConst(v)` |
+| `Input`, `Output`, `TriangleStream<T>`… | `[Type("TriangleStream<Output>")] dynamic` |
+| `2.0`, `2.0f`, `1u` | `2.0f`, `2.0f`, `1u` (written `(uint)1`: the 4.4 parser takes no `u`) |
+
+The HLSL types follow HLSL's conversions: widening (bool < int < uint < half < float < double, same
+size) is implicit, narrowing and truncation are explicit, as HLSL only warns about them. Vectors take
+any mix of parts in their constructors (`new float4(v.xyz, 1)`), scalars have swizzles (`f.xxx`, C#
+14 extension members), matrices have `m[row]`, `m._m01`, `m._12`.
+
+## Validation
+
+`tests/Csl.TestApp`, `dotnet run --project tests/Csl.TestApp -- <command>`:
+
+| Command | Does |
+|---------|------|
+| `parse` | Parses every engine shader with the full parser. |
+| `convert [--out DIR]` | Converts every engine shader SDSL → C# → SDSL; writes both and a report of what fails. |
+| `roundtrip [--out DIR]` | Compiles each converted engine shader with the engine's SDSL compiler (`ShaderMixer`, to SPIR-V) from its original source and from its round trip (its bases round-tripped too) and compares the SPIR-V without debug instructions. A shader without an entry point is hosted after `ShaderBase` or `ComputeShaderBase`; a generic one is instantiated with sample arguments. A difference is traced to the base that causes it. |
+| `compile NAME...` | Compiles engine shaders (and this app's C# shaders), mixed in this order. |
+| `gpu` | A code-only Stride game (hidden window) that runs the C# shaders of `Shaders/` and checks what they compute: a shader written in C#, an engine shader mixed in, an engine shader replaced by its modified C#, the engine's `ImageEffectShader` extended. |
+
+Results on Stride 4.4.0-beta7 (479 shaders in the packages):
+
+- **471** convert and translate back; the SPIR-V of **442** is identical to the original's, none
+  differs; the other 29 do not compile on their own in their original form either (a composition
+  left empty, an abstract method nothing implements).
+- **476** are in `Csl.Engine`.
+- Not converted: `FXAAShader` and `SubsurfaceScatteringBlurShader` (function-like macros) and
+  `SSLRBlurPass` (`#if` inside an initializer list), which are the three missing from `Csl.Engine`;
+  `PositionStream` (the whole shader under `#if`/`#else`, in two versions: in `Csl.Engine` for
+  typing, not round-tripped); and four shaders whose bodies do not compile as C# yet.
+
+`tests/Csl.Tests` (`dotnet test`) checks the generator on sample shaders, the wrappers against the
+engine, and compiles the generated SDSL with the engine compiler.
+
+## Compute wrappers
+
+For `shader VoxelWaterStep : ComputeShaderBase, VoxelWaterBricks`, the generator emits
+`VoxelWaterStepEffect`:
+
+- **Base class**: the wrapper of the first base declared in the project (abstract, carrying its
+  parameters once for every pass that mixes it in), or `Csl.ComputeEffect`. A shader is "compute"
+  when its inheritance reaches `ComputeShaderBase`.
+- **Constructor**: `new VoxelWaterStepEffect(services, threadNumbers)`, or without thread numbers for
+  a C# shader with `[NumThreads]`.
+- **One property per parameter**, typed as the engine's key (`float`, `Int3`, `Vector3`, `Texture?`,
+  `Buffer?`), documented from the member's `///`.
+- **`Slots`**: one `ResourceSlot` per resource with its HLSL type, element type and the access the
+  shader makes of it (read from the bodies).
+- **`Dispatch(Int3 cells)`**: `ceil(cells / threadNumbers)` groups per axis.
+
+`Textures.New3D<T>(device, size, slots...)`, `Buffers.NewTyped<T>`, `NewStructured<T>`, `NewRaw`
+allocate with the format of the element type and the views the slots need; `MipViews()`,
+`PingPong<T>`, `UploadRegion`, `FillRegion` cover the rest.
+
+### Diagnostics
 
 | Id | Says |
 |----|------|
-| CSL100 | The shader class must be partial. |
-| CSL101 | A statement or expression outside the subset. |
-| CSL102 | A type with no SDSL equivalent. |
-| CSL103 | `new` of something that is not a vector, a matrix or a shader struct. |
-| CSL104 | A member kind a shader cannot have (property, event, constructor, nested class). |
-| CSL105 / CSL106 | Generic / nested shader class. |
-| CSL107 | A call outside the intrinsics, the resources and the shader's own methods. |
-| CSL108 | A base or a `[Mixin]` that is not a `[Shader]` class. |
-| CSL109 | The same shader name in C# and in a `.sdsl` file. |
-
-`Csl.Engine.ComputeShaderBase` is written by `Csl.Stubs` from the engine's `ComputeShaderBase.sdsl`
-(streams with their semantics, `ThreadGroupCountGlobal`, `Compute()` and `IsFirstThreadOfGroup()`
-as virtuals). The tool takes any `.sdsl`: `dotnet run --project CSharpShaders/Csl.Stubs -- --out
-Csl.Types/Engine --namespace Csl.Engine path/to/X.sdsl`. A shader that uses the preprocessor for
-more than defaults gets a partial stub, to finish by hand.
-
-### Validation
-
-- **Compiles with the engine**: `Csl.Tests` feeds every generated SDSL (the three samples and the
-  seven demo shaders) to `Stride.Shaders.Compilers.ShaderMixer` with the engine's `ComputeShaderBase`,
-  as `ComputeEffectShader` would, and requires SPIR-V out. Runs on the CPU, no GPU.
-- **Bit-exact against the original SDSL**: the seven water shaders were rewritten in C#
-  (`Demo/Shaders/*.cs`); the originals are kept in `Demo/Effects/Reference/*.sdsl.txt`, embedded
-  in the demo. Two runs on the same terrain, then a byte comparison of the amounts (half floats),
-  the drawn field and the occupancy base:
-
-  ```
-  Demo.exe --voxelgrid --earth --water-steps=200 --water-shaders=reference --out=Water
-  Demo.exe --voxelgrid --earth --water-steps=200 --out=Water
-  ```
-
-  The second run prints `[water] IDENTICAL` or `DIFFERENT` with the first differing byte, and sets
-  the exit code. Textually, the generated SDSL of all seven is identical to the originals apart from
-  comments, whitespace and parentheses.
-- **Visually**: `--shot=DIR --shot-pose=front` (or any pose) with and without `--water-shaders=reference`.
-
-## Before and after: `Demo/VoxelWater.cs`
-
-Before, each pass was a `ComputeEffectShader` created lazily, its parameters set by key on every
-step, the thread group counts computed by a local `Dispatch`, and each texture created with its
-format and flags spelled out:
-
-```csharp
-step ??= new ComputeEffectShader(renderContext) { ShaderSourceName = "VoxelWaterStep" };
-...
-Bricks(step.Parameters, active);
-step.Parameters.Set(VoxelWaterStepKeys.ChangedOut, changed);
-step.Parameters.Set(VoxelWaterStepKeys.Terrain, Terrain);
-step.Parameters.Set(VoxelWaterStepKeys.Amounts, amounts[current]);
-step.Parameters.Set(VoxelWaterStepKeys.AmountsOut, amounts[next]);
-step.Parameters.Set(VoxelWaterStepKeys.IsoLevel, isoLevel);
-... seven more ...
-Dispatch(step, new Int3(BrickSize), SampleCount);
-current = next;
-```
-
-After, the constants are set once at construction and a step reads as the algorithm:
-
-```csharp
-step = new VoxelWaterStepEffect(services, BrickSize) { ActiveBricks = active, ChangedOut = changed, Terrain = Terrain, IsoLevel = isoLevel };
-...
-step.Amounts = amounts.Current;
-step.AmountsOut = amounts.Next;
-step.MaxCompress = MaxCompress;
-step.Quantum = Quantum;
-step.Soak = Soak;
-step.PourCentre = pourCentre;
-step.PourRadius = pourRadius;
-step.PourAmount = pourAmount;
-step.Dispatch(SampleCount);
-amounts.Swap();
-```
-
-The orchestration (sub-steps, the ping-pong, the mip loop, the pyramid, the brick marking) is
-unchanged and still explicit. The texture creation, the mip views, the region upload, the
-`ParameterCollection` calls, the group count arithmetic and the effect lifetime are gone: 326 lines
-to 281, most of the difference in the constructor and `Step`. The seven `.sdsl` files became seven
-`.cs` files of the same length, one for one.
+| CSL001–004 | A `.sdsl` declaration the wrapper parser did not understand, a parameter type or array without a C# key type, a shader declared twice. |
+| CSL010 | A texture read and written through its RW view with a format Direct3D 11 cannot load from. |
+| CSL100–109 | C# that has no SDSL equivalent, on its line: a non-partial shader class, a statement or type outside the subset, a call outside the intrinsics and shader methods, a base that is not a shader, a C# shader named like a `.sdsl`. |
 
 ## Limits
 
-- The declaration parser covers what the wrappers need (namespaces, shaders, bases, members,
-  attributes, cbuffers, method signatures, bodies as tokens). Generic shaders get no wrapper;
-  effects (`.sdfx`) and structs are skipped.
-- C# shaders: no arrays yet (fields or locals), no `switch` on patterns, no generic methods, no
-  method default values; `static` methods become plain shader methods; a `[Mixin]` member cannot be
-  overridden; the engine's SDSL parser takes no `u` suffix, so `uint` literals are emitted bare.
-- The in-memory registration walks a `protected` property of `EffectCompilerChain` by reflection
-  and needs the local `EffectCompiler` (not the remote one); it fails with a clear message otherwise.
-- Only `ComputeShaderBase` is stubbed. Other engine bases go through `Csl.Stubs`, whose output is
-  partial where the `.sdsl` leans on the preprocessor.
-- Resource usage is syntactic: a resource passed to a function is counted as read; a resource used
-  only inside a mixin's methods is classified by that mixin. Neither can produce a false "read-only".
-- Thread numbers are not in the `.sdsl`; they are given at construction.
-- Only cubic mip sizes were exercised (the demo's textures); `MipChain.SizeAt` computes each axis.
-- Building the demo needs the engine fork it targets (`Stride.Voxels` with `VoxelGridOccupancy`);
-  the published 4.4 packages build `Csl.*` and the tests, not the demo.
+- Function-like macros, `#if` inside an expression, and a whole shader under `#if` are not converted.
+- A local declared in one `#if` branch and used after it does not compile in C# (the branch is a block).
+- `[Variant]` versions of a member are SDSL text: C# types the member by its main version only.
+- The in-memory registration reaches the local `EffectCompiler` through a protected property, by
+  reflection; a remote compiler cannot take C# shaders.
+- The conversion needs Roslyn 5 (C# 14, for the scalar swizzles): `csl` and the test app carry it;
+  the generator itself builds against Roslyn 4.12 and runs in any recent SDK.
