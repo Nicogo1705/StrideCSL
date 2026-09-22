@@ -12,12 +12,16 @@ namespace Csl.TestApp.Shaders;
 [Shader, NumThreads(64)]
 public partial class CslLuma : ComputeShaderBase
 {
-    [Stage] public RWBuffer<float> Output;
+    [Stage] public RWStructuredBuffer<float> Output;
 
     public override void Compute()
     {
         uint i = streams.DispatchThreadId.x;
-        float3 color = new float3(i % 4, i / 4 % 4, i / 16 % 4) / 3.0f;
+        // The channels as uint locals: see EngineProbeDivision for why not in the constructor.
+        uint r = i % 4;
+        uint g = i / 4 % 4;
+        uint b = i / 16 % 4;
+        float3 color = new float3(r, g, b) / 3.0f;
         Output[i] = LuminanceUtils.Luma(color);
     }
 }

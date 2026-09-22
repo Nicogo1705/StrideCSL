@@ -12,7 +12,7 @@ namespace Csl.TestApp.Shaders;
 [Shader, NumThreads(64), Mixin(typeof(ColorUtility))]
 public partial class CslColorLinear : ComputeShaderBase
 {
-    [Stage] public RWBuffer<float> Output;
+    [Stage] public RWStructuredBuffer<float> Output;
 
     public override void Compute()
     {

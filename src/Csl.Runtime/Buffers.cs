@@ -25,7 +25,10 @@ public static class Buffers
             if (slot.NeedsTypedUavLoad && !ResourceSlot.IsTypedUavLoadFormat(format))
                 throw new ArgumentException($"{slot} is read and written through its RW view, which needs R32_Float, R32_UInt or R32_SInt; allocate it with float, uint or int rather than {typeof(T).Name}");
         }
-        return Buffer.New(device, count * System.Runtime.CompilerServices.Unsafe.SizeOf<T>(), System.Runtime.CompilerServices.Unsafe.SizeOf<T>(), FlagsFor(boundTo), format, GraphicsResourceUsage.Default);
+        // As the engine's Buffer.Typed makes them: no structure stride (Direct3D 11 refuses one on a
+        // typed buffer), always a shader resource, unordered access when a slot writes it.
+        var flags = FlagsFor(boundTo) | BufferFlags.ShaderResource;
+        return Buffer.New(device, count * System.Runtime.CompilerServices.Unsafe.SizeOf<T>(), flags, format, GraphicsResourceUsage.Default);
     }
 
     /// <summary>A structured buffer (StructuredBuffer&lt;T&gt; / RWStructuredBuffer&lt;T&gt;) of this many elements.</summary>

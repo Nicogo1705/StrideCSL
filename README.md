@@ -197,8 +197,23 @@ Results on Stride 4.4.0-beta7 (479 shaders in the packages):
   `PositionStream` (the whole shader under `#if`/`#else`, in two versions: in `Csl.Engine` for
   typing, not round-tripped); and four shaders whose bodies do not compile as C# yet.
 
+On the GPU (`gpu`, Direct3D 11): the four C# shaders compute what the CPU expects, the modified
+`LuminanceUtils` replacing the engine's in the effect that calls it.
+
 `tests/Csl.Tests` (`dotnet test`) checks the generator on sample shaders, the wrappers against the
 engine, and compiles the generated SDSL with the engine compiler.
+
+### Engine issues found on the way (Stride 4.4.0-beta7, Direct3D 11)
+
+- A typed buffer with an unordered access view (`RWBuffer<T>`) fails to create
+  (`E_INVALIDARG`), `Buffer.Typed.New(device, n, PixelFormat.R32_UInt, unorderedAccess: true)`
+  included; structured and raw buffers work. The gpu tests use `RWStructuredBuffer<T>`.
+- `float3(i / 4, 0, 0)` with a `uint i` divides in float (`i = 1` gives 0.25): the constructor's
+  float type reaches the integer division inside its argument. The same division through a local is
+  right. `gpu` reports it as `ENGINE` (the `EngineProbeDivision` shader), outside the tests.
+- `override stage` and `stage override` on a method do not compile to the same SPIR-V
+  (`ShadowMapCasterNoPixelShader`); the conversion keeps the order as written (`[Stage(AfterOverride = true)]`).
+- The 4.4 SDSL parser takes no `u` suffix on integer literals.
 
 ## Compute wrappers
 

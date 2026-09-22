@@ -9,7 +9,7 @@ namespace Csl.TestApp.Shaders;
 [Shader, NumThreads(64)]
 public partial class CslSquares : ComputeShaderBase
 {
-    [Stage] public RWBuffer<uint> Output;
+    [Stage] public RWStructuredBuffer<uint> Output;
     [Stage] public uint Offset;
 
     public override void Compute()
