@@ -35,6 +35,9 @@ internal sealed class GpuTests : Game
 
     private GpuTests()
     {
+        // No GameSettings to follow (their default profile is 10_0): typed UAVs (RWBuffer<T>) need 11_0 on Direct3D 11.
+        AutoLoadDefaultSettings = false;
+        GraphicsDeviceManager.PreferredGraphicsProfile = new[] { GraphicsProfile.Level_11_0 };
         GraphicsDeviceManager.PreferredBackBufferWidth = 64;
         GraphicsDeviceManager.PreferredBackBufferHeight = 64;
     }
@@ -55,8 +58,8 @@ internal sealed class GpuTests : Game
         Test("an engine shader mixed in (ColorUtility)", ColorLinear);
         Test("an engine shader replaced by its modified C# (LuminanceUtils)", Luma);
         Test("an engine graphics shader extended (ImageEffectShader)", Invert);
+        Test("a typed buffer with unordered access (RWBuffer<T>)", TypedBuffer);
         Probe("uint division inside a vector constructor", ProbeDivision);
-        Probe("typed buffer with unordered access (RWBuffer<T>)", ProbeTypedBuffer);
         Exit();
     }
 
@@ -102,15 +105,20 @@ internal sealed class GpuTests : Game
 
     private static bool Close(float a, float b) => MathF.Abs(a - b) <= 1e-5f * MathF.Max(1f, MathF.Abs(b));
 
-    // The outputs are structured buffers: a typed buffer with an unordered access view (RWBuffer<T>)
-    // fails to create on Direct3D 11 with Stride 4.4.0-beta7, the engine's Buffer.Typed.New included.
-
     private string? Squares()
     {
         using var output = Csl.Buffers.NewStructured<uint>(GraphicsDevice, Count, CslSquaresEffect.Slots.Output);
         using var effect = new CslSquaresEffect(Services) { Output = output, Offset = 7 };
         effect.Dispatch(Count);
         return Compare(output.GetData<uint>(CommandList), i => (uint)(i * i + 7), (a, b) => a == b);
+    }
+
+    private string? TypedBuffer()
+    {
+        using var output = Csl.Buffers.NewTyped<uint>(GraphicsDevice, Count, CslTypedBufferEffect.Slots.Output);
+        using var effect = new CslTypedBufferEffect(Services) { Output = output };
+        effect.Dispatch(Count);
+        return Compare(output.GetData<uint>(CommandList), i => (uint)(i * 3), (a, b) => a == b);
     }
 
     private string? ColorLinear()
@@ -141,19 +149,6 @@ internal sealed class GpuTests : Game
             return failure + (engine == null ? " (the engine's LuminanceUtils ran: the C# replacement was not used)" : string.Empty);
         }
         return null;
-    }
-
-    private string ProbeTypedBuffer()
-    {
-        try
-        {
-            using var buffer = Buffer.Typed.New(GraphicsDevice, Count, PixelFormat.R32_UInt, unorderedAccess: true);
-            return "Buffer.Typed.New(R32_UInt, unorderedAccess: true) creates it";
-        }
-        catch (Exception e)
-        {
-            return "Buffer.Typed.New(R32_UInt, unorderedAccess: true) fails: " + e.GetType().Name + ": " + e.Message;
-        }
     }
 
     private string ProbeDivision()

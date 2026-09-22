@@ -197,7 +197,7 @@ Results on Stride 4.4.0-beta7 (479 shaders in the packages):
   `PositionStream` (the whole shader under `#if`/`#else`, in two versions: in `Csl.Engine` for
   typing, not round-tripped); and four shaders whose bodies do not compile as C# yet.
 
-On the GPU (`gpu`, Direct3D 11): the four C# shaders compute what the CPU expects, the modified
+On the GPU (`gpu`, Direct3D 11, feature level 11_0): the five C# shaders compute what the CPU expects, the modified
 `LuminanceUtils` replacing the engine's in the effect that calls it.
 
 `tests/Csl.Tests` (`dotnet test`) checks the generator on sample shaders, the wrappers against the
@@ -207,9 +207,9 @@ engine, and compiles the generated SDSL with the engine compiler.
 
 `Csl.TestApp probes` (CPU) and `gpu` report them as `ENGINE` lines, outside the tests.
 
-- A typed buffer with an unordered access view (`RWBuffer<T>`) fails to create
-  (`E_INVALIDARG`), `Buffer.Typed.New(device, n, PixelFormat.R32_UInt, unorderedAccess: true)`
-  included; structured and raw buffers work. The gpu tests use `RWStructuredBuffer<T>`.
+- A typed buffer with an unordered access view (`RWBuffer<T>`) needs feature level 11_0 on Direct3D 11,
+  and a game without GameSettings runs at `RenderingSettings.DefaultGraphicsProfile`, 10_0: the
+  engine then fails with a bare `E_INVALIDARG`. The gpu tests ask for 11_0.
 - `float3(i / 4, 0, 0)` with a `uint i` divides in float (`i = 1` gives 0.25): the constructor's
   float type reaches the literal `4` inside the integer division. The same division through a local
   is right.
