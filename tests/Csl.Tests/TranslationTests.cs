@@ -94,7 +94,7 @@ using Csl.Types;
 using static Csl.Types.Intrinsics;
 namespace T
 {
-    [Shader]
+    [Shader, NumThreads(64)]
     public partial class Bad : ComputeShaderBase
     {
         [Stage] public float A;
@@ -143,6 +143,169 @@ using Csl; using Csl.Engine;
         {
             File.Delete(path);
         }
+    }
+
+    private const string CheckedShader = @"
+using Csl;
+using Csl.Engine;
+using Csl.Types;
+using static Csl.Types.Intrinsics;
+namespace T
+{
+    [Shader, NumThreads(8, 8, 1)]
+    public partial class Checked : ComputeShaderBase
+    {
+        [Stage] public RWTexture2D<float4> Output;
+        [Stage] public float Scale;
+        [Stage] public float2 Offset;
+        [Stage] public Texture2D<float4> Input;
+        [Stage] public SamplerState Sampler;
+        [GroupShared] public static float[] Shared;
+        public static float Counter;
+        MEMBERS
+        public override void Compute()
+        {
+            uint2 p = streams.DispatchThreadId.xy;
+            BODY
+        }
+    }
+}";
+
+    private static async Task<string[]> CheckIds(string body, string members = "")
+    {
+        var result = await RunOnSource(CheckedShader.Replace("BODY", body).Replace("MEMBERS", members));
+        return result.Diagnostics.Where(d => d.Id.StartsWith("CSL11")).Select(d => d.Id).ToArray();
+    }
+
+    [Theory]
+    [InlineData("float sample = 1.0f;", "CSL110")]
+    [InlineData("float point = 1.0f;", "CSL110")]
+    [InlineData("float half = 1.0f;", "CSL110")]
+    [InlineData("float float2 = 1.0f;", "CSL110")]
+    [InlineData("float Texture2D = 1.0f;", "CSL110")]
+    [InlineData("float @params = 1.0f;", "CSL110")]
+    [InlineData("Scale = 2.0f;", "CSL112")]
+    [InlineData("Scale += 2.0f;", "CSL112")]
+    [InlineData("Scale++;", "CSL112")]
+    [InlineData("Offset.x = 2.0f;", "CSL112")]
+    [InlineData("this.Scale = 2.0f;", "CSL112")]
+    [InlineData("float d = ddx((float)p.x);", "CSL113")]
+    [InlineData("discard();", "CSL113")]
+    [InlineData("float4 c = Input.Sample(Sampler, new float2(0.5f, 0.5f));", "CSL113")]
+    [InlineData("for (int k = 0; k < 4; k++) { if (k == 2) return; }", "CSL114")]
+    [InlineData("float3 v = new float3(p.x / 4, 0.0f, 0.0f);", "CSL118")]
+    public async Task EachCheckFiresOnItsCase(string body, string expectedId)
+    {
+        Assert.Contains(expectedId, await CheckIds(body));
+    }
+
+    [Theory]
+    [InlineData("float distance = 1.0f; float length = 2.0f; float stage = 3.0f; float mixin = 4.0f;")]
+    [InlineData("float local = Scale; local = 2.0f; local += 1.0f;")]
+    [InlineData("Output[p] = new float4(Scale, 0.0f, 0.0f, 1.0f);")]
+    [InlineData("Counter = 1.0f; Shared[0] = 1.0f;")]
+    [InlineData("float4 c = Input.SampleLevel(Sampler, new float2(0.5f, 0.5f), 0.0f);")]
+    [InlineData("int found = 0; for (int k = 0; k < 4; k++) { if (k == 2) { found = k; break; } }")]
+    [InlineData("uint q = p.x / 4; float3 v = new float3(q, 0.0f, 0.0f); float3 w = new float3(p.x / 4.0f, 0.0f, 0.0f);")]
+    public async Task LegitimateCodeRaisesNoCheck(string body)
+    {
+        Assert.Empty(await CheckIds(body));
+    }
+
+    [Fact]
+    public async Task RecursionIsReportedWithItsCycle()
+    {
+        var result = await RunOnSource(CheckedShader
+            .Replace("BODY", "float f = A(1.0f);")
+            .Replace("MEMBERS", "public float A(float x) { return x <= 0.0f ? 0.0f : B(x - 1.0f); } public float B(float x) { return A(x); } public float C(float x) { return x; }"));
+        var recursion = result.Diagnostics.Where(d => d.Id == "CSL111").Select(d => d.GetMessage()).OrderBy(m => m).ToArray();
+        Assert.Equal(2, recursion.Length);
+        Assert.Contains("A → B → A", recursion[0]);
+        Assert.Contains("B → A → B", recursion[1]);
+    }
+
+    [Fact]
+    public async Task CallingTheOverriddenMethodIsNotRecursion()
+    {
+        var result = await RunOnSource(@"
+using Csl; using Csl.Engine; using Csl.Types; using static Csl.Types.Intrinsics;
+[Shader]
+public partial class Brighter : ImageEffectShader
+{
+    [Stage]
+    public override float4 Shading()
+    {
+        return Sdsl.Base(this).Shading() * 2.0f + base.Shading();
+    }
+}");
+        Assert.DoesNotContain(result.Diagnostics, d => d.Id == "CSL111");
+    }
+
+    [Fact]
+    public async Task DerivativesAreFineOutsideComputeShaders()
+    {
+        var result = await RunOnSource(@"
+using Csl; using Csl.Engine; using Csl.Types; using static Csl.Types.Intrinsics;
+[Shader]
+public partial class Pixel : ImageEffectShader
+{
+    [Stage]
+    public override float4 Shading()
+    {
+        float2 uv = streams.TexCoord;
+        if (uv.x > 2.0f) discard();
+        return Texture0.Sample(PointSampler, uv) + ddx(uv.x);
+    }
+}");
+        Assert.DoesNotContain(result.Diagnostics, d => d.Id.StartsWith("CSL11"));
+    }
+
+    [Theory]
+    [InlineData("NumThreads(64, 64, 1)", "CSL115")]
+    [InlineData("NumThreads(1, 1, 128)", "CSL115")]
+    [InlineData("NumThreads(0, 1, 1)", "CSL115")]
+    [InlineData("NumThreads(32, 32, 1)", null)]
+    public async Task ThreadGroupsStayWithinDirect3DLimits(string threads, string? expectedId)
+    {
+        var ids = (await RunOnSource(CheckedShader.Replace("NumThreads(8, 8, 1)", threads).Replace("BODY", "").Replace("MEMBERS", "")))
+            .Diagnostics.Where(d => d.Id.StartsWith("CSL11")).Select(d => d.Id).ToArray();
+        if (expectedId == null)
+            Assert.Empty(ids);
+        else
+            Assert.Equal(new[] { expectedId }, ids);
+    }
+
+    [Fact]
+    public async Task AComputeShaderWithoutNumThreadsIsNoted()
+    {
+        var result = await RunOnSource(CheckedShader.Replace("Shader, NumThreads(8, 8, 1)", "Shader").Replace("BODY", "").Replace("MEMBERS", ""));
+        var note = Assert.Single(result.Diagnostics, d => d.Id == "CSL116");
+        Assert.Equal(DiagnosticSeverity.Info, note.Severity);
+    }
+
+    [Theory]
+    [InlineData("[Shader]", "CSL117")]
+    [InlineData("[Shader(Replaces = true)]", null)]
+    public async Task ReplacingAnEngineShaderIsSaidOutLoud(string attribute, string? expectedId)
+    {
+        var result = await RunOnSource(@"
+using Csl; using Csl.Types;
+" + attribute + @"
+public abstract partial class LuminanceUtils
+{
+    public static float Luma(float3 color) { return color.x; }
+}");
+        var ids = result.Diagnostics.Where(d => d.Id.StartsWith("CSL11")).Select(d => d.Id).ToArray();
+        Assert.Equal(expectedId == null ? Array.Empty<string>() : new[] { expectedId }, ids);
+    }
+
+    [Fact]
+    public async Task ACheckErrorKeepsTheShaderFromBeingEmitted()
+    {
+        var result = await RunOnSource(CheckedShader.Replace("BODY", "Scale = 2.0f;").Replace("MEMBERS", ""));
+        Assert.DoesNotContain(result.GeneratedTrees, t => t.FilePath.EndsWith("Checked.Sdsl.g.cs"));
+        var warned = await RunOnSource(CheckedShader.Replace("BODY", "float3 v = new float3(p.x / 4, 0.0f, 0.0f);").Replace("MEMBERS", ""));
+        Assert.Contains(warned.GeneratedTrees, t => t.FilePath.EndsWith("Checked.Sdsl.g.cs"));
     }
 
     private static Task<GeneratorDriverRunResult> RunOnSource(string source, params string[] sdslPaths)

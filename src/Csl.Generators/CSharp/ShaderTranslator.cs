@@ -17,7 +17,7 @@ namespace Csl.Generators.CSharp;
 /// [CBuffer], [If]…) and as calls to markers (Sdsl.If, Sdsl.Macro, Unroll()…). Anything else is a
 /// diagnostic on the offending node, and the shader is not emitted.
 /// </summary>
-public sealed class ShaderTranslator
+public sealed partial class ShaderTranslator
 {
     private const string TypesNamespace = "Csl.Types";
     private const string IntrinsicsType = "Csl.Types.Intrinsics";
@@ -207,6 +207,7 @@ public sealed class ShaderTranslator
                 members.Add((member, declarationModel));
         }
         EmitMembers(members);
+        RunChecks(declarations);
 
         indent--;
         Line("};");

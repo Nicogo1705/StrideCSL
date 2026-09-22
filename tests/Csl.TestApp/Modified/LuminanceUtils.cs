@@ -16,7 +16,7 @@ namespace Csl.TestApp.Modified;
 /// modified: Luma is the brightest channel here, not the 601 weights. Same SDSL name, so once
 /// registered this replaces the engine's shader for every effect that uses it (see the gpu tests).
 /// </remarks>
-[Shader]
+[Shader(Replaces = true)]
 public abstract partial class LuminanceUtils
 {
     /// <summary>

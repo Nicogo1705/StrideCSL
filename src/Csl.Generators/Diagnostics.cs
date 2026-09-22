@@ -88,6 +88,58 @@ public static class Diagnostics
         "Shader '{0}' is written in C# here and also exists as '{1}'; the .sdsl wins for keys and wrappers, so rename or remove one",
         Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
+    // -- what the engine's compilers refuse later ----------------------------------------------------
+
+    public static readonly DiagnosticDescriptor ReservedName = new DiagnosticDescriptor(
+        "CSL110", "Name reserved in SDSL",
+        "'{0}' is a keyword or a type name in SDSL/HLSL; the engine's compiler fails on it with an unrelated message elsewhere. Rename it.",
+        Category, DiagnosticSeverity.Error, isEnabledByDefault: true,
+        description: "C# accepts identifiers such as sample, point, line, half, texture or float2 that the SDSL parser reads as keywords or types; the error it gives is a parse error on a later token.");
+
+    public static readonly DiagnosticDescriptor Recursion = new DiagnosticDescriptor(
+        "CSL111", "Recursive shader method",
+        "'{0}' calls itself ({1}); shaders cannot recurse",
+        Category, DiagnosticSeverity.Error, isEnabledByDefault: true,
+        description: "GPU code has no call stack: SPIR-V validation rejects an entry point whose call graph has a cycle. Write the recursion as a loop.");
+
+    public static readonly DiagnosticDescriptor ParameterWrite = new DiagnosticDescriptor(
+        "CSL112", "Shader parameter written",
+        "'{0}' is a shader parameter, read-only on the GPU; copy it into a local to change it",
+        Category, DiagnosticSeverity.Error, isEnabledByDefault: true,
+        description: "Shader parameters live in constant buffers, which shader code cannot store to. Streams, static and groupshared fields, and the elements of RW resources can be written.");
+
+    public static readonly DiagnosticDescriptor PixelOnlyInCompute = new DiagnosticDescriptor(
+        "CSL113", "Pixel shader operation in a compute shader",
+        "'{0}' needs a pixel shader (derivatives, or a pixel to discard); in a compute shader use SampleLevel, or pass the level",
+        Category, DiagnosticSeverity.Error, isEnabledByDefault: true,
+        description: "ddx, ddy, fwidth, discard, clip, and the Sample methods that choose the mip level from derivatives exist only in pixel shaders.");
+
+    public static readonly DiagnosticDescriptor ReturnInLoop = new DiagnosticDescriptor(
+        "CSL114", "Return inside a loop",
+        "Direct3D 11 can refuse a return inside a loop (error X4555) when the entry point also returns early; break out and return after the loop",
+        Category, DiagnosticSeverity.Warning, isEnabledByDefault: true,
+        description: "fxc fails with 'cannot use casts on l-values' when a function returns from inside a loop and Compute() returns early; Direct3D 12 and Vulkan compile it.");
+
+    public static readonly DiagnosticDescriptor ThreadGroupSize = new DiagnosticDescriptor(
+        "CSL115", "Thread group size out of range",
+        "[NumThreads({0}, {1}, {2})] is {3} threads; a group has 1 to 1024 threads, at most 1024 on X and Y and 64 on Z",
+        Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor NoNumThreads = new DiagnosticDescriptor(
+        "CSL116", "Compute shader without [NumThreads]",
+        "'{0}' has no [NumThreads]: its wrapper has no constructor with a default group size, pass the thread numbers when creating it",
+        Category, DiagnosticSeverity.Info, isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor ReplacesEngineShader = new DiagnosticDescriptor(
+        "CSL117", "Shader named like an engine shader",
+        "The engine has a shader named '{0}': this one replaces it in every effect that uses it. Rename it, or say so with [Shader(Replaces = true)].",
+        Category, DiagnosticSeverity.Warning, isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor IntegerDivisionInFloatVector = new DiagnosticDescriptor(
+        "CSL118", "Integer division inside a float vector constructor",
+        "Stride 4.4 computes '{0}' in float inside {1}(...) (stride3d/stride#3468); divide into a local first",
+        Category, DiagnosticSeverity.Warning, isEnabledByDefault: true);
+
     public static Location FileLocation(string path, int line, int column)
     {
         var position = new LinePosition(System.Math.Max(0, line - 1), System.Math.Max(0, column - 1));

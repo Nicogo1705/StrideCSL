@@ -20,6 +20,9 @@ public sealed class ShaderAttribute : Attribute
 
     /// <summary>The generic arguments of the first base, the C# base class: <c>shader X : Base&lt;A, B&gt;</c> is <c>BaseGenerics = "A, B"</c>.</summary>
     public string? BaseGenerics { get; set; }
+
+    /// <summary>The shader has an engine shader's name on purpose, to replace it in every effect.</summary>
+    public bool Replaces { get; set; }
 }
 
 /// <summary>

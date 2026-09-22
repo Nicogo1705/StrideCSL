@@ -362,6 +362,18 @@ allocate with the format of the element type and the views the slots need; `MipV
 | CSL001–004 | A `.sdsl` declaration the wrapper parser did not understand, a parameter type or array without a C# key type, a shader declared twice. |
 | CSL010 | A texture read and written through its RW view with a format Direct3D 11 cannot load from. |
 | CSL100–109 | C# that has no SDSL equivalent, on its line: a non-partial shader class, a statement or type outside the subset, a call outside the intrinsics and shader methods, a base that is not a shader, a C# shader named like a `.sdsl`. |
+| CSL110 | A name the SDSL parser takes for a keyword or a type (`sample`, `point`, `line`, `half`, `texture`, `float2`, `params`…): C# accepts it, the engine then fails with a parse error on another token. |
+| CSL111 | A method that calls itself, directly or through others (the cycle is in the message): GPU code has no call stack. |
+| CSL112 | A shader parameter written (`Scale = 2`, `Offset.x += 1`): parameters live in constant buffers, read-only on the GPU. Streams, `static` and `[GroupShared]` fields, and the elements of RW resources can be written. |
+| CSL113 | `ddx`, `ddy`, `fwidth`, `discard`, `clip`, or a `Sample` that picks its mip level from derivatives, in a compute shader: pixel shaders only. |
+| CSL114 | (warning) A `return` inside a loop: Direct3D 11 can refuse it (X4555) when the entry point also returns early. |
+| CSL115 | `[NumThreads]` outside Direct3D's limits: 1 to 1024 threads per group, at most 64 on Z. |
+| CSL116 | (info) A compute shader without `[NumThreads]`: its wrapper then needs the thread numbers. |
+| CSL117 | (warning) A shader named like an engine shader, which it then replaces in every effect; `[Shader(Replaces = true)]` when that is the point. |
+| CSL118 | (warning) An integer division inside a float vector constructor, `new float3(i / 4, 0, 0)`: Stride 4.4 computes it in float. |
+
+CSL110 to CSL115 and CSL118 were each seen failing on Stride 4.4, as a parse error, a SPIR-V validation
+error, an fxc error or a wrong result, far from the line that causes it.
 
 ## Limits
 
