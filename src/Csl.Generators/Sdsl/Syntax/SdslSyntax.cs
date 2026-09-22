@@ -160,6 +160,9 @@ public sealed class SdslShaderDeclaration : SdslTopLevel
 
     /// <summary>The #define lines of the file before the shader and in the shader, in order.</summary>
     public List<SdslDefine> Defines { get; } = new List<SdslDefine>();
+
+    /// <summary>The #error lines, with their conditions: Name is the message.</summary>
+    public List<SdslDefine> Errors { get; } = new List<SdslDefine>();
 }
 
 /// <summary><c>LinkType TTexture</c>, <c>int TCount</c>: a generic parameter of a shader.</summary>

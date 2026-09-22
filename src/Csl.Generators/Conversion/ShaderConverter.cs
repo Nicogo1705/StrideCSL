@@ -79,7 +79,7 @@ public static class ShaderConverter
             index.Add(unit);
         }
         foreach (var known in options.KnownShaders)
-            index.Add(known);
+            index.AddExternal(known);
 
         var results = new List<ConvertedShader>();
         var trees = new Dictionary<ConvertedShader, SyntaxTree>();

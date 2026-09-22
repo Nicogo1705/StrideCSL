@@ -225,6 +225,20 @@ public sealed class ShaderTranslator
     /// </summary>
     private void EmitDefines()
     {
+        foreach (var attribute in shader.GetAttributes())
+        {
+            if (attribute.AttributeClass?.ToDisplayString() != "Csl.PreprocessorErrorAttribute" || attribute.ConstructorArguments.Length < 1)
+                continue;
+            string? condition = null;
+            foreach (var named in attribute.NamedArguments)
+                if (named.Key == "If" && named.Value.Value is string c)
+                    condition = c;
+            if (condition != null)
+                RawLine("#if " + condition);
+            RawLine("#error \"" + attribute.ConstructorArguments[0].Value + "\"");
+            if (condition != null)
+                RawLine("#endif");
+        }
         string? open = null;
         foreach (var attribute in shader.GetAttributes())
         {
@@ -320,6 +334,14 @@ public sealed class ShaderTranslator
                 case FieldDeclarationSyntax field:
                     if (HasAttribute(field.AttributeLists, "Csl.GenericAttribute"))
                         break;
+                    // The member's other #if versions come first, each under its own condition.
+                    foreach (var (variantText, variantCondition) in ReadAttributes(field.AttributeLists).Variants)
+                    {
+                        var variant = new MemberText { Condition = variantCondition, BlankBefore = text.BlankBefore };
+                        variant.Lines.Add(variantText);
+                        texts.Add(variant);
+                        text.BlankBefore = false;
+                    }
                     EmitField(field, text);
                     break;
                 case MethodDeclarationSyntax method:
@@ -430,6 +452,7 @@ public sealed class ShaderTranslator
         public List<string>? Sizes;
         public string? TypeOverride;
         public List<string>? Sampler;
+        public readonly List<(string Sdsl, string? Condition)> Variants = new List<(string, string?)>();
         public bool IsGeneric;
         public bool Override;
         public bool Redeclare;
@@ -474,6 +497,10 @@ public sealed class ShaderTranslator
                     case "Csl.OverrideAttribute": result.Override = true; break;
                     case "Csl.RedeclareAttribute": result.Redeclare = true; break;
                     case "Csl.NumThreadsAttribute": break;
+                    case "Csl.VariantAttribute":
+                        if (first != null)
+                            result.Variants.Add((first, named.TryGetValue("If", out var variantCondition) ? variantCondition : null));
+                        break;
                     case "Csl.SamplerAttribute":
                         result.Sampler = new List<string>();
                         foreach (var argument in attribute.ArgumentList?.Arguments ?? default)

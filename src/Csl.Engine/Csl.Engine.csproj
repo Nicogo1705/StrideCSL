@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The engine's shaders as C# [Shader(External = true)] classes: their members, typed, so shaders
+       written in C# can inherit them, mix them in and call them. Nothing is generated from them but the
+       stubs every shader class gets. Shaders/ is written by "csl engine" from the Stride packages. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Csl.Engine</RootNamespace>
+    <AssemblyName>Csl.Engine</AssemblyName>
+    <!-- Hidden members (a stream declared again by a mixin), unused fields, doc comments as the engine wrote them. -->
+    <NoWarn>$(NoWarn);CS0108;CS0114;CS0169;CS0414;CS0649;CS1570;CS1587;CS1591;CS1573;CS1574;CS1584;CS1658;CS8618</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Csl.Types/Csl.Types.csproj" />
+    <ProjectReference Include="../Csl.Generators/Csl.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

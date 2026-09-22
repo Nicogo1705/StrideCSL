@@ -117,7 +117,7 @@ public sealed class SdslToCSharp
         {
             // The shaders this one names may be in any namespace of the set: import them all.
             foreach (var other in index.Shaders)
-                if (other.Namespace != null && other.Namespace != ownNamespace)
+                if (other.Namespace != null && other.Namespace != ownNamespace && !index.IsExternal(other.Name))
                     usings.Add(other.Namespace);
         }
         foreach (var ns in usings)
@@ -164,8 +164,27 @@ public sealed class SdslToCSharp
             }
         }
 
+        // A variable declared more than once, under different #if: the last one is the C# field, the
+        // others its variants.
+        var lastByName = new Dictionary<string, SdslVariable>(StringComparer.Ordinal);
+        foreach (var member in shader.Members)
+            if (member is SdslVariable variable)
+                lastByName[variable.Name] = variable;
         foreach (var member in shader.Members)
         {
+            if (member is SdslVariable variable && lastByName[variable.Name] != variable)
+            {
+                if (variable.Conditions.Count == 0)
+                    Error("Member " + variable.Name + " is declared twice", variable.Position);
+                variants.TryGetValue(lastByName[variable.Name], out var list);
+                variants[lastByName[variable.Name]] = (list ?? new List<SdslVariable>()).Concat(new[] { variable }).ToList();
+            }
+        }
+
+        foreach (var member in shader.Members)
+        {
+            if (member is SdslVariable repeated && lastByName[repeated.Name] != repeated)
+                continue;
             if (!first && (member.BlankLineBefore || member is SdslMethod || member is SdslStruct))
                 Line(string.Empty);
             first = false;
@@ -224,6 +243,9 @@ public sealed class SdslToCSharp
         }
         FlushPlain();
 
+        foreach (var error in shader.Errors)
+            Line("[PreprocessorError(" + Quote(error.Name) + (error.Condition != null ? ", If = " + Quote(error.Condition) : string.Empty) + ")]");
+
         foreach (var define in shader.Defines)
         {
             var arguments = new List<string> { Quote(define.Name) };
@@ -281,6 +303,9 @@ public sealed class SdslToCSharp
             attributes.Add("Size(" + string.Join(", ", variable.ArraySizes.Select(Quote)) + ")");
         if (variable.SamplerState != null)
             attributes.Add(SamplerAttribute(variable.SamplerState));
+        if (variants.TryGetValue(variable, out var others))
+            foreach (var other in others)
+                attributes.Add("Variant(" + Quote(SdslPrinter.Variable(other)) + (other.Conditions.Count > 0 ? ", If = " + Quote(JoinConditions(other.Conditions)) : string.Empty) + ")");
 
         var type = MemberType(variable.Type, variable.Position, out var sdslType);
         if (sdslType != null)
@@ -308,6 +333,8 @@ public sealed class SdslToCSharp
         line.Append(';');
         Line(line.ToString());
     }
+
+    private readonly Dictionary<SdslVariable, List<SdslVariable>> variants = new Dictionary<SdslVariable, List<SdslVariable>>();
 
     /// <summary>The group of the member before the one being written: two blocks of one name stay two.</summary>
     private SdslGroup? previousGroup;

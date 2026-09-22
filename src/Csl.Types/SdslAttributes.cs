@@ -140,6 +140,30 @@ public sealed class OverrideAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class RedeclareAttribute : Attribute { }
 
+/// <summary>
+/// Another version of the member under another preprocessor condition, as SDSL text: <c>#if A float
+/// X; #else bool X; #endif</c> is one C# field, the <c>#else</c> one, with
+/// <c>[Variant("float X;", If = "A")]</c>. The C# is typed by the field's own version.
+/// </summary>
+[AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
+public sealed class VariantAttribute : Attribute
+{
+    public VariantAttribute(string sdsl) => Sdsl = sdsl;
+
+    public string Sdsl { get; }
+    public string? If { get; set; }
+}
+
+/// <summary><c>#error message</c>, under <see cref="If"/> when set.</summary>
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+public sealed class PreprocessorErrorAttribute : Attribute
+{
+    public PreprocessorErrorAttribute(string message) => Message = message;
+
+    public string Message { get; }
+    public string? If { get; set; }
+}
+
 /// <summary><c>clone</c>: the member is duplicated for each composition instance.</summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Method)]
 public sealed class CloneAttribute : Attribute { }

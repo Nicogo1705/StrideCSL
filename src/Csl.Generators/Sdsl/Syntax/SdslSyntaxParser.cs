@@ -173,10 +173,15 @@ public sealed class SdslSyntaxParser
         return Advance().Text;
     }
 
+    /// <summary>Comments on preprocessor lines at file level, for the node that follows them.</summary>
+    private readonly List<string> pendingComments = new List<string>();
+
     /// <summary>Copies the comments and position of the token to the node.</summary>
     private T Mark<T>(T node, SdslLexToken at) where T : SdslNode
     {
         node.Position = at.Position;
+        node.Comments.AddRange(pendingComments);
+        pendingComments.Clear();
         if (at.Comments != null)
             node.Comments.AddRange(at.Comments);
         node.BlankLineBefore = at.BlankLineBefore;
@@ -195,6 +200,8 @@ public sealed class SdslSyntaxParser
                 return;
             if (Current.Kind == SdslLexKind.Directive)
             {
+                if (Current.Comments != null)
+                    pendingComments.AddRange(Current.Comments);
                 FileDirective(Advance());
                 continue;
             }
@@ -462,7 +469,13 @@ public sealed class SdslSyntaxParser
                     shader.Defines.Add(Define(rest, directive));
                     continue;
                 }
-                if (keyword == "pragma" || keyword == "undef" || keyword == "include" || keyword == "line" || keyword == "error")
+                if (keyword == "error")
+                {
+                    var condition = conditions.Count == 0 ? null : string.Join(" && ", conditions.Select(c => conditions.Count > 1 ? "(" + c.Current + ")" : c.Current));
+                    shader.Errors.Add(new SdslDefine(rest.Trim().Trim('"'), null, condition));
+                    continue;
+                }
+                if (keyword == "pragma" || keyword == "undef" || keyword == "include" || keyword == "line")
                 {
                     Error("#" + keyword + " is not converted", directive);
                     throw new ParseAbort();

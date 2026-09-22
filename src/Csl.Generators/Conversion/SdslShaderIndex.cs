@@ -13,6 +13,7 @@ public sealed class SdslShaderIndex
 {
     private readonly Dictionary<string, SdslShaderDeclaration> shaders = new Dictionary<string, SdslShaderDeclaration>(StringComparer.Ordinal);
     private readonly Dictionary<string, SdslShaderDeclaration> structOwners = new Dictionary<string, SdslShaderDeclaration>(StringComparer.Ordinal);
+    private readonly HashSet<string> external = new HashSet<string>(StringComparer.Ordinal);
 
     public IEnumerable<SdslShaderDeclaration> Shaders => shaders.Values;
 
@@ -33,6 +34,17 @@ public sealed class SdslShaderIndex
     }
 
     public bool Contains(string name) => shaders.ContainsKey(name);
+
+    /// <summary>Adds shaders whose C# comes from elsewhere (a referenced library): known by name, never written.</summary>
+    public void AddExternal(SdslCompilationUnit unit)
+    {
+        foreach (var shader in unit.Shaders())
+            if (!shaders.ContainsKey(shader.Name))
+                external.Add(shader.Name);
+        Add(unit);
+    }
+
+    public bool IsExternal(string name) => external.Contains(name);
 
     public SdslShaderDeclaration? Find(string name) => shaders.TryGetValue(name, out var shader) ? shader : null;
 

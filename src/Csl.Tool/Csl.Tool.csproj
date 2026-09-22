@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The command line side of the conversion: .sdsl files to C# [Shader] classes, and the C# of the
+       engine's shaders (Csl.Engine) regenerated from the Stride packages. "dotnet run" for the usage. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Csl.Tool</RootNamespace>
+    <AssemblyName>csl</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The Stride version whose packages hold the engine's shaders. -->
+    <AssemblyMetadata Include="StrideVersion" Value="$(StrideVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Newer than the generator builds against: the conversion compiles C# 14 (extension members of Csl.Types). -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Csl.Generators/Csl.Generators.csproj" />
+    <ProjectReference Include="../Csl.Types/Csl.Types.csproj" />
+    <ProjectReference Include="../Csl.Engine/Csl.Engine.csproj" />
+  </ItemGroup>
+
+</Project>
