@@ -13,12 +13,16 @@ switch (command)
         return RoundTripCommand.Run(rest);
     case "compile":
         return CompileCommand(rest);
+    case "gpu":
+        return GpuTests.Run(rest);
     default:
         Console.WriteLine("Csl.TestApp parse [files...]              parse the engine's shaders (or these files) with the full SDSL parser");
         Console.WriteLine("Csl.TestApp convert [--out DIR] [--only NAME,...]");
         Console.WriteLine("                                          convert the engine's shaders SDSL to C# to SDSL, report what fails");
         Console.WriteLine("Csl.TestApp roundtrip [--out DIR] [--only NAME,...]");
         Console.WriteLine("                                          compile each shader from its SDSL and from its round trip, compare the SPIR-V");
+        Console.WriteLine("Csl.TestApp gpu                           run the C# shaders of Shaders/ on the GPU (a hidden game window) and check what they compute");
+        Console.WriteLine("Csl.TestApp compile NAME...               compile engine shaders, mixed in this order, with the engine's SDSL compiler");
         return command == "help" ? 0 : 2;
 }
 
@@ -32,6 +36,9 @@ static int CompileCommand(string[] names)
         foreach (var shader in SdslSyntaxParser.Parse(path, text).Shaders())
             sources.TryAdd(shader.Name, text);
     }
+    // The C# shaders of this app (Shaders/, Modified/) as registered at start-up, over the engine's.
+    foreach (var pair in Csl.ShaderSourceRegistry.Sources)
+        sources[pair.Key] = pair.Value.Source;
     var result = new EngineCompiler(sources).Compile(names);
     Console.WriteLine(result.Success ? $"{result.Bytecode.Length} bytes, {SpirvCompare.Strip(result.Bytecode).Length} words without debug" : "failed");
     if (result.Messages.Length > 0)

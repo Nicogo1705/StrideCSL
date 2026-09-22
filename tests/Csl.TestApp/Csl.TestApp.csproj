@@ -8,13 +8,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Csl.TestApp</RootNamespace>
-    <StrideAssetBuildManifest>false</StrideAssetBuildManifest>
-    <StrideContainsAssetTypes>false</StrideContainsAssetTypes>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Keep the generator's output on disk, to read the SDSL and the wrappers it wrote. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" />
+    <!-- The engine's own shaders are assets: the asset compiler builds them into the game's database,
+         which the effect compiler reads at run time (the gpu command is a game). -->
+    <PackageReference Include="Stride.AssetCompiler" Version="$(StrideVersion)" IncludeAssets="build;buildTransitive" />
     <!-- Newer than the generator builds against: the conversion compiles C# 14 (extension members of Csl.Types). -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
   </ItemGroup>
@@ -23,7 +26,9 @@
     <ProjectReference Include="../../src/Csl.Runtime/Csl.Runtime.csproj" />
     <ProjectReference Include="../../src/Csl.Types/Csl.Types.csproj" />
     <ProjectReference Include="../../src/Csl.Engine/Csl.Engine.csproj" />
+    <!-- Referenced as a library for the conversion, and applied as a generator to the shaders here. -->
     <ProjectReference Include="../../src/Csl.Generators/Csl.Generators.csproj" />
+    <Analyzer Include="../../src/Csl.Generators/bin/$(Configuration)/netstandard2.0/Csl.Generators.dll" />
   </ItemGroup>
 
 </Project>

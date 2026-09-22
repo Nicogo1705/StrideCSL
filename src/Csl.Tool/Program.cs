@@ -6,8 +6,10 @@ using Microsoft.CodeAnalysis;
 
 // csl engine [--out DIR]
 //   The C# of every engine shader, declarations only ([Shader(External = true)]), for Csl.Engine.
-// csl convert FILE.sdsl... [--engine NAME,...] [--out DIR] [--namespace NS]
+// csl convert FILE.sdsl... [--engine NAME,...] [--out DIR] [--namespace NS] [--declarations]
 //   Shaders to C# [Shader] classes, bodies included, typed against Csl.Engine for the engine's.
+//   --declarations writes [Shader(External = true)] classes instead: a project's .sdsl shaders
+//   described for C# shaders to extend, the .sdsl staying the source.
 //   --engine converts engine shaders by name, to modify them: a C# shader with the engine's name
 //   replaces it once registered.
 var command = args.Length > 0 ? args[0] : "help";
@@ -22,8 +24,9 @@ return command switch
 static int Usage()
 {
     Console.WriteLine("csl engine [--out DIR]                      C# declarations of the engine's shaders (Csl.Engine)");
-    Console.WriteLine("csl convert FILE.sdsl... [--engine NAME,...] [--out DIR] [--namespace NS]");
+    Console.WriteLine("csl convert FILE.sdsl... [--engine NAME,...] [--out DIR] [--namespace NS] [--declarations]");
     Console.WriteLine("                                            shaders to C# [Shader] classes, bodies included");
+    Console.WriteLine("                                            (--declarations: external classes, to extend .sdsl shaders from C#)");
     return 2;
 }
 
@@ -90,6 +93,7 @@ static int Convert(string[] args)
 {
     string outDir = ".";
     string? ns = null;
+    bool declarations = false;
     var files = new List<string>();
     var engineNames = new HashSet<string>(StringComparer.Ordinal);
     for (int i = 0; i < args.Length; i++)
@@ -98,6 +102,7 @@ static int Convert(string[] args)
         {
             case "--out": outDir = args[++i]; break;
             case "--namespace": ns = args[++i]; break;
+            case "--declarations": declarations = true; break;
             case "--engine": foreach (var name in args[++i].Split(',')) engineNames.Add(name.Trim()); break;
             default: files.Add(args[i]); break;
         }
@@ -122,6 +127,7 @@ static int Convert(string[] args)
     var options = new ShaderConverterOptions();
     options.References.AddRange(References(withEngine: true));
     options.CSharp.Namespace = ns;
+    options.CSharp.DeclarationsOnly = declarations;
     options.CSharp.Usings.Add("Csl.Engine");
     foreach (var (path, text) in engine)
         options.KnownShaders.Add(SdslSyntaxParser.Parse(path, text));
