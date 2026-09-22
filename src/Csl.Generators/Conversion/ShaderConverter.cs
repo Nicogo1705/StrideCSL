@@ -106,14 +106,14 @@ public static class ShaderConverter
                     result.ConversionErrors.AddRange(unit.Diagnostics.Select(d => d.ToString()));
                     continue;
                 }
-                if (shader.Conditions.Count > 0)
-                {
-                    // #if A shader X : B #else shader X : C #endif: one C# class cannot be both.
-                    result.ConversionErrors.Add(shader.Position + ": the shader is declared under #if " + string.Join(" && ", shader.Conditions) + "; not converted");
-                    continue;
-                }
                 var diagnostics = new List<SdslDiagnostic>();
                 result.CSharp = SdslToCSharp.Convert(shader, index, options.CSharp, diagnostics, fileComments);
+                if (shader.Conditions.Count > 0)
+                {
+                    // #if A shader X : B #else shader X : C #endif: one C# class cannot be both. The first
+                    // is kept, for the shaders that name it to compile, but the shader is not converted.
+                    diagnostics.Add(new SdslDiagnostic("the shader is declared under #if " + string.Join(" && ", shader.Conditions) + ", in more than one version", shader.Position));
+                }
                 result.ConversionErrors.AddRange(diagnostics.Select(d => d.ToString()));
                 trees[result] = CSharpSyntaxTree.ParseText(result.CSharp, parseOptions, path: shader.Name + ".cs", cancellationToken: cancellation);
             }

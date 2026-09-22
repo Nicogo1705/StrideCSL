@@ -40,6 +40,8 @@ public static class ShaderPartialEmitter
         sb.Append(indent).Append("    protected ").Append(baseIsShader ? "new " : string.Empty).Append(self).AppendLine(" streams { get => this; set { } }");
         sb.Append(indent).AppendLine("    /// <summary>A member named by a MemberName generic parameter: <c>streams[TName]</c> is SDSL's <c>streams.TName</c>.</summary>");
         sb.Append(indent).Append("    public ").Append(baseIsShader ? "new " : string.Empty).AppendLine("dynamic this[global::Csl.MemberName name] { get => throw global::Csl.Gpu.Only; set { } }");
+        sb.Append(indent).AppendLine("    /// <summary>A stream the shader does not declare, that the effect mixes in: <c>streams[\"PositionWS\"]</c>.</summary>");
+        sb.Append(indent).Append("    public ").Append(baseIsShader ? "new " : string.Empty).AppendLine("dynamic this[string name] { get => throw global::Csl.Gpu.Only; set { } }");
 
         // Names the class already has: its own, its C# bases', and what the stubs of its C# bases bring.
         var taken = new HashSet<string>(System.StringComparer.Ordinal) { "streams" };
@@ -59,11 +61,24 @@ public static class ShaderPartialEmitter
                         taken.Add(member.Name);
         }
 
+        // Methods by signature: a mixin may overload a name another mixin has.
+        var methods = new HashSet<string>(System.StringComparer.Ordinal);
+        for (var type = shader; type != null && type.SpecialType != SpecialType.System_Object; type = type.BaseType)
+            foreach (var method in type.GetMembers().OfType<IMethodSymbol>())
+                methods.Add(Signature(method));
         foreach (var mixin in MixinsOf(shader))
         {
             foreach (var member in AllMembers(mixin, covered))
             {
-                if (member.IsImplicitlyDeclared || member.DeclaredAccessibility == Accessibility.Private || !taken.Add(member.Name))
+                if (member.IsImplicitlyDeclared || member.DeclaredAccessibility == Accessibility.Private)
+                    continue;
+                if (member is IMethodSymbol { MethodKind: MethodKind.Ordinary } overload)
+                {
+                    if (!methods.Add(Signature(overload)) || (taken.Contains(member.Name) && !methods.Any(m => m.StartsWith(member.Name + "(", System.StringComparison.Ordinal))))
+                        continue;
+                    taken.Add(member.Name);
+                }
+                else if (!taken.Add(member.Name))
                     continue;
                 switch (member)
                 {
@@ -149,6 +164,9 @@ public static class ShaderPartialEmitter
             }
         }
     }
+
+    private static string Signature(IMethodSymbol method) =>
+        method.Name + "(" + string.Join(",", method.Parameters.Select(p => p.RefKind + " " + p.Type.ToDisplayString())) + ")";
 
     private static string Escape(string name) => Microsoft.CodeAnalysis.CSharp.SyntaxFacts.GetKeywordKind(name) != Microsoft.CodeAnalysis.CSharp.SyntaxKind.None ? "@" + name : name;
 

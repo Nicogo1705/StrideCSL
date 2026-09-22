@@ -12,7 +12,8 @@ public class TranslationTests
     public void ASimpleComputeShaderReadsLikeTheSdslItCameFrom()
     {
         var sdsl = SampleSpread.SdslSource;
-        Assert.StartsWith("namespace Csl.Tests.Samples\n{\n    /// One thread per brick", sdsl);
+        // The documentation comes as written, XML included: SDSL uses the same comments.
+        Assert.StartsWith("namespace Csl.Tests.Samples\n{\n    /// <summary>\n    /// One thread per brick", sdsl);
         Assert.Contains("    shader SampleSpread : ComputeShaderBase\n    {", sdsl);
         Assert.Contains("stage Texture3D<uint> ChangedBricks;", sdsl);
         Assert.Contains("stage RWTexture3D<uint> DrawnOut;", sdsl);
@@ -21,7 +22,8 @@ public class TranslationTests
         Assert.Contains("override void Compute()", sdsl);
         Assert.Contains("int3 b = (int3)streams.DispatchThreadId;", sdsl);
         Assert.Contains("uint active = Changed(b) | Changed(b + int3(1, 0, 0)) | Changed(b - int3(1, 0, 0))", sdsl);
-        Assert.Contains("uint on = active != 0 ? 1 : 0;", sdsl);
+        // 1u: the engine's 4.4 parser takes no u suffix, a cast keeps the type.
+        Assert.Contains("uint on = active != 0 ? (uint)1 : (uint)0;", sdsl);
         Assert.Contains("DrawnOut[b] = Reset != 0 ? on : (DrawnOut[b] | on);", sdsl);
         Assert.EndsWith("    };\n}\n", sdsl);
     }

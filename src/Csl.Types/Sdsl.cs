@@ -32,11 +32,36 @@ public static class Sdsl
     /// <summary>A macro used as a statement of its own.</summary>
     public static void MacroStatement(string name) => throw Gpu.Only;
 
-    /// <summary><c>value.TName</c> where TName is a MemberName generic parameter.</summary>
-    public static dynamic Member(object value, MemberName name) => throw Gpu.Only;
+    /// <summary><c>value.TName</c> where TName is a MemberName generic parameter; assignable.</summary>
+    public static ref dynamic Member(object value, MemberName name) => ref Slot.Value;
 
-    /// <summary><c>value.name</c> on a value C# has no members for (a stream structure).</summary>
-    public static dynamic Member(object value, string name) => throw Gpu.Only;
+    /// <summary><c>value.name</c> on a value C# has no members for (a stream structure, a matrix's <c>_m00_m11</c>); assignable.</summary>
+    public static ref dynamic Member(object value, string name) => ref Slot.Value;
+
+    /// <summary><c>base.M()</c> where M is not in the C# base class but in a [Mixin]: <c>Sdsl.Base(this).M()</c>.</summary>
+    public static T Base<T>(T self) => self;
+
+    /// <summary>
+    /// A value passed to an inout parameter that C# cannot pass by reference (a swizzle, a stream):
+    /// <c>F(ref Sdsl.Ref(v.xyz))</c> is <c>F(v.xyz)</c>.
+    /// </summary>
+    public static ref T Ref<T>(T value) => ref Slot<T>.Value;
+
+    /// <summary>
+    /// An out parameter HLSL leaves undefined on some path, or reads before writing: C# wants it
+    /// assigned. Nothing in the SDSL.
+    /// </summary>
+    public static void Undefined<T>(out T value) => value = default!;
+
+    private static class Slot
+    {
+        public static dynamic Value = null!;
+    }
+
+    private static class Slot<T>
+    {
+        public static T Value = default!;
+    }
 
     /// <summary>A shader's member reached through its name: <c>Sdsl.Static&lt;BlendUtils&gt;().BasicBlend(a, b)</c> is <c>BlendUtils.BasicBlend(a, b)</c>.</summary>
     public static T Static<T>() where T : class => throw Gpu.Only;

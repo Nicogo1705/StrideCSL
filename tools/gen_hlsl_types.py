@@ -535,6 +535,8 @@ public readonly struct Samples32 { }
                     out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location) => {G};')
                     if not name.startswith('TextureCube'):
                         out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location, {offset} offset) => {G};')
+                        if g != 'Gather':
+                            out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location, {offset} offset1, {offset} offset2, {offset} offset3, {offset} offset4) => {G};')
                 out.append(f'    public float4 GatherCmp(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {G};')
                 out.append(f'    public float4 GatherCmpRed(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {G};')
             out.append(f'    public float CalculateLevelOfDetail(SamplerState sampler, {fv(coord if name not in ("Texture1DArray", "Texture2DArray", "TextureCubeArray") else coord - 1)} location) => {G};')

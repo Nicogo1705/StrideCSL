@@ -65,4 +65,37 @@ public static partial class Intrinsics
     public static void InterlockedExchange(ref int dest, int value, out int original) { original = dest; dest = value; }
     public static void InterlockedCompareExchange(ref uint dest, uint compare, uint value, out uint original) { original = dest; if (dest == compare) dest = value; }
     public static void InterlockedCompareStore(ref uint dest, uint compare, uint value) { if (dest == compare) dest = value; }
+    public static void InterlockedMin(ref uint dest, uint value, out uint original) { original = dest; dest = Math.Min(dest, value); }
+    public static void InterlockedMin(ref int dest, int value, out int original) { original = dest; dest = Math.Min(dest, value); }
+    public static void InterlockedMax(ref uint dest, uint value, out uint original) { original = dest; dest = Math.Max(dest, value); }
+    public static void InterlockedMax(ref int dest, int value, out int original) { original = dest; dest = Math.Max(dest, value); }
+    public static void InterlockedAnd(ref int dest, int value) => dest &= value;
+    public static void InterlockedOr(ref int dest, int value) => dest |= value;
+    public static void InterlockedXor(ref int dest, int value) => dest ^= value;
+    public static void InterlockedCompareExchange(ref int dest, int compare, int value, out int original) { original = dest; if (dest == compare) dest = value; }
+
+    // The destination as a value: an element of a RW resource, which C# cannot pass by reference.
+    // Shader code only; on the CPU these do nothing to the resource.
+    public static void InterlockedAdd(uint dest, uint value) { }
+    public static void InterlockedAdd(uint dest, uint value, out uint original) => original = dest;
+    public static void InterlockedAdd(int dest, int value) { }
+    public static void InterlockedAdd(int dest, int value, out int original) => original = dest;
+    public static void InterlockedAnd(uint dest, uint value) { }
+    public static void InterlockedAnd(uint dest, uint value, out uint original) => original = dest;
+    public static void InterlockedOr(uint dest, uint value) { }
+    public static void InterlockedOr(uint dest, uint value, out uint original) => original = dest;
+    public static void InterlockedXor(uint dest, uint value) { }
+    public static void InterlockedXor(uint dest, uint value, out uint original) => original = dest;
+    public static void InterlockedMin(uint dest, uint value) { }
+    public static void InterlockedMin(uint dest, uint value, out uint original) => original = dest;
+    public static void InterlockedMin(int dest, int value) { }
+    public static void InterlockedMin(int dest, int value, out int original) => original = dest;
+    public static void InterlockedMax(uint dest, uint value) { }
+    public static void InterlockedMax(uint dest, uint value, out uint original) => original = dest;
+    public static void InterlockedMax(int dest, int value) { }
+    public static void InterlockedMax(int dest, int value, out int original) => original = dest;
+    public static void InterlockedExchange(uint dest, uint value, out uint original) => original = dest;
+    public static void InterlockedExchange(int dest, int value, out int original) => original = dest;
+    public static void InterlockedCompareExchange(uint dest, uint compare, uint value, out uint original) => original = dest;
+    public static void InterlockedCompareStore(uint dest, uint compare, uint value) { }
 }

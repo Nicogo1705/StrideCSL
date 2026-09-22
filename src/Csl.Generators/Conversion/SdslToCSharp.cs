@@ -420,11 +420,18 @@ public sealed class SdslToCSharp
         bool isAbstract = method.Has("abstract");
         bool isStatic = method.Has("static");
         bool csharpOverride = false;
+        var inBase = index.FindInCSharpBases(shader, method.Name, method.Parameters.Count);
         if (isOverride)
         {
-            csharpOverride = index.FindInCSharpBases(shader, method.Name, method.Parameters.Count) != null;
+            csharpOverride = inBase != null;
             if (!csharpOverride)
                 attributes.Add("Override");
+        }
+        else if (!isAbstract && !isStatic && inBase != null && inBase.Has("abstract"))
+        {
+            // SDSL implements an abstract method without saying override; C# has to.
+            csharpOverride = true;
+            attributes.Add("Redeclare");
         }
         bool stageAfterOverride = method.Modifiers.IndexOf("override") >= 0 && method.Modifiers.IndexOf("stage") > method.Modifiers.IndexOf("override");
         foreach (var modifier in method.Modifiers)
@@ -543,8 +550,10 @@ public sealed class SdslToCSharp
     private string MemberType(SdslType type, SdslPosition at, out string? sdslType)
     {
         sdslType = null;
-        if (DynamicTypes.Contains(type.Name))
+        if (DynamicTypes.Contains(type.Name)
+            || ((type.Name == "Texture2DMS" || type.Name == "Texture2DMSArray") && type.Arguments.Count == 2 && !int.TryParse(type.Arguments[1].Name, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)))
         {
+            // Texture2DMS<float4, MACRO> included: C# cannot write a sample count it does not know.
             sdslType = type.ToString();
             return "dynamic";
         }
@@ -554,11 +563,16 @@ public sealed class SdslToCSharp
     private string TypeText(SdslType type, SdslPosition at)
     {
         if (type.Arguments.Count == 0)
+        {
+            // HLSL's matrix and vector without arguments are float4x4 and float4.
+            if (type.Name == "matrix") return "float4x4";
+            if (type.Name == "vector") return "float4";
             return TypeName(type.Name);
+        }
         if (type.Name == "Texture2DMS" || type.Name == "Texture2DMSArray")
         {
-            // The sample count is a value: kept on the C# type as a second argument would not compile.
-            if (type.Arguments.Count == 2)
+            // The sample count is a value: a marker type stands for it (Samples4 for 4).
+            if (type.Arguments.Count == 2 && int.TryParse(type.Arguments[1].Name, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
                 return TypeName(type.Name) + "<" + TypeText(type.Arguments[0], at) + ", Samples" + type.Arguments[1].Name + ">";
         }
         if (type.Name == "vector" || type.Name == "matrix")
@@ -1028,6 +1042,8 @@ public sealed class SdslToCSharp
         }
         if (!callTarget && IsMacro(name))
             return "Sdsl.Macro(" + Quote(name) + ")";
+        if (!callTarget && IsMemberName(name) && !IsLocal(name))
+            return "Sdsl.Member(this, " + EscapeIdentifier(name) + ")";
         return EscapeIdentifier(name);
     }
 
@@ -1083,8 +1099,20 @@ public sealed class SdslToCSharp
         {
             if (IsMemberName(name))
                 return "streams[" + EscapeIdentifier(name) + "]";
+            // A stream no base declares: SDSL finds it in whatever the effect mixes in.
+            if (AllBasesKnown() && index.FindVariable(shader, name) == null)
+                return "streams[" + Quote(name) + "]";
             return "streams." + EscapeIdentifier(name);
         }
+        // base.M() where M is not in the C# base class: the mixin's, through the class itself.
+        if (access.Target is SdslIdentifier { Name: "base" } && !InCSharpBaseChain(name))
+            return "Sdsl.Base(this)." + EscapeIdentifier(name);
+        // x.Name where Name is a macro (a method the preprocessor picks): no C# member to name.
+        if (shader.Defines.Any(d => d.Name == name))
+            return "Sdsl.Member(" + Expression(access.Target) + ", " + Quote(name) + ")";
+        // m._m00_m11: several matrix elements at once.
+        if (System.Text.RegularExpressions.Regex.IsMatch(name, @"^((_m[0-3][0-3])|(_[1-4][1-4])){2,}$"))
+            return "Sdsl.Member(" + Expression(access.Target) + ", " + Quote(name) + ")";
         if (IsMemberName(name))
             return "Sdsl.Member(" + Expression(access.Target) + ", " + EscapeIdentifier(name) + ")";
 
@@ -1104,6 +1132,15 @@ public sealed class SdslToCSharp
             return "Sdsl.Static<" + TypeName(shaderName) + ">(" + Quote(arguments) + ")." + EscapeIdentifier(name);
         }
         return Expression(access.Target) + "." + EscapeIdentifier(name);
+    }
+
+    private bool InCSharpBaseChain(string name)
+    {
+        foreach (var ancestor in index.CSharpBaseChain(shader))
+            foreach (var member in ancestor.Members)
+                if ((member is SdslMethod method && method.Name == name) || (member is SdslVariable variable && variable.Name == name))
+                    return true;
+        return !AllBasesKnown();
     }
 
     private bool IsStaticMember(SdslShaderDeclaration owner, string name)

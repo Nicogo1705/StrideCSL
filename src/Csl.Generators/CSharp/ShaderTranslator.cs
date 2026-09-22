@@ -650,7 +650,7 @@ public sealed class ShaderTranslator
         foreach (var keyword in attributes.Keywords)
             header.Append(keyword).Append(' ');
         bool isAbstract = method.Modifiers.Any(SyntaxKind.AbstractKeyword);
-        bool isOverride = method.Modifiers.Any(SyntaxKind.OverrideKeyword) && !(isAbstract && attributes.Redeclare);
+        bool isOverride = method.Modifiers.Any(SyntaxKind.OverrideKeyword) && !attributes.Redeclare;
         if (isOverride || attributes.Override) header.Append("override ");
         if (attributes.StageAfterOverride) header.Append("stage ");
         if (isAbstract) header.Append("abstract ");
@@ -760,6 +760,8 @@ public sealed class ShaderTranslator
                         Line("discard;");
                         break;
                     }
+                    if (IsMarker(invocation, "Undefined", out _))
+                        break;
                 }
                 Line(Expression(expressionStatement.Expression) + ";");
                 break;
@@ -999,7 +1001,7 @@ public sealed class ShaderTranslator
 
             var element = type is IArrayTypeSymbol arrayType ? arrayType.ElementType : type;
             // var copy = streams: the streams structure, which only var names in SDSL.
-            if (declaration.Type.IsVar && IsShaderClass(element))
+            if (declaration.Type.IsVar && (IsShaderClass(element) || element?.TypeKind == TypeKind.Dynamic))
                 typeText ??= "var";
             typeText ??= SdslTypeName(element, declaration.Type);
             var part = new StringBuilder(variable.Identifier.ValueText);
@@ -1190,11 +1192,14 @@ public sealed class ShaderTranslator
                             digits += ".0";
                         return digits + "L";
                     }
+                    case uint when text.EndsWith("u", StringComparison.OrdinalIgnoreCase):
+                        // The engine's SDSL parser (4.4 beta) takes no u suffix: a cast keeps the type.
+                        return "(uint)" + text.Substring(0, text.Length - 1);
                     case uint:
                     case int:
                     case long:
                     case ulong:
-                        // As written: C# and HLSL read the suffixes, and the size of a bare literal, alike.
+                        // As written: C# and HLSL read the size of a bare literal alike.
                         return text;
                     default:
                         Report(Diagnostics.UnsupportedSyntax, literal.GetLocation(), "literal of type " + value?.GetType().Name);
@@ -1285,6 +1290,9 @@ public sealed class ShaderTranslator
             return "this." + name;
         if (memberAccess.Expression is BaseExpressionSyntax)
             return "base." + name;
+        // Sdsl.Base(this).M: base.M.
+        if (memberAccess.Expression is InvocationExpressionSyntax baseInvocation && IsMarker(baseInvocation, "Base", out _))
+            return "base." + name;
         // Sdsl.Static<T>().Member: T.Member.
         if (memberAccess.Expression is InvocationExpressionSyntax staticInvocation && IsMarker(staticInvocation, "Static", out var staticArguments))
         {
@@ -1333,9 +1341,11 @@ public sealed class ShaderTranslator
     private string ElementAccess(ElementAccessExpressionSyntax elementAccess)
     {
         var arguments = elementAccess.ArgumentList.Arguments;
-        // streams[TName]: a member named by a MemberName generic parameter.
+        // streams[TName]: a member named by a MemberName generic parameter; streams["X"]: a stream the effect brings.
         if (arguments.Count == 1 && model.GetTypeInfo(arguments[0].Expression, cancellation).Type?.ToDisplayString() == "Csl.MemberName")
             return Operand(elementAccess.Expression) + "." + arguments[0].Expression;
+        if (arguments.Count == 1 && IsStreamsExpression(elementAccess.Expression) && StringArgument(arguments, 0) is { } streamName)
+            return "streams." + streamName;
         return Operand(elementAccess.Expression) + "[" + string.Join(", ", arguments.Select(a => Expression(a.Expression))) + "]";
     }
 
@@ -1356,8 +1366,14 @@ public sealed class ShaderTranslator
                     if (arguments.Count == 2)
                     {
                         var memberName = StringArgument(arguments, 1) ?? arguments[1].Expression.ToString();
+                        if (arguments[0].Expression is ThisExpressionSyntax)
+                            return memberName;
                         return Operand(arguments[0].Expression) + "." + memberName;
                     }
+                    break;
+                case "Ref":
+                    if (arguments.Count == 1)
+                        return Expression(arguments[0].Expression);
                     break;
                 case "Implicit":
                     if (arguments.Count == 1)
@@ -1385,6 +1401,9 @@ public sealed class ShaderTranslator
                     return id.Identifier.ValueText + "(" + argumentText + ")";
                 case MemberAccessExpressionSyntax access:
                     return MemberAccess(access) + "(" + argumentText + ")";
+                case InvocationExpressionSyntax member when IsMarker(member, "Member", out _):
+                    // Sdsl.Member(x, "name")(args): a method named by a macro.
+                    return Expression(member) + "(" + argumentText + ")";
             }
             Report(Diagnostics.UnsupportedCall, invocation.GetLocation(), invocation.Expression.ToString());
             return invocation.Expression + "(" + argumentText + ")";

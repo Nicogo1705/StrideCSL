@@ -1126,7 +1126,8 @@ public sealed class SdslSyntaxParser
         // A macro alone on its line: what follows starts another statement, not a declaration's name.
         if (token.Kind == SdslLexKind.Identifier && Peek().Line > token.Line
             && (Peek().Is("}") || StatementKeywords.Contains(Peek().Text)
-                || (Peek().Kind == SdslLexKind.Identifier && (Peek(2).Kind == SdslLexKind.Identifier || Peek(2).Is(".") || Peek(2).Is("(")))))
+                || (Peek().Kind == SdslLexKind.Identifier && (Peek(2).Kind == SdslLexKind.Identifier
+                    || (Peek(2).Kind == SdslLexKind.Punctuation && !(Peek(2).Is("=") || Peek(2).Is(",") || Peek(2).Is(";") || Peek(2).Is(":") || Peek(2).Is("[")))))))
         {
             Advance();
             return new SdslMacroStatement(token.Text);

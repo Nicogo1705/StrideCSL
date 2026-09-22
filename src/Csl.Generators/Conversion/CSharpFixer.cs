@@ -50,7 +50,7 @@ public static class CSharpFixer
                 // explicit: the compiler names the candidate it liked best, which may not be the overload
                 // HLSL picks, and a cast to its vector size would change the values.
                 case "CS1503":
-                    if (quoted.Count >= 2 && SameShape(quoted[0], quoted[1]))
+                    if (quoted.Count >= 2 && (SameShape(quoted[0], quoted[1]) || (Truncates(quoted[0], quoted[1]) && SingleCandidate(node, model, cancellation))))
                     {
                         if (node is ArgumentSyntax argument && argument.RefKindKeyword.IsKind(SyntaxKind.None))
                             change = Convert(argument.Expression, quoted[0], quoted[1], model, cancellation);
@@ -72,20 +72,51 @@ public static class CSharpFixer
                     break;
 
                 // An out parameter read before it is written, or not written on every path: HLSL allows
-                // both. As ref, C# checks nothing; [Modifiers("out")] keeps it out in the SDSL.
+                // both. Sdsl.Undefined(out x) at the start satisfies C# and leaves nothing in the SDSL.
                 case "CS0269":
                 case "CS0177":
                 {
                     var parameterSymbol = model.GetSymbolInfo(node, cancellation).Symbol as IParameterSymbol
                         ?? (quoted.Count >= 1 ? model.GetEnclosingSymbol(span.Start, cancellation) is IMethodSymbol enclosing ? enclosing.Parameters.FirstOrDefault(p => p.Name == quoted[0]) : null : null);
-                    if (parameterSymbol?.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellation) is ParameterSyntax parameterSyntax)
+                    if (parameterSymbol?.ContainingSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellation) is MethodDeclarationSyntax { Body: { } body })
                     {
-                        var outKeyword = parameterSyntax.Modifiers.FirstOrDefault(m => m.IsKind(SyntaxKind.OutKeyword));
-                        if (outKeyword != default)
-                            change = new TextChange(outKeyword.Span, "[Modifiers(\"out\")] ref");
+                        var marker = "Sdsl.Undefined(out " + parameterSymbol.Name + ");";
+                        if (!body.ToString().Contains(marker))
+                            change = new TextChange(new TextSpan(body.OpenBraceToken.Span.End, 0), " " + marker);
                     }
                     break;
                 }
+
+                // A property (a swizzle, a stream) passed to a ref parameter: through a slot C# can pass.
+                case "CS0206":
+                {
+                    var argument = node as ArgumentSyntax ?? node.FirstAncestorOrSelf<ArgumentSyntax>();
+                    if (argument != null && !argument.RefKindKeyword.IsKind(SyntaxKind.None))
+                        change = new TextChange(argument.Expression.Span, "Sdsl.Ref(" + argument.Expression + ")");
+                    break;
+                }
+
+                // A dynamic argument in a call through base: through the class itself, which C# can dispatch.
+                case "CS1971":
+                    if (node.FirstAncestorOrSelf<InvocationExpressionSyntax>()?.Expression is MemberAccessExpressionSyntax { Expression: BaseExpressionSyntax baseExpression })
+                        change = new TextChange(baseExpression.Span, "Sdsl.Base(this)");
+                    break;
+
+                // A local named like a function it then calls (float3 min = min(a, b)): rename the local.
+                case "CS0149":
+                    if (node is IdentifierNameSyntax called)
+                    {
+                        foreach (var candidate in model.LookupSymbols(called.SpanStart, name: called.Identifier.ValueText))
+                            if (candidate is ILocalSymbol shadowingLocal && !renames.ContainsKey(shadowingLocal))
+                                renames[shadowingLocal] = shadowingLocal.Name + "_" + (renames.Count + 1).ToString(CultureInfo.InvariantCulture);
+                    }
+                    break;
+
+                // uint u = -1: HLSL wraps it.
+                case "CS0031":
+                    if (quoted.Count >= 2 && Expression(node, span) is { } constant)
+                        change = new TextChange(constant.Span, "Sdsl.Implicit<" + TypeName(quoted[1]) + ">(" + constant + ")");
+                    break;
 
                 // An in parameter written to: HLSL allows it, C#'s in is read-only. The attribute keeps the keyword.
                 case "CS8331":
@@ -192,6 +223,9 @@ public static class CSharpFixer
         {
             foreach (var reference in root.DescendantNodes().OfType<IdentifierNameSyntax>())
             {
+                // min(a, b) next to a local named min: the call means the function, not the local.
+                if (reference.Parent is InvocationExpressionSyntax call && call.Expression == reference)
+                    continue;
                 if (reference.Identifier.ValueText == pair.Key.Name && SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(reference, cancellation).Symbol, pair.Key))
                     AddIfFree(changes, new TextChange(reference.Identifier.Span, pair.Value));
             }
@@ -260,17 +294,23 @@ public static class CSharpFixer
                 return new TextChange(binary.Right.Span, "Sdsl.Implicit<bool>(" + binary.Right + ")");
             return null;
         }
+        if (binary.IsKind(SyntaxKind.LeftShiftExpression) || binary.IsKind(SyntaxKind.RightShiftExpression))
+            return new TextChange(binary.Right.Span, "Sdsl.Implicit<int>(" + binary.Right + ")");
         var wider = Wider(left, right);
+        if (wider == null)
+            return null;
         if (wider == left)
             return new TextChange(binary.Right.Span, "Sdsl.Implicit<" + wider + ">(" + binary.Right + ")");
         if (wider == right)
             return new TextChange(binary.Left.Span, "Sdsl.Implicit<" + wider + ">(" + binary.Left + ")");
-        return null;
+        // int3 * float: float3, which neither side is. The vector side converts; the scalar then fits.
+        var vectorSide = HlslType.Match(left).Groups[2].Success ? binary.Left : binary.Right;
+        return new TextChange(vectorSide.Span, "Sdsl.Implicit<" + wider + ">(" + vectorSide + ")");
     }
 
-    private static readonly Regex HlslType = new Regex(@"^(bool|int|uint|half|float|double)([2-4])?(x[2-4])?$", RegexOptions.Compiled);
+    private static readonly Regex HlslType = new Regex(@"^(bool|int|uint|half|float|double|long|ulong)([2-4])?(x[2-4])?$", RegexOptions.Compiled);
 
-    private static int Rank(string scalar) => scalar switch { "bool" => 0, "int" => 1, "uint" => 2, "half" => 3, "float" => 4, "double" => 5, _ => -1 };
+    private static int Rank(string scalar) => scalar switch { "bool" => 0, "int" => 1, "long" => 1, "uint" => 2, "ulong" => 2, "half" => 3, "float" => 4, "double" => 5, _ => -1 };
 
     /// <summary>The type both sides convert to, HLSL's way: the larger vector, then the higher scalar rank.</summary>
     private static string? Wider(string a, string b)
@@ -287,6 +327,33 @@ public static class CSharpFixer
         int size = sizeA == 1 ? sizeB : sizeB == 1 ? sizeA : Math.Min(sizeA, sizeB);
         var result = size == 1 ? scalar : scalar + size.ToString(CultureInfo.InvariantCulture);
         return result == a ? a : result == b ? b : result;
+    }
+
+    /// <summary>A vector to a smaller vector or a scalar: HLSL truncates implicitly.</summary>
+    private static bool Truncates(string from, string to)
+    {
+        var mf = HlslType.Match(TypeName(from));
+        var mt = HlslType.Match(TypeName(to));
+        if (!mf.Success || !mt.Success || mf.Groups[3].Success || mt.Groups[3].Success)
+            return false;
+        int sizeFrom = mf.Groups[2].Success ? int.Parse(mf.Groups[2].Value, CultureInfo.InvariantCulture) : 1;
+        int sizeTo = mt.Groups[2].Success ? int.Parse(mt.Groups[2].Value, CultureInfo.InvariantCulture) : 1;
+        return sizeTo < sizeFrom;
+    }
+
+    /// <summary>The call the argument is in has a single method it can be: the conversion is to that method's parameter.</summary>
+    private static bool SingleCandidate(SyntaxNode node, SemanticModel model, CancellationToken cancellation)
+    {
+        var invocation = node.FirstAncestorOrSelf<InvocationExpressionSyntax>();
+        if (invocation == null)
+            return false;
+        var info = model.GetSymbolInfo(invocation, cancellation);
+        if (info.Symbol != null)
+            return true;
+        if (info.CandidateSymbols.Length != 1)
+            return false;
+        // Not an intrinsic: HLSL would pick among its overloads by the argument, not truncate it.
+        return info.CandidateSymbols[0].ContainingType?.ToDisplayString() != "Csl.Hlsl.Intrinsics";
     }
 
     /// <summary>Both types are scalars, or vectors of the same size, or matrices of the same shape.</summary>
