@@ -18,7 +18,8 @@ public partial class DemoSphere : DemoTile
     {
         float3 eye = new float3(0.0f, 0.0f, -3.5f);
         float3 direction = normalize(new float3(p.x, -p.y, 1.0f));
-        float3 color = lerp(new float3(0.02f, 0.02f, 0.05f), new float3(0.1f, 0.1f, 0.2f), p.y + 0.5f);
+        float3 background = lerp(new float3(0.02f, 0.02f, 0.05f), new float3(0.1f, 0.1f, 0.2f), p.y + 0.5f);
+        float3 color = background;
         float hit = 0.0f;
         if (EngineMath.RayIntersectsSphere(eye, direction, new float3(0.0f, 0.0f, 0.0f), 1.0f, out hit))
         {
@@ -28,8 +29,10 @@ public partial class DemoSphere : DemoTile
             // Longitude, turning with time, and latitude: the noise wraps around the sphere.
             float longitude = atan2(normal.z, normal.x) / (2.0f * EngineMath.PI) + Time * 0.05f;
             float3 albedo = DemoCommon.Palette(DemoCommon.Fbm(new float2(longitude * 12.0f, normal.y * 3.0f)) + 0.6f);
-            float3 rim = FresnelSchlick(new float3(0.04f, 0.04f, 0.04f), -direction, normal, 1.0f);
-            color = albedo * (0.1f + 0.9f * diffuse) + rim;
+            // Fresnel is how much is reflected, 1 at grazing angles; what is reflected is the background,
+            // so the edge melts into it.
+            float3 fresnel = FresnelSchlick(new float3(0.04f, 0.04f, 0.04f), -direction, normal, 1.0f);
+            color = lerp(albedo * (0.1f + 0.9f * diffuse), background, fresnel);
         }
         return color;
     }
