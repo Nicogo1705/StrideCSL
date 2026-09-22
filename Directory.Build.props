@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- Stride version every project references: the latest published beta, which carries the new
          SDSL compiler (SDSL to SPIR-V) the tests check the generated shaders with. -->
-    <StrideVersion>4.4.0-beta7</StrideVersion>
+    <StrideVersion>4.4.0-beta8</StrideVersion>
 
     <!-- Opt in to the packages a local Stride checkout packs into its dev feed (NuGet.config
          registers it): -p:StrideUseDevPackages=true. -->

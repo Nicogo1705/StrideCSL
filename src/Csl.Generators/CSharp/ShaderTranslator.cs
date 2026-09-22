@@ -1219,8 +1219,8 @@ public sealed class ShaderTranslator
                             digits += ".0";
                         return digits + "L";
                     }
-                    case uint when text.EndsWith("u", StringComparison.OrdinalIgnoreCase):
-                        // The engine's SDSL parser (4.4 beta) takes no u suffix: a cast keeps the type.
+                    case uint when text.EndsWith("u", StringComparison.OrdinalIgnoreCase) && text.StartsWith("0", StringComparison.Ordinal):
+                        // The engine's SDSL parser (4.4 beta8) rejects a suffix after a leading 0 (0u, 0x10u): a cast keeps the type.
                         return "(uint)" + text.Substring(0, text.Length - 1);
                     case uint:
                     case int:

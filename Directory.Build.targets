@@ -1,0 +1,9 @@
+<Project>
+  <!-- The tool and the test app read the shaders of every Stride package from the NuGet cache: these
+       two are referenced by nothing here, so they are downloaded (not referenced) for the list to be
+       whole whatever else the machine restored. -->
+  <ItemGroup Condition="'$(CslNeedsEngineShaders)' == 'true'">
+    <PackageDownload Include="Stride.Voxels" Version="[$(StrideVersion)]" />
+    <PackageDownload Include="Stride.BepuPhysics.Debug" Version="[$(StrideVersion)]" />
+  </ItemGroup>
+</Project>

@@ -15,6 +15,8 @@ switch (command)
         return CompileCommand(rest);
     case "gpu":
         return GpuTests.Run(rest);
+    case "probes":
+        return EngineProbes.Run();
     default:
         Console.WriteLine("Csl.TestApp parse [files...]              parse the engine's shaders (or these files) with the full SDSL parser");
         Console.WriteLine("Csl.TestApp convert [--out DIR] [--only NAME,...]");
@@ -22,6 +24,7 @@ switch (command)
         Console.WriteLine("Csl.TestApp roundtrip [--out DIR] [--only NAME,...]");
         Console.WriteLine("                                          compile each shader from its SDSL and from its round trip, compare the SPIR-V");
         Console.WriteLine("Csl.TestApp gpu                           run the C# shaders of Shaders/ on the GPU (a hidden game window) and check what they compute");
+        Console.WriteLine("Csl.TestApp probes                        what the engine's SDSL compiler does with the constructs the conversion works around (CPU)");
         Console.WriteLine("Csl.TestApp compile NAME...               compile engine shaders, mixed in this order, with the engine's SDSL compiler");
         return command == "help" ? 0 : 2;
 }

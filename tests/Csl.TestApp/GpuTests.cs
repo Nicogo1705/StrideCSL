@@ -56,6 +56,7 @@ internal sealed class GpuTests : Game
         Test("an engine shader replaced by its modified C# (LuminanceUtils)", Luma);
         Test("an engine graphics shader extended (ImageEffectShader)", Invert);
         Probe("uint division inside a vector constructor", ProbeDivision);
+        Probe("typed buffer with unordered access (RWBuffer<T>)", ProbeTypedBuffer);
         Exit();
     }
 
@@ -140,6 +141,19 @@ internal sealed class GpuTests : Game
             return failure + (engine == null ? " (the engine's LuminanceUtils ran: the C# replacement was not used)" : string.Empty);
         }
         return null;
+    }
+
+    private string ProbeTypedBuffer()
+    {
+        try
+        {
+            using var buffer = Buffer.Typed.New(GraphicsDevice, Count, PixelFormat.R32_UInt, unorderedAccess: true);
+            return "Buffer.Typed.New(R32_UInt, unorderedAccess: true) creates it";
+        }
+        catch (Exception e)
+        {
+            return "Buffer.Typed.New(R32_UInt, unorderedAccess: true) fails: " + e.GetType().Name + ": " + e.Message;
+        }
     }
 
     private string ProbeDivision()

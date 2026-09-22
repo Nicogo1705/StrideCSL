@@ -11,7 +11,7 @@ The two directions are checked against each other on the whole engine: every eng
 converted SDSL → C# → SDSL and both versions go through the engine's SDSL compiler; the SPIR-V is
 compared instruction for instruction (see [Validation](#validation)).
 
-Built against Stride 4.4 (`StrideVersion` in `Directory.Build.props`, the published 4.4.0-beta7;
+Built against Stride 4.4 (`StrideVersion` in `Directory.Build.props`, the published 4.4.0-beta8;
 `-p:StrideUseDevPackages=true` picks the packages a local Stride checkout packs).
 
 ## Projects
@@ -167,7 +167,7 @@ and back exactly the SDSL it came from.
 | `float3(a, b, c)`, `(float3)x`, `(S)0` | `new float3(a, b, c)`, `(float3)x`, `default(S)` |
 | `const` / `static const` locals | `const` when C# can, else `Sdsl.Const(v)` / `Sdsl.StaticConst(v)` |
 | `Input`, `Output`, `TriangleStream<T>`… | `[Type("TriangleStream<Output>")] dynamic` |
-| `2.0`, `2.0f`, `1u` | `2.0f`, `2.0f`, `1u` (written `(uint)1`: the 4.4 parser takes no `u`) |
+| `2.0`, `2.0f`, `1u` | `2.0f`, `2.0f`, `1u` (`0u` and `0x10u` are written `(uint)0`, `(uint)0x10`: the 4.4 parser rejects them) |
 
 The HLSL types follow HLSL's conversions: widening (bool < int < uint < half < float < double, same
 size) is implicit, narrowing and truncation are explicit, as HLSL only warns about them. Vectors take
@@ -203,17 +203,18 @@ On the GPU (`gpu`, Direct3D 11): the four C# shaders compute what the CPU expect
 `tests/Csl.Tests` (`dotnet test`) checks the generator on sample shaders, the wrappers against the
 engine, and compiles the generated SDSL with the engine compiler.
 
-### Engine issues found on the way (Stride 4.4.0-beta7, Direct3D 11)
+### Engine issues found on the way (Stride 4.4.0-beta8, Direct3D 11)
+
+`Csl.TestApp probes` (CPU) and `gpu` report them as `ENGINE` lines, outside the tests.
 
 - A typed buffer with an unordered access view (`RWBuffer<T>`) fails to create
   (`E_INVALIDARG`), `Buffer.Typed.New(device, n, PixelFormat.R32_UInt, unorderedAccess: true)`
   included; structured and raw buffers work. The gpu tests use `RWStructuredBuffer<T>`.
 - `float3(i / 4, 0, 0)` with a `uint i` divides in float (`i = 1` gives 0.25): the constructor's
-  float type reaches the integer division inside its argument. The same division through a local is
-  right. `gpu` reports it as `ENGINE` (the `EngineProbeDivision` shader), outside the tests.
-- `override stage` and `stage override` on a method do not compile to the same SPIR-V
-  (`ShadowMapCasterNoPixelShader`); the conversion keeps the order as written (`[Stage(AfterOverride = true)]`).
-- The 4.4 SDSL parser takes no `u` suffix on integer literals.
+  float type reaches the literal `4` inside the integer division. The same division through a local
+  is right.
+- An integer suffix after a leading 0 does not parse: `0u`, `0x10u` (`1u`, `10u` do). The translator
+  writes `(uint)0`, `(uint)0x10`.
 
 ## Compute wrappers
 
