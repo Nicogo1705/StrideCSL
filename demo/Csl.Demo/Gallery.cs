@@ -11,25 +11,25 @@ namespace Csl.Demo;
 /// <summary>
 /// The image shaders of Shaders/ drawn side by side, and redrawn from their C# as it is saved: the
 /// folder is compiled again (<see cref="LiveCompiler"/>) and each shader whose SDSL changed comes back
-/// under a new name, so the effect compiler has nothing cached for it. One that does not compile
-/// leaves the previous one on screen and its errors in the console.
+/// under a new name, so the effect compiler has nothing cached for it; so do the shaders that use it
+/// (a tile inheriting DemoTile when DemoTile changes), their SDSL pointing to the new names. One that
+/// does not compile leaves the previous one on screen and its errors in the console.
 /// </summary>
 internal sealed class Gallery : IDisposable
 {
-    private sealed class Tile(string name, string sdsl, ImageEffectShader? effect)
+    private sealed class Tile(string name, ImageEffectShader? effect)
     {
         public string Name { get; } = name;
         /// <summary>The C# class name without the prefix, for the title.</summary>
         public string Label => Name.StartsWith("Demo", StringComparison.Ordinal) ? Name[4..] : Name;
-        public string Sdsl = sdsl;
         public ImageEffectShader? Effect = effect;
-        public int Version;
-        public (string Sdsl, ImageEffectShader Effect)? Candidate;
-        /// <summary>SDSL the effect compiler refused: not tried again until the C# changes.</summary>
-        public string? Rejected;
+        public ImageEffectShader? Candidate;
     }
 
     private readonly List<Tile> tiles = new();
+    /// <summary>Every shader of the folder: the SDSL last taken from its C#, and the name it is registered under.</summary>
+    private readonly Dictionary<string, (string Sdsl, string Registered)> shaders = new(StringComparer.Ordinal);
+    private int generation;
     private readonly RenderContext renderContext;
     private readonly Texture checker;
     private readonly BlurPass blur;
@@ -51,11 +51,13 @@ internal sealed class Gallery : IDisposable
             .Where(s => string.Equals(Path.GetFileName(Path.GetDirectoryName(s.Value.Path)), "Shaders", StringComparison.OrdinalIgnoreCase))
             .OrderBy(s => s.Key, StringComparer.Ordinal)
             .ToList();
-        // The image shaders are tiles; the compute one, DemoBlur, runs over all of them.
+        // The image shaders are tiles; the compute one, DemoBlur, runs over all of them; the others
+        // (DemoTile, DemoCommon) are only used by those.
         foreach (var (name, (source, _)) in demos)
         {
-            if (!IsComputeShader(name))
-                tiles.Add(new Tile(name, source, NewEffect(name)));
+            shaders[name] = (source, name);
+            if (KindOf(name) == LiveCompiler.ShaderKind.Image)
+                tiles.Add(new Tile(name, NewEffect(name)));
         }
 
         checker = MakeChecker(device);
@@ -170,34 +172,73 @@ internal sealed class Gallery : IDisposable
             Console.WriteLine("Shaders/ compiles again.");
         hadErrors = false;
 
-        foreach (var (name, sdsl, path, isCompute) in result.Shaders)
+        var compiled = result.Shaders.ToDictionary(r => r.ShaderName, StringComparer.Ordinal);
+        var changed = compiled.Values
+            .Where(r => force || !shaders.TryGetValue(r.ShaderName, out var known) || known.Sdsl != r.Sdsl)
+            .Select(r => r.ShaderName)
+            .ToHashSet(StringComparer.Ordinal);
+        // A shader that uses a changed one is compiled again with it: DemoTile changed, every tile
+        // inheriting it too.
+        for (bool grew = true; grew;)
         {
-            if (isCompute)
+            grew = false;
+            foreach (var r in compiled.Values)
             {
-                if (name == Shaders.DemoBlur.ShaderName)
-                    blur.Offer(sdsl, path, force);
-                else if (force)
+                if (!changed.Contains(r.ShaderName) && changed.Any(c => Regex.IsMatch(r.Sdsl, $@"\b{Regex.Escape(c)}\b")))
+                    grew = changed.Add(r.ShaderName);
+            }
+        }
+        if (changed.Count == 0)
+            return true;
+
+        // A new name each time: the effect compiler caches by shader, and these are new to it.
+        generation++;
+        foreach (var name in changed)
+            shaders[name] = (compiled[name].Sdsl, $"{name}_{generation}");
+        var anyName = new Regex(@"\b(" + string.Join("|", shaders.Keys.OrderByDescending(n => n.Length).Select(Regex.Escape)) + @")\b");
+        foreach (var name in changed.Order(StringComparer.Ordinal))
+        {
+            var (_, sdsl, path, kind) = compiled[name];
+            var registered = shaders[name].Registered;
+            ShaderSourceRegistry.Add(registered, anyName.Replace(sdsl, m => shaders[m.Value].Registered), path);
+            AliasKeys(name, registered);
+            switch (kind)
+            {
+                case LiveCompiler.ShaderKind.Image:
+                    var tile = tiles.FirstOrDefault(t => t.Name == name);
+                    if (tile == null)
+                    {
+                        tile = new Tile(name, null);
+                        tiles.Add(tile);
+                        Console.WriteLine($"{name}: new demo, tile {tiles.Count}");
+                    }
+                    tile.Candidate?.Dispose();
+                    tile.Candidate = NewEffect(registered);
+                    break;
+                case LiveCompiler.ShaderKind.Compute when name == Shaders.DemoBlur.ShaderName:
+                    blur.Offer(registered);
+                    break;
+                case LiveCompiler.ShaderKind.Compute:
                     Console.WriteLine($"{name}: a compute shader; only DemoBlur has a place in the gallery");
-                continue;
+                    break;
+                default:
+                    if (!force)
+                        Console.WriteLine($"{name}: changed, the shaders using it follow");
+                    break;
             }
-            var tile = tiles.FirstOrDefault(t => t.Name == name);
-            if (tile == null)
-            {
-                tile = new Tile(name, string.Empty, null);
-                tiles.Add(tile);
-                Console.WriteLine($"{name}: new demo, tile {tiles.Count}");
-            }
-            if (!force && (sdsl == tile.Sdsl || sdsl == tile.Rejected || sdsl == tile.Candidate?.Sdsl))
-                continue;
-            tile.Candidate?.Effect.Dispose();
-            tile.Rejected = null;
-            // A new name each time: the effect compiler caches by shader, and this one is new to it.
-            var version = $"{name}_{++tile.Version}";
-            var renamed = Regex.Replace(sdsl, $@"\bshader\s+{Regex.Escape(name)}\b", "shader " + version);
-            ShaderSourceRegistry.Add(version, renamed, path);
-            tile.Candidate = (sdsl, NewEffect(version));
         }
         return true;
+    }
+
+    /// <summary>
+    /// The compiled effect names a shader's parameters after the shader, DemoTile_3.Aspect: registered as
+    /// aliases of the keys the build generated (DemoTileKeys.Aspect), what the app sets keeps working.
+    /// </summary>
+    private static void AliasKeys(string shaderName, string registered)
+    {
+        var keys = typeof(Shaders.DemoTile).Assembly.GetType($"{typeof(Shaders.DemoTile).Namespace}.{shaderName}Keys");
+        foreach (var key in keys?.GetFields().Select(f => f.GetValue(null)).OfType<ParameterKey>() ?? [])
+            ParameterKeys.Merge(key, null, registered + key.Name[key.Name.IndexOf('.')..]);
     }
 
     public void Draw(RenderDrawContext context, Texture backBuffer, float time)
@@ -237,17 +278,15 @@ internal sealed class Gallery : IDisposable
         if (tile.Candidate is { } candidate)
         {
             tile.Candidate = null;
-            var error = TryDraw(context, candidate.Effect, target, viewport, time);
+            var error = TryDraw(context, candidate, target, viewport, time);
             if (error == null)
             {
                 tile.Effect?.Dispose();
-                tile.Effect = candidate.Effect;
-                tile.Sdsl = candidate.Sdsl;
-                Console.WriteLine($"{tile.Name}: redrawn from its C# ({candidate.Effect.EffectName})");
+                tile.Effect = candidate;
+                Console.WriteLine($"{tile.Name}: redrawn from its C# ({candidate.EffectName})");
                 return;
             }
-            candidate.Effect.Dispose();
-            tile.Rejected = candidate.Sdsl;
+            candidate.Dispose();
             Console.WriteLine($"{tile.Name}: the SDSL does not compile, the previous one stays:");
             Console.WriteLine("  " + error.Replace("\n", "\n  "));
         }
@@ -259,8 +298,8 @@ internal sealed class Gallery : IDisposable
         }
     }
 
-    private static bool IsComputeShader(string name)
-        => Type.GetType($"{typeof(Shaders.DemoBlur).Namespace}.{name}")?.IsSubclassOf(typeof(Csl.Engine.ComputeShaderBase)) == true;
+    private static LiveCompiler.ShaderKind KindOf(string name)
+        => LiveCompiler.KindOf(Type.GetType($"{typeof(Shaders.DemoTile).Namespace}.{name}"));
 
     private ImageEffectShader NewEffect(string shaderName)
     {
@@ -274,6 +313,7 @@ internal sealed class Gallery : IDisposable
         try
         {
             effect.Parameters.Set(GlobalKeys.Time, time);
+            effect.Parameters.Set(Shaders.DemoTileKeys.Aspect, viewport.Width / viewport.Height);
             effect.SetInput(0, checker);
             effect.SetOutput(target);
             effect.SetViewport(viewport);
@@ -310,7 +350,7 @@ internal sealed class Gallery : IDisposable
         foreach (var tile in tiles)
         {
             tile.Effect?.Dispose();
-            tile.Candidate?.Effect.Dispose();
+            tile.Candidate?.Dispose();
         }
         checker.Dispose();
         blur.Dispose();

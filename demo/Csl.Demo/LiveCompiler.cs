@@ -22,7 +22,15 @@ internal sealed class LiveCompiler
 
     public string Directory { get; }
 
-    public sealed record Result(IReadOnlyList<(string ShaderName, string Sdsl, string Path, bool IsCompute)> Shaders, IReadOnlyList<string> Errors);
+    /// <summary>What the gallery does with a shader: draws it as a tile, runs it over the tiles, or only lets others use it.</summary>
+    public enum ShaderKind
+    {
+        Image,
+        Compute,
+        Library,
+    }
+
+    public sealed record Result(IReadOnlyList<(string ShaderName, string Sdsl, string Path, ShaderKind Kind)> Shaders, IReadOnlyList<string> Errors);
 
     public Result Compile(CancellationToken cancellation = default)
     {
@@ -35,7 +43,7 @@ internal sealed class LiveCompiler
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var generated, out _, cancellation);
 
         var errors = generated.GetDiagnostics(cancellation).Where(d => d.Severity == DiagnosticSeverity.Error).Select(Format).ToList();
-        var shaders = new List<(string, string, string, bool)>();
+        var shaders = new List<(string, string, string, ShaderKind)>();
         foreach (var tree in trees)
         {
             var model = generated.GetSemanticModel(tree);
@@ -47,18 +55,35 @@ internal sealed class LiveCompiler
                 var translated = ShaderTranslator.Translate(type, generated, cancellation);
                 errors.AddRange(translated.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(Format));
                 if (!translated.IsExternal && translated.Sdsl != null)
-                    shaders.Add((translated.ShaderName, translated.Sdsl, tree.FilePath, IsCompute(type)));
+                    shaders.Add((translated.ShaderName, translated.Sdsl, tree.FilePath, KindOf(type)));
             }
         }
         return new Result(shaders, errors.Distinct().ToList());
     }
 
-    private static bool IsCompute(INamedTypeSymbol type)
+    private static ShaderKind KindOf(INamedTypeSymbol type)
     {
+        if (type.IsAbstract)
+            return ShaderKind.Library;
         for (var b = type.BaseType; b != null; b = b.BaseType)
-            if (b.ToDisplayString() == "Csl.Engine.ComputeShaderBase")
-                return true;
-        return false;
+        {
+            switch (b.ToDisplayString())
+            {
+                case "Csl.Engine.ComputeShaderBase": return ShaderKind.Compute;
+                case "Csl.Engine.ImageEffectShader": return ShaderKind.Image;
+            }
+        }
+        return ShaderKind.Library;
+    }
+
+    /// <summary>The same, for a shader class compiled into the app.</summary>
+    public static ShaderKind KindOf(Type? type)
+    {
+        if (type == null || type.IsAbstract)
+            return ShaderKind.Library;
+        if (type.IsSubclassOf(typeof(Csl.Engine.ComputeShaderBase)))
+            return ShaderKind.Compute;
+        return type.IsSubclassOf(typeof(Csl.Engine.ImageEffectShader)) ? ShaderKind.Image : ShaderKind.Library;
     }
 
     private static string Format(Diagnostic diagnostic)

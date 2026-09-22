@@ -83,22 +83,64 @@ previous version stays on screen until the file compiles again.
 |--------|------|-------|
 | `DemoGradient` | image effect | The simplest one: start here. Colour from the coordinates, `Time` from the engine's `Global`. |
 | `DemoRings` | image effect | `length`, `sin`, `lerp`. |
-| `DemoPlasma` | image effect | A method of the shader called from `Shading`. |
 | `DemoMandelbrot` | image effect | A loop with a `break`. |
 | `DemoWobble` | image effect | Sampling `Texture0` (a checkerboard the demo makes). |
-| `DemoLuma` | image effect | Calling an engine shader's function (`LuminanceUtils.Luma`, from `Csl.Engine`). |
+| `DemoLuma` | image effect | Calling an engine shader's static function: `LuminanceUtils.Luma`. |
+| `DemoPlasma` | image effect, on `DemoTile` | Shared code: inherits `DemoTile`, calls `DemoCommon.Palette`. |
+| `DemoClouds` | image effect, on `DemoTile` | Shared code: `DemoCommon`'s fractal noise, warped by itself. |
+| `DemoSphere` | image effect, on `DemoTile` | Engine shaders both ways: `Math.RayIntersectsSphere` and `Math.PI` called by name (static), `Utilities.FresnelSchlick` through a mixin. |
+| `DemoOverlay` | image effect, on `DemoTile` | An engine shader mixed in: `BlendUtils.Overlay` of the checkerboard over a gradient. |
 | `DemoBlur` | compute | A gaussian blur over the whole window, one thread per pixel, run through its generated `DemoBlurEffect`. |
+| `DemoTile` | shared, inherited | The base of the tiles above: `Shading` written once, calling `Color(p)` that each tile overrides; `Global` mixed in for `Time`; `Aspect`, set by the app. |
+| `DemoCommon` | shared, called | Static functions any shader calls by name: `Hash`, `Noise`, `Fbm`, `Palette`. |
 
 Keys: 1-9 one shader alone, 0 or space all of them, B the blur on and off, + and - its radius.
 
-Each image effect is an `ImageEffectShader` with `Shading()` overridden; the tiles draw into a texture
-that `DemoBlur` blurs into the back buffer. A new `[Shader]` class in the folder gets a new tile.
+Each image effect is an `ImageEffectShader` with `Shading()` overridden, directly or through
+`DemoTile`; the tiles draw into a texture that `DemoBlur` blurs into the back buffer. A new
+non-abstract `[Shader]` class in the folder gets a new tile; an abstract one is shared code.
 
-How the reload works: saving recompiles the folder the way the build does (Roslyn, the Csl generator,
+### Sharing code between shaders
+
+The same three ways as in SDSL, the engine's shaders and yours alike:
+
+```csharp
+// Inherit: DemoTile writes Shading once and calls Color, which each tile overrides.
+[Shader]
+public partial class DemoPlasma : DemoTile
+{
+    public override float3 Color(float2 p)
+    {
+        float v = sin(p.x * 8.0f + Time) + sin(length(p * 8.0f) - Time * 1.5f);
+        return DemoCommon.Palette(v * 0.25f);   // call: a static function, by name
+    }
+}
+
+// Mix in: the mixed-in shader's methods become the class's own.
+[Shader, Mixin(typeof(BlendUtils))]
+public partial class DemoOverlay : DemoTile
+{
+    public override float3 Color(float2 p)
+    {
+        float4 checker = Texture0.Sample(LinearRepeatSampler, streams.TexCoord * 2.0f);
+        float4 gradient = new float4(DemoCommon.Palette(p.x * 0.4f + Time * 0.2f), 1.0f);
+        return Overlay(gradient, checker).rgb;   // BlendUtils.Overlay, from the engine
+    }
+}
+```
+
+A shader whose only role is to be shared is an `abstract partial class`: `DemoCommon` holds `static`
+functions, `DemoTile` a base class with `virtual` methods.
+
+### How the live reload works
+
+Saving recompiles the folder the way the build does (Roslyn, the Csl generator,
 the translator: `LiveCompiler`), and each shader whose SDSL changed is registered again under a new
-name (`DemoRings_2`), so the effect compiler has nothing cached for it. For `DemoBlur`, the keys of each
-new name (`DemoBlur_2.Radius`) are registered as aliases of `DemoBlurKeys`, so the wrapper keeps
-setting them; a parameter added while the demo runs needs a rebuild.
+name (`DemoRings_2`), so the effect compiler has nothing cached for it. The shaders that use a changed
+one follow it: editing `DemoCommon` redraws the four tiles that call it, their SDSL pointing to
+`DemoCommon_2`. The keys of each new name (`DemoBlur_2.Radius`, `DemoTile_2.Aspect`) are registered as
+aliases of the ones the build generated, so what the app sets keeps reaching the shaders; a parameter
+added while the demo runs needs a rebuild.
 
 `Csl.Demo --shot FILE.png [--time T] [--blur R]` compiles the shaders from their files, draws once, saves the
 image and exits, the window hidden.
@@ -292,17 +334,6 @@ On the GPU (`gpu`, Direct3D 11, feature level 11_0): the five C# shaders compute
 
 `tests/Csl.Tests` (`dotnet test`) checks the generator on sample shaders, the wrappers against the
 engine, and compiles the generated SDSL with the engine compiler.
-
-### Engine issues found on the way (Stride 4.4.0-beta8)
-
-Each has a fix proposed upstream; until they ship, the translator and the tests work around them.
-
-- [stride3d/stride#3467](https://github.com/stride3d/stride/pull/3467): an integer suffix after a lone
-  0 or on a hexadecimal literal does not parse (`0u`, `0x10u`). The translator writes `(uint)0`.
-- [stride3d/stride#3468](https://github.com/stride3d/stride/pull/3468): `float3(i / 4, 0, 0)` with a
-  `uint i` divides in float. The same division through a local is right.
-- [stride3d/stride#3469](https://github.com/stride3d/stride/pull/3469): a typed UAV buffer
-  (`RWBuffer<T>`) below feature level 11_0 fails with a bare `E_INVALIDARG`. The tests ask for 11_0.
 
 ## Compute wrappers
 

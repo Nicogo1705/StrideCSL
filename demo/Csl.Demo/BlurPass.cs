@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Csl.Demo.Shaders;
 using Stride.Core;
 using Stride.Core.Mathematics;
@@ -10,18 +9,15 @@ namespace Csl.Demo;
 /// <summary>
 /// Shaders/DemoBlur, a compute shader, run over everything the tiles drew: they draw into Scene, the
 /// blur writes Blurred, and Blurred is drawn to the back buffer. Reloaded like the tiles, under a new
-/// name; the generated DemoBlurEffect keeps setting its parameters, because each new name's keys are
-/// registered as aliases of DemoBlurKeys. A parameter added while the app runs needs a rebuild.
+/// name whose keys the gallery registers as aliases of DemoBlurKeys: the generated DemoBlurEffect keeps
+/// setting them. A parameter added while the app runs needs a rebuild.
 /// </summary>
 internal sealed class BlurPass : IDisposable
 {
     private readonly DemoBlurEffect effect;
     private Texture? scene;
     private Texture? blurred;
-    private string sdsl = DemoBlur.SdslSource;
-    private (string Sdsl, string Name)? candidate;
-    private string? rejected;
-    private int version;
+    private string? candidate;
 
     public BlurPass(IServiceRegistry services) => effect = new DemoBlurEffect(services);
 
@@ -42,19 +38,8 @@ internal sealed class BlurPass : IDisposable
         return scene;
     }
 
-    /// <summary>A new SDSL for DemoBlur, from the C# saved: tried on the next frame.</summary>
-    public void Offer(string newSdsl, string path, bool force)
-    {
-        if (!force && (newSdsl == sdsl || newSdsl == rejected || newSdsl == candidate?.Sdsl))
-            return;
-        rejected = null;
-        var name = $"{DemoBlur.ShaderName}_{++version}";
-        ShaderSourceRegistry.Add(name, Regex.Replace(newSdsl, $@"\bshader\s+{DemoBlur.ShaderName}\b", "shader " + name), path);
-        // The compiled effect names its parameters DemoBlur_N.Radius: the same keys under that name.
-        foreach (var key in typeof(DemoBlurKeys).GetFields().Select(f => f.GetValue(null)).OfType<ParameterKey>())
-            ParameterKeys.Merge(key, null, name + key.Name[key.Name.IndexOf('.')..]);
-        candidate = (newSdsl, name);
-    }
+    /// <summary>DemoBlur registered again under this name (by the gallery, with its keys): used from the next frame.</summary>
+    public void Offer(string versionName) => candidate = versionName;
 
     /// <summary>Blurs Scene and draws the result over the back buffer.</summary>
     public void Apply(RenderDrawContext context, Texture backBuffer)
@@ -69,19 +54,17 @@ internal sealed class BlurPass : IDisposable
         {
             candidate = null;
             var previous = effect.Shader.ShaderSourceName;
-            effect.Shader.ShaderSourceName = next.Name;
+            effect.Shader.ShaderSourceName = next;
             if (TryDispatch() is { } error)
             {
                 effect.Shader.ShaderSourceName = previous;
-                rejected = next.Sdsl;
                 Console.WriteLine($"{DemoBlur.ShaderName}: the SDSL does not compile, the previous one stays:");
                 Console.WriteLine("  " + error.Replace("\n", "\n  "));
                 TryDispatch();
             }
             else
             {
-                sdsl = next.Sdsl;
-                Console.WriteLine($"{DemoBlur.ShaderName}: redispatched from its C# ({next.Name})");
+                Console.WriteLine($"{DemoBlur.ShaderName}: redispatched from its C# ({next})");
             }
         }
         else if (TryDispatch() is { } failure)
