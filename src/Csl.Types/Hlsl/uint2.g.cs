@@ -2,29 +2,51 @@
 // Written by tools/gen_hlsl_types.py. Do not edit; edit the script and run it again.
 // </auto-generated>
 #nullable enable
-#pragma warning disable IDE1006, CS1591
+#pragma warning disable IDE1006, CS1591, CS0660, CS0661
 using System;
 using System.Runtime.InteropServices;
 
 namespace Csl.Hlsl;
 
-/// <summary>HLSL uint2: 2 components of uint. Runs on the GPU; the C# operations exist so shader code type-checks and can be unit tested.</summary>
+/// <summary>HLSL uint2: 2 components of uint.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct uint2 : IEquatable<uint2>
 {
     public uint x, y;
     public uint2(uint x, uint y) { this.x = x; this.y = y; }
     public uint2(uint v) { x = v; y = v; }
-    public uint2(float2 v) { x = (uint)v.x; y = (uint)v.y; }
-    public static explicit operator uint2(float2 v) => new uint2(v);
-    public uint2(int2 v) { x = (uint)v.x; y = (uint)v.y; }
-    public static explicit operator uint2(int2 v) => new uint2(v);
+    public uint2(double v) { x = (uint)v; y = (uint)v; }
+    public uint2(double p0, double p1) { x = (uint)p0; y = (uint)p1; }
     public static implicit operator uint2(uint v) => new uint2(v);
+    public static implicit operator uint2(bool2 v) => new uint2((v.x ? 1u : 0u), (v.y ? 1u : 0u));
+    public static explicit operator uint2(bool3 v) => new uint2((v.x ? 1u : 0u), (v.y ? 1u : 0u));
+    public static explicit operator uint2(bool4 v) => new uint2((v.x ? 1u : 0u), (v.y ? 1u : 0u));
+    public static implicit operator uint2(int2 v) => new uint2((uint)v.x, (uint)v.y);
+    public static explicit operator uint2(int3 v) => new uint2((uint)v.x, (uint)v.y);
+    public static explicit operator uint2(int4 v) => new uint2((uint)v.x, (uint)v.y);
+    public static explicit operator uint2(uint3 v) => new uint2(v.x, v.y);
+    public static explicit operator uint2(uint4 v) => new uint2(v.x, v.y);
+    public static explicit operator uint2(half2 v) => new uint2((uint)(float)v.x, (uint)(float)v.y);
+    public static explicit operator uint2(half3 v) => new uint2((uint)(float)v.x, (uint)(float)v.y);
+    public static explicit operator uint2(half4 v) => new uint2((uint)(float)v.x, (uint)(float)v.y);
+    public static explicit operator uint2(float2 v) => new uint2((uint)v.x, (uint)v.y);
+    public static explicit operator uint2(float3 v) => new uint2((uint)v.x, (uint)v.y);
+    public static explicit operator uint2(float4 v) => new uint2((uint)v.x, (uint)v.y);
+    public static explicit operator uint2(double2 v) => new uint2((uint)v.x, (uint)v.y);
+    public static explicit operator uint2(double3 v) => new uint2((uint)v.x, (uint)v.y);
+    public static explicit operator uint2(double4 v) => new uint2((uint)v.x, (uint)v.y);
+    public static explicit operator bool(uint2 v) => (v.x != 0);
+    public static explicit operator int(uint2 v) => (int)v.x;
+    public static explicit operator uint(uint2 v) => v.x;
+    public static explicit operator half(uint2 v) => (half)(float)v.x;
+    public static explicit operator float(uint2 v) => (float)v.x;
+    public static explicit operator double(uint2 v) => (double)v.x;
     public uint this[int i]
     {
         get => i switch { 0 => x, 1 => y, _ => throw new IndexOutOfRangeException() };
         set { switch (i) { case 0: x = value; break; case 1: y = value; break; default: throw new IndexOutOfRangeException(); } }
     }
+    public uint this[uint i] { get => this[(int)i]; set => this[(int)i] = value; }
     public static uint2 operator +(uint2 a, uint2 b) => new uint2((uint)(a.x + b.x), (uint)(a.y + b.y));
     public static uint2 operator +(uint2 a, uint b) => new uint2((uint)(a.x + b), (uint)(a.y + b));
     public static uint2 operator +(uint a, uint2 b) => new uint2((uint)(a + b.x), (uint)(a + b.y));
@@ -40,9 +62,10 @@ public struct uint2 : IEquatable<uint2>
     public static uint2 operator %(uint2 a, uint2 b) => new uint2((uint)(a.x % b.x), (uint)(a.y % b.y));
     public static uint2 operator %(uint2 a, uint b) => new uint2((uint)(a.x % b), (uint)(a.y % b));
     public static uint2 operator %(uint a, uint2 b) => new uint2((uint)(a % b.x), (uint)(a % b.y));
+    public static uint2 operator -(uint2 a) => new uint2((uint)(-(int)a.x), (uint)(-(int)a.y));
     public static uint2 operator +(uint2 a) => a;
-    public static uint2 operator ++(uint2 a) => new uint2((uint)(a.x + 1u), (uint)(a.y + 1u));
-    public static uint2 operator --(uint2 a) => new uint2((uint)(a.x - 1u), (uint)(a.y - 1u));
+    public static uint2 operator ++(uint2 a) => a + 1u;
+    public static uint2 operator --(uint2 a) => a - 1u;
     public static bool2 operator <(uint2 a, uint2 b) => new bool2(a.x < b.x, a.y < b.y);
     public static bool2 operator <(uint2 a, uint b) => new bool2(a.x < b, a.y < b);
     public static bool2 operator <(uint a, uint2 b) => new bool2(a < b.x, a < b.y);
@@ -57,79 +80,86 @@ public struct uint2 : IEquatable<uint2>
     public static bool2 operator >=(uint a, uint2 b) => new bool2(a >= b.x, a >= b.y);
     public static uint2 operator &(uint2 a, uint2 b) => new uint2((uint)(a.x & b.x), (uint)(a.y & b.y));
     public static uint2 operator &(uint2 a, uint b) => new uint2((uint)(a.x & b), (uint)(a.y & b));
+    public static uint2 operator &(uint a, uint2 b) => new uint2((uint)(a & b.x), (uint)(a & b.y));
     public static uint2 operator |(uint2 a, uint2 b) => new uint2((uint)(a.x | b.x), (uint)(a.y | b.y));
     public static uint2 operator |(uint2 a, uint b) => new uint2((uint)(a.x | b), (uint)(a.y | b));
+    public static uint2 operator |(uint a, uint2 b) => new uint2((uint)(a | b.x), (uint)(a | b.y));
     public static uint2 operator ^(uint2 a, uint2 b) => new uint2((uint)(a.x ^ b.x), (uint)(a.y ^ b.y));
     public static uint2 operator ^(uint2 a, uint b) => new uint2((uint)(a.x ^ b), (uint)(a.y ^ b));
+    public static uint2 operator ^(uint a, uint2 b) => new uint2((uint)(a ^ b.x), (uint)(a ^ b.y));
     public static uint2 operator <<(uint2 a, int b) => new uint2((uint)(a.x << b), (uint)(a.y << b));
+    public static uint2 operator <<(uint2 a, int2 b) => new uint2((uint)(a.x << b.x), (uint)(a.y << b.y));
+    public static uint2 operator <<(uint2 a, uint2 b) => new uint2((uint)(a.x << (int)b.x), (uint)(a.y << (int)b.y));
     public static uint2 operator >>(uint2 a, int b) => new uint2((uint)(a.x >> b), (uint)(a.y >> b));
+    public static uint2 operator >>(uint2 a, int2 b) => new uint2((uint)(a.x >> b.x), (uint)(a.y >> b.y));
+    public static uint2 operator >>(uint2 a, uint2 b) => new uint2((uint)(a.x >> (int)b.x), (uint)(a.y >> (int)b.y));
     public static uint2 operator ~(uint2 a) => new uint2((uint)(~a.x), (uint)(~a.y));
     public static bool2 operator ==(uint2 a, uint2 b) => new bool2(a.x == b.x, a.y == b.y);
     public static bool2 operator !=(uint2 a, uint2 b) => new bool2(a.x != b.x, a.y != b.y);
     public static bool2 operator ==(uint2 a, uint b) => new bool2(a.x == b, a.y == b);
     public static bool2 operator !=(uint2 a, uint b) => new bool2(a.x != b, a.y != b);
-    public bool Equals(uint2 other) => x == other.x && y == other.y;
+    public bool Equals(uint2 other) => x.Equals(other.x) && y.Equals(other.y);
     public override bool Equals(object? obj) => obj is uint2 other && Equals(other);
     public override int GetHashCode() => HashCode.Combine(x, y);
     public override string ToString() => $"uint2({x}, {y})";
 
     // Swizzles, xyzw and rgba. Setters only where no component repeats.
-    public uint2 xx => new uint2(x, x);
-    public uint2 xy { get => new uint2(x, y); set { x = value.x; y = value.y; } }
-    public uint2 yx { get => new uint2(y, x); set { y = value.x; x = value.y; } }
-    public uint2 yy => new uint2(y, y);
-    public uint3 xxx => new uint3(x, x, x);
-    public uint3 xxy => new uint3(x, x, y);
-    public uint3 xyx => new uint3(x, y, x);
-    public uint3 xyy => new uint3(x, y, y);
-    public uint3 yxx => new uint3(y, x, x);
-    public uint3 yxy => new uint3(y, x, y);
-    public uint3 yyx => new uint3(y, y, x);
-    public uint3 yyy => new uint3(y, y, y);
-    public uint4 xxxx => new uint4(x, x, x, x);
-    public uint4 xxxy => new uint4(x, x, x, y);
-    public uint4 xxyx => new uint4(x, x, y, x);
-    public uint4 xxyy => new uint4(x, x, y, y);
-    public uint4 xyxx => new uint4(x, y, x, x);
-    public uint4 xyxy => new uint4(x, y, x, y);
-    public uint4 xyyx => new uint4(x, y, y, x);
-    public uint4 xyyy => new uint4(x, y, y, y);
-    public uint4 yxxx => new uint4(y, x, x, x);
-    public uint4 yxxy => new uint4(y, x, x, y);
-    public uint4 yxyx => new uint4(y, x, y, x);
-    public uint4 yxyy => new uint4(y, x, y, y);
-    public uint4 yyxx => new uint4(y, y, x, x);
-    public uint4 yyxy => new uint4(y, y, x, y);
-    public uint4 yyyx => new uint4(y, y, y, x);
-    public uint4 yyyy => new uint4(y, y, y, y);
-    public uint r { get => x; set => x = value; }
-    public uint g { get => y; set => y = value; }
-    public uint2 rr => new uint2(x, x);
-    public uint2 rg { get => new uint2(x, y); set { x = value.x; y = value.y; } }
-    public uint2 gr { get => new uint2(y, x); set { y = value.x; x = value.y; } }
-    public uint2 gg => new uint2(y, y);
-    public uint3 rrr => new uint3(x, x, x);
-    public uint3 rrg => new uint3(x, x, y);
-    public uint3 rgr => new uint3(x, y, x);
-    public uint3 rgg => new uint3(x, y, y);
-    public uint3 grr => new uint3(y, x, x);
-    public uint3 grg => new uint3(y, x, y);
-    public uint3 ggr => new uint3(y, y, x);
-    public uint3 ggg => new uint3(y, y, y);
-    public uint4 rrrr => new uint4(x, x, x, x);
-    public uint4 rrrg => new uint4(x, x, x, y);
-    public uint4 rrgr => new uint4(x, x, y, x);
-    public uint4 rrgg => new uint4(x, x, y, y);
-    public uint4 rgrr => new uint4(x, y, x, x);
-    public uint4 rgrg => new uint4(x, y, x, y);
-    public uint4 rggr => new uint4(x, y, y, x);
-    public uint4 rggg => new uint4(x, y, y, y);
-    public uint4 grrr => new uint4(y, x, x, x);
-    public uint4 grrg => new uint4(y, x, x, y);
-    public uint4 grgr => new uint4(y, x, y, x);
-    public uint4 grgg => new uint4(y, x, y, y);
-    public uint4 ggrr => new uint4(y, y, x, x);
-    public uint4 ggrg => new uint4(y, y, x, y);
-    public uint4 gggr => new uint4(y, y, y, x);
-    public uint4 gggg => new uint4(y, y, y, y);
+    public readonly uint2 xx => new uint2(x, x);
+    public uint2 xy { readonly get => new uint2(x, y); set { x = value.x; y = value.y; } }
+    public uint2 yx { readonly get => new uint2(y, x); set { y = value.x; x = value.y; } }
+    public readonly uint2 yy => new uint2(y, y);
+    public readonly uint3 xxx => new uint3(x, x, x);
+    public readonly uint3 xxy => new uint3(x, x, y);
+    public readonly uint3 xyx => new uint3(x, y, x);
+    public readonly uint3 xyy => new uint3(x, y, y);
+    public readonly uint3 yxx => new uint3(y, x, x);
+    public readonly uint3 yxy => new uint3(y, x, y);
+    public readonly uint3 yyx => new uint3(y, y, x);
+    public readonly uint3 yyy => new uint3(y, y, y);
+    public readonly uint4 xxxx => new uint4(x, x, x, x);
+    public readonly uint4 xxxy => new uint4(x, x, x, y);
+    public readonly uint4 xxyx => new uint4(x, x, y, x);
+    public readonly uint4 xxyy => new uint4(x, x, y, y);
+    public readonly uint4 xyxx => new uint4(x, y, x, x);
+    public readonly uint4 xyxy => new uint4(x, y, x, y);
+    public readonly uint4 xyyx => new uint4(x, y, y, x);
+    public readonly uint4 xyyy => new uint4(x, y, y, y);
+    public readonly uint4 yxxx => new uint4(y, x, x, x);
+    public readonly uint4 yxxy => new uint4(y, x, x, y);
+    public readonly uint4 yxyx => new uint4(y, x, y, x);
+    public readonly uint4 yxyy => new uint4(y, x, y, y);
+    public readonly uint4 yyxx => new uint4(y, y, x, x);
+    public readonly uint4 yyxy => new uint4(y, y, x, y);
+    public readonly uint4 yyyx => new uint4(y, y, y, x);
+    public readonly uint4 yyyy => new uint4(y, y, y, y);
+    public uint r { readonly get => x; set => x = value; }
+    public uint g { readonly get => y; set => y = value; }
+    public readonly uint2 rr => new uint2(x, x);
+    public uint2 rg { readonly get => new uint2(x, y); set { x = value.x; y = value.y; } }
+    public uint2 gr { readonly get => new uint2(y, x); set { y = value.x; x = value.y; } }
+    public readonly uint2 gg => new uint2(y, y);
+    public readonly uint3 rrr => new uint3(x, x, x);
+    public readonly uint3 rrg => new uint3(x, x, y);
+    public readonly uint3 rgr => new uint3(x, y, x);
+    public readonly uint3 rgg => new uint3(x, y, y);
+    public readonly uint3 grr => new uint3(y, x, x);
+    public readonly uint3 grg => new uint3(y, x, y);
+    public readonly uint3 ggr => new uint3(y, y, x);
+    public readonly uint3 ggg => new uint3(y, y, y);
+    public readonly uint4 rrrr => new uint4(x, x, x, x);
+    public readonly uint4 rrrg => new uint4(x, x, x, y);
+    public readonly uint4 rrgr => new uint4(x, x, y, x);
+    public readonly uint4 rrgg => new uint4(x, x, y, y);
+    public readonly uint4 rgrr => new uint4(x, y, x, x);
+    public readonly uint4 rgrg => new uint4(x, y, x, y);
+    public readonly uint4 rggr => new uint4(x, y, y, x);
+    public readonly uint4 rggg => new uint4(x, y, y, y);
+    public readonly uint4 grrr => new uint4(y, x, x, x);
+    public readonly uint4 grrg => new uint4(y, x, x, y);
+    public readonly uint4 grgr => new uint4(y, x, y, x);
+    public readonly uint4 grgg => new uint4(y, x, y, y);
+    public readonly uint4 ggrr => new uint4(y, y, x, x);
+    public readonly uint4 ggrg => new uint4(y, y, x, y);
+    public readonly uint4 gggr => new uint4(y, y, y, x);
+    public readonly uint4 gggg => new uint4(y, y, y, y);
 }

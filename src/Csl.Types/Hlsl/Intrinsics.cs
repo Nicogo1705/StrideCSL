@@ -28,6 +28,12 @@ public static partial class Intrinsics
     /// <summary>The next if is flattened, both sides evaluated: <c>[flatten]</c>.</summary>
     public static void Flatten() { }
 
+    /// <summary>Any statement attribute, as written: <c>Attribute("fastopt");</c> before a loop is <c>[fastopt]</c>.</summary>
+    public static void Attribute(string text) { }
+
+    /// <summary>The pixel is discarded: <c>discard;</c></summary>
+    public static void discard() { }
+
     // -- synchronisation -----------------------------------------------------------------------------
 
     public static void GroupMemoryBarrier() { }

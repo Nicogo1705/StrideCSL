@@ -2,29 +2,51 @@
 // Written by tools/gen_hlsl_types.py. Do not edit; edit the script and run it again.
 // </auto-generated>
 #nullable enable
-#pragma warning disable IDE1006, CS1591
+#pragma warning disable IDE1006, CS1591, CS0660, CS0661
 using System;
 using System.Runtime.InteropServices;
 
 namespace Csl.Hlsl;
 
-/// <summary>HLSL int2: 2 components of int. Runs on the GPU; the C# operations exist so shader code type-checks and can be unit tested.</summary>
+/// <summary>HLSL int2: 2 components of int.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct int2 : IEquatable<int2>
 {
     public int x, y;
     public int2(int x, int y) { this.x = x; this.y = y; }
     public int2(int v) { x = v; y = v; }
-    public int2(float2 v) { x = (int)v.x; y = (int)v.y; }
-    public static explicit operator int2(float2 v) => new int2(v);
-    public int2(uint2 v) { x = (int)v.x; y = (int)v.y; }
-    public static explicit operator int2(uint2 v) => new int2(v);
+    public int2(double v) { x = (int)v; y = (int)v; }
+    public int2(double p0, double p1) { x = (int)p0; y = (int)p1; }
     public static implicit operator int2(int v) => new int2(v);
+    public static implicit operator int2(bool2 v) => new int2((v.x ? 1 : 0), (v.y ? 1 : 0));
+    public static explicit operator int2(bool3 v) => new int2((v.x ? 1 : 0), (v.y ? 1 : 0));
+    public static explicit operator int2(bool4 v) => new int2((v.x ? 1 : 0), (v.y ? 1 : 0));
+    public static explicit operator int2(int3 v) => new int2(v.x, v.y);
+    public static explicit operator int2(int4 v) => new int2(v.x, v.y);
+    public static explicit operator int2(uint2 v) => new int2((int)v.x, (int)v.y);
+    public static explicit operator int2(uint3 v) => new int2((int)v.x, (int)v.y);
+    public static explicit operator int2(uint4 v) => new int2((int)v.x, (int)v.y);
+    public static explicit operator int2(half2 v) => new int2((int)(float)v.x, (int)(float)v.y);
+    public static explicit operator int2(half3 v) => new int2((int)(float)v.x, (int)(float)v.y);
+    public static explicit operator int2(half4 v) => new int2((int)(float)v.x, (int)(float)v.y);
+    public static explicit operator int2(float2 v) => new int2((int)v.x, (int)v.y);
+    public static explicit operator int2(float3 v) => new int2((int)v.x, (int)v.y);
+    public static explicit operator int2(float4 v) => new int2((int)v.x, (int)v.y);
+    public static explicit operator int2(double2 v) => new int2((int)v.x, (int)v.y);
+    public static explicit operator int2(double3 v) => new int2((int)v.x, (int)v.y);
+    public static explicit operator int2(double4 v) => new int2((int)v.x, (int)v.y);
+    public static explicit operator bool(int2 v) => (v.x != 0);
+    public static explicit operator int(int2 v) => v.x;
+    public static explicit operator uint(int2 v) => (uint)v.x;
+    public static explicit operator half(int2 v) => (half)(float)v.x;
+    public static explicit operator float(int2 v) => (float)v.x;
+    public static explicit operator double(int2 v) => (double)v.x;
     public int this[int i]
     {
         get => i switch { 0 => x, 1 => y, _ => throw new IndexOutOfRangeException() };
         set { switch (i) { case 0: x = value; break; case 1: y = value; break; default: throw new IndexOutOfRangeException(); } }
     }
+    public int this[uint i] { get => this[(int)i]; set => this[(int)i] = value; }
     public static int2 operator +(int2 a, int2 b) => new int2((int)(a.x + b.x), (int)(a.y + b.y));
     public static int2 operator +(int2 a, int b) => new int2((int)(a.x + b), (int)(a.y + b));
     public static int2 operator +(int a, int2 b) => new int2((int)(a + b.x), (int)(a + b.y));
@@ -42,8 +64,8 @@ public struct int2 : IEquatable<int2>
     public static int2 operator %(int a, int2 b) => new int2((int)(a % b.x), (int)(a % b.y));
     public static int2 operator -(int2 a) => new int2((int)(-a.x), (int)(-a.y));
     public static int2 operator +(int2 a) => a;
-    public static int2 operator ++(int2 a) => new int2((int)(a.x + 1), (int)(a.y + 1));
-    public static int2 operator --(int2 a) => new int2((int)(a.x - 1), (int)(a.y - 1));
+    public static int2 operator ++(int2 a) => a + 1;
+    public static int2 operator --(int2 a) => a - 1;
     public static bool2 operator <(int2 a, int2 b) => new bool2(a.x < b.x, a.y < b.y);
     public static bool2 operator <(int2 a, int b) => new bool2(a.x < b, a.y < b);
     public static bool2 operator <(int a, int2 b) => new bool2(a < b.x, a < b.y);
@@ -58,79 +80,84 @@ public struct int2 : IEquatable<int2>
     public static bool2 operator >=(int a, int2 b) => new bool2(a >= b.x, a >= b.y);
     public static int2 operator &(int2 a, int2 b) => new int2((int)(a.x & b.x), (int)(a.y & b.y));
     public static int2 operator &(int2 a, int b) => new int2((int)(a.x & b), (int)(a.y & b));
+    public static int2 operator &(int a, int2 b) => new int2((int)(a & b.x), (int)(a & b.y));
     public static int2 operator |(int2 a, int2 b) => new int2((int)(a.x | b.x), (int)(a.y | b.y));
     public static int2 operator |(int2 a, int b) => new int2((int)(a.x | b), (int)(a.y | b));
+    public static int2 operator |(int a, int2 b) => new int2((int)(a | b.x), (int)(a | b.y));
     public static int2 operator ^(int2 a, int2 b) => new int2((int)(a.x ^ b.x), (int)(a.y ^ b.y));
     public static int2 operator ^(int2 a, int b) => new int2((int)(a.x ^ b), (int)(a.y ^ b));
+    public static int2 operator ^(int a, int2 b) => new int2((int)(a ^ b.x), (int)(a ^ b.y));
     public static int2 operator <<(int2 a, int b) => new int2((int)(a.x << b), (int)(a.y << b));
+    public static int2 operator <<(int2 a, int2 b) => new int2((int)(a.x << b.x), (int)(a.y << b.y));
     public static int2 operator >>(int2 a, int b) => new int2((int)(a.x >> b), (int)(a.y >> b));
+    public static int2 operator >>(int2 a, int2 b) => new int2((int)(a.x >> b.x), (int)(a.y >> b.y));
     public static int2 operator ~(int2 a) => new int2((int)(~a.x), (int)(~a.y));
     public static bool2 operator ==(int2 a, int2 b) => new bool2(a.x == b.x, a.y == b.y);
     public static bool2 operator !=(int2 a, int2 b) => new bool2(a.x != b.x, a.y != b.y);
     public static bool2 operator ==(int2 a, int b) => new bool2(a.x == b, a.y == b);
     public static bool2 operator !=(int2 a, int b) => new bool2(a.x != b, a.y != b);
-    public bool Equals(int2 other) => x == other.x && y == other.y;
+    public bool Equals(int2 other) => x.Equals(other.x) && y.Equals(other.y);
     public override bool Equals(object? obj) => obj is int2 other && Equals(other);
     public override int GetHashCode() => HashCode.Combine(x, y);
     public override string ToString() => $"int2({x}, {y})";
 
     // Swizzles, xyzw and rgba. Setters only where no component repeats.
-    public int2 xx => new int2(x, x);
-    public int2 xy { get => new int2(x, y); set { x = value.x; y = value.y; } }
-    public int2 yx { get => new int2(y, x); set { y = value.x; x = value.y; } }
-    public int2 yy => new int2(y, y);
-    public int3 xxx => new int3(x, x, x);
-    public int3 xxy => new int3(x, x, y);
-    public int3 xyx => new int3(x, y, x);
-    public int3 xyy => new int3(x, y, y);
-    public int3 yxx => new int3(y, x, x);
-    public int3 yxy => new int3(y, x, y);
-    public int3 yyx => new int3(y, y, x);
-    public int3 yyy => new int3(y, y, y);
-    public int4 xxxx => new int4(x, x, x, x);
-    public int4 xxxy => new int4(x, x, x, y);
-    public int4 xxyx => new int4(x, x, y, x);
-    public int4 xxyy => new int4(x, x, y, y);
-    public int4 xyxx => new int4(x, y, x, x);
-    public int4 xyxy => new int4(x, y, x, y);
-    public int4 xyyx => new int4(x, y, y, x);
-    public int4 xyyy => new int4(x, y, y, y);
-    public int4 yxxx => new int4(y, x, x, x);
-    public int4 yxxy => new int4(y, x, x, y);
-    public int4 yxyx => new int4(y, x, y, x);
-    public int4 yxyy => new int4(y, x, y, y);
-    public int4 yyxx => new int4(y, y, x, x);
-    public int4 yyxy => new int4(y, y, x, y);
-    public int4 yyyx => new int4(y, y, y, x);
-    public int4 yyyy => new int4(y, y, y, y);
-    public int r { get => x; set => x = value; }
-    public int g { get => y; set => y = value; }
-    public int2 rr => new int2(x, x);
-    public int2 rg { get => new int2(x, y); set { x = value.x; y = value.y; } }
-    public int2 gr { get => new int2(y, x); set { y = value.x; x = value.y; } }
-    public int2 gg => new int2(y, y);
-    public int3 rrr => new int3(x, x, x);
-    public int3 rrg => new int3(x, x, y);
-    public int3 rgr => new int3(x, y, x);
-    public int3 rgg => new int3(x, y, y);
-    public int3 grr => new int3(y, x, x);
-    public int3 grg => new int3(y, x, y);
-    public int3 ggr => new int3(y, y, x);
-    public int3 ggg => new int3(y, y, y);
-    public int4 rrrr => new int4(x, x, x, x);
-    public int4 rrrg => new int4(x, x, x, y);
-    public int4 rrgr => new int4(x, x, y, x);
-    public int4 rrgg => new int4(x, x, y, y);
-    public int4 rgrr => new int4(x, y, x, x);
-    public int4 rgrg => new int4(x, y, x, y);
-    public int4 rggr => new int4(x, y, y, x);
-    public int4 rggg => new int4(x, y, y, y);
-    public int4 grrr => new int4(y, x, x, x);
-    public int4 grrg => new int4(y, x, x, y);
-    public int4 grgr => new int4(y, x, y, x);
-    public int4 grgg => new int4(y, x, y, y);
-    public int4 ggrr => new int4(y, y, x, x);
-    public int4 ggrg => new int4(y, y, x, y);
-    public int4 gggr => new int4(y, y, y, x);
-    public int4 gggg => new int4(y, y, y, y);
+    public readonly int2 xx => new int2(x, x);
+    public int2 xy { readonly get => new int2(x, y); set { x = value.x; y = value.y; } }
+    public int2 yx { readonly get => new int2(y, x); set { y = value.x; x = value.y; } }
+    public readonly int2 yy => new int2(y, y);
+    public readonly int3 xxx => new int3(x, x, x);
+    public readonly int3 xxy => new int3(x, x, y);
+    public readonly int3 xyx => new int3(x, y, x);
+    public readonly int3 xyy => new int3(x, y, y);
+    public readonly int3 yxx => new int3(y, x, x);
+    public readonly int3 yxy => new int3(y, x, y);
+    public readonly int3 yyx => new int3(y, y, x);
+    public readonly int3 yyy => new int3(y, y, y);
+    public readonly int4 xxxx => new int4(x, x, x, x);
+    public readonly int4 xxxy => new int4(x, x, x, y);
+    public readonly int4 xxyx => new int4(x, x, y, x);
+    public readonly int4 xxyy => new int4(x, x, y, y);
+    public readonly int4 xyxx => new int4(x, y, x, x);
+    public readonly int4 xyxy => new int4(x, y, x, y);
+    public readonly int4 xyyx => new int4(x, y, y, x);
+    public readonly int4 xyyy => new int4(x, y, y, y);
+    public readonly int4 yxxx => new int4(y, x, x, x);
+    public readonly int4 yxxy => new int4(y, x, x, y);
+    public readonly int4 yxyx => new int4(y, x, y, x);
+    public readonly int4 yxyy => new int4(y, x, y, y);
+    public readonly int4 yyxx => new int4(y, y, x, x);
+    public readonly int4 yyxy => new int4(y, y, x, y);
+    public readonly int4 yyyx => new int4(y, y, y, x);
+    public readonly int4 yyyy => new int4(y, y, y, y);
+    public int r { readonly get => x; set => x = value; }
+    public int g { readonly get => y; set => y = value; }
+    public readonly int2 rr => new int2(x, x);
+    public int2 rg { readonly get => new int2(x, y); set { x = value.x; y = value.y; } }
+    public int2 gr { readonly get => new int2(y, x); set { y = value.x; x = value.y; } }
+    public readonly int2 gg => new int2(y, y);
+    public readonly int3 rrr => new int3(x, x, x);
+    public readonly int3 rrg => new int3(x, x, y);
+    public readonly int3 rgr => new int3(x, y, x);
+    public readonly int3 rgg => new int3(x, y, y);
+    public readonly int3 grr => new int3(y, x, x);
+    public readonly int3 grg => new int3(y, x, y);
+    public readonly int3 ggr => new int3(y, y, x);
+    public readonly int3 ggg => new int3(y, y, y);
+    public readonly int4 rrrr => new int4(x, x, x, x);
+    public readonly int4 rrrg => new int4(x, x, x, y);
+    public readonly int4 rrgr => new int4(x, x, y, x);
+    public readonly int4 rrgg => new int4(x, x, y, y);
+    public readonly int4 rgrr => new int4(x, y, x, x);
+    public readonly int4 rgrg => new int4(x, y, x, y);
+    public readonly int4 rggr => new int4(x, y, y, x);
+    public readonly int4 rggg => new int4(x, y, y, y);
+    public readonly int4 grrr => new int4(y, x, x, x);
+    public readonly int4 grrg => new int4(y, x, x, y);
+    public readonly int4 grgr => new int4(y, x, y, x);
+    public readonly int4 grgg => new int4(y, x, y, y);
+    public readonly int4 ggrr => new int4(y, y, x, x);
+    public readonly int4 ggrg => new int4(y, y, x, y);
+    public readonly int4 gggr => new int4(y, y, y, x);
+    public readonly int4 gggg => new int4(y, y, y, y);
 }

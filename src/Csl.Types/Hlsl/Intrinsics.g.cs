@@ -2,7 +2,7 @@
 // Written by tools/gen_hlsl_types.py. Do not edit; edit the script and run it again.
 // </auto-generated>
 #nullable enable
-#pragma warning disable IDE1006, CS1591
+#pragma warning disable IDE1006, CS1591, CS0660, CS0661
 using System;
 using System.Runtime.InteropServices;
 
@@ -11,7 +11,6 @@ namespace Csl.Hlsl;
 /// <summary>HLSL intrinsic functions. <c>using static Csl.Hlsl.Intrinsics;</c> in a shader file, then write them as in HLSL.</summary>
 public static partial class Intrinsics
 {
-
     public static float abs(float v) => MathF.Abs(v);
     public static float2 abs(float2 v) => new float2(MathF.Abs(v.x), MathF.Abs(v.y));
     public static float3 abs(float3 v) => new float3(MathF.Abs(v.x), MathF.Abs(v.y), MathF.Abs(v.z));
@@ -24,10 +23,10 @@ public static partial class Intrinsics
     public static float2 ceil(float2 v) => new float2(MathF.Ceiling(v.x), MathF.Ceiling(v.y));
     public static float3 ceil(float3 v) => new float3(MathF.Ceiling(v.x), MathF.Ceiling(v.y), MathF.Ceiling(v.z));
     public static float4 ceil(float4 v) => new float4(MathF.Ceiling(v.x), MathF.Ceiling(v.y), MathF.Ceiling(v.z), MathF.Ceiling(v.w));
-    public static float round(float v) => MathF.Round(v, MidpointRounding.AwayFromZero);
-    public static float2 round(float2 v) => new float2(MathF.Round(v.x, MidpointRounding.AwayFromZero), MathF.Round(v.y, MidpointRounding.AwayFromZero));
-    public static float3 round(float3 v) => new float3(MathF.Round(v.x, MidpointRounding.AwayFromZero), MathF.Round(v.y, MidpointRounding.AwayFromZero), MathF.Round(v.z, MidpointRounding.AwayFromZero));
-    public static float4 round(float4 v) => new float4(MathF.Round(v.x, MidpointRounding.AwayFromZero), MathF.Round(v.y, MidpointRounding.AwayFromZero), MathF.Round(v.z, MidpointRounding.AwayFromZero), MathF.Round(v.w, MidpointRounding.AwayFromZero));
+    public static float round(float v) => MathF.Round(v, MidpointRounding.ToEven);
+    public static float2 round(float2 v) => new float2(MathF.Round(v.x, MidpointRounding.ToEven), MathF.Round(v.y, MidpointRounding.ToEven));
+    public static float3 round(float3 v) => new float3(MathF.Round(v.x, MidpointRounding.ToEven), MathF.Round(v.y, MidpointRounding.ToEven), MathF.Round(v.z, MidpointRounding.ToEven));
+    public static float4 round(float4 v) => new float4(MathF.Round(v.x, MidpointRounding.ToEven), MathF.Round(v.y, MidpointRounding.ToEven), MathF.Round(v.z, MidpointRounding.ToEven), MathF.Round(v.w, MidpointRounding.ToEven));
     public static float trunc(float v) => MathF.Truncate(v);
     public static float2 trunc(float2 v) => new float2(MathF.Truncate(v.x), MathF.Truncate(v.y));
     public static float3 trunc(float3 v) => new float3(MathF.Truncate(v.x), MathF.Truncate(v.y), MathF.Truncate(v.z));
@@ -88,14 +87,22 @@ public static partial class Intrinsics
     public static float2 atan(float2 v) => new float2(MathF.Atan(v.x), MathF.Atan(v.y));
     public static float3 atan(float3 v) => new float3(MathF.Atan(v.x), MathF.Atan(v.y), MathF.Atan(v.z));
     public static float4 atan(float4 v) => new float4(MathF.Atan(v.x), MathF.Atan(v.y), MathF.Atan(v.z), MathF.Atan(v.w));
+    public static float sinh(float v) => MathF.Sinh(v);
+    public static float2 sinh(float2 v) => new float2(MathF.Sinh(v.x), MathF.Sinh(v.y));
+    public static float3 sinh(float3 v) => new float3(MathF.Sinh(v.x), MathF.Sinh(v.y), MathF.Sinh(v.z));
+    public static float4 sinh(float4 v) => new float4(MathF.Sinh(v.x), MathF.Sinh(v.y), MathF.Sinh(v.z), MathF.Sinh(v.w));
+    public static float cosh(float v) => MathF.Cosh(v);
+    public static float2 cosh(float2 v) => new float2(MathF.Cosh(v.x), MathF.Cosh(v.y));
+    public static float3 cosh(float3 v) => new float3(MathF.Cosh(v.x), MathF.Cosh(v.y), MathF.Cosh(v.z));
+    public static float4 cosh(float4 v) => new float4(MathF.Cosh(v.x), MathF.Cosh(v.y), MathF.Cosh(v.z), MathF.Cosh(v.w));
+    public static float tanh(float v) => MathF.Tanh(v);
+    public static float2 tanh(float2 v) => new float2(MathF.Tanh(v.x), MathF.Tanh(v.y));
+    public static float3 tanh(float3 v) => new float3(MathF.Tanh(v.x), MathF.Tanh(v.y), MathF.Tanh(v.z));
+    public static float4 tanh(float4 v) => new float4(MathF.Tanh(v.x), MathF.Tanh(v.y), MathF.Tanh(v.z), MathF.Tanh(v.w));
     public static float saturate(float v) => Math.Clamp(v, 0f, 1f);
     public static float2 saturate(float2 v) => new float2(Math.Clamp(v.x, 0f, 1f), Math.Clamp(v.y, 0f, 1f));
     public static float3 saturate(float3 v) => new float3(Math.Clamp(v.x, 0f, 1f), Math.Clamp(v.y, 0f, 1f), Math.Clamp(v.z, 0f, 1f));
     public static float4 saturate(float4 v) => new float4(Math.Clamp(v.x, 0f, 1f), Math.Clamp(v.y, 0f, 1f), Math.Clamp(v.z, 0f, 1f), Math.Clamp(v.w, 0f, 1f));
-    public static float sign(float v) => (float)MathF.Sign(v);
-    public static float2 sign(float2 v) => new float2((float)MathF.Sign(v.x), (float)MathF.Sign(v.y));
-    public static float3 sign(float3 v) => new float3((float)MathF.Sign(v.x), (float)MathF.Sign(v.y), (float)MathF.Sign(v.z));
-    public static float4 sign(float4 v) => new float4((float)MathF.Sign(v.x), (float)MathF.Sign(v.y), (float)MathF.Sign(v.z), (float)MathF.Sign(v.w));
     public static float rcp(float v) => (1f / v);
     public static float2 rcp(float2 v) => new float2((1f / v.x), (1f / v.y));
     public static float3 rcp(float3 v) => new float3((1f / v.x), (1f / v.y), (1f / v.z));
@@ -108,14 +115,74 @@ public static partial class Intrinsics
     public static float2 degrees(float2 v) => new float2((v.x * (180f / MathF.PI)), (v.y * (180f / MathF.PI)));
     public static float3 degrees(float3 v) => new float3((v.x * (180f / MathF.PI)), (v.y * (180f / MathF.PI)), (v.z * (180f / MathF.PI)));
     public static float4 degrees(float4 v) => new float4((v.x * (180f / MathF.PI)), (v.y * (180f / MathF.PI)), (v.z * (180f / MathF.PI)), (v.w * (180f / MathF.PI)));
-    public static int abs(int v) => Math.Abs(v);
-    public static int2 abs(int2 v) => new int2(Math.Abs(v.x), Math.Abs(v.y));
-    public static int3 abs(int3 v) => new int3(Math.Abs(v.x), Math.Abs(v.y), Math.Abs(v.z));
-    public static int4 abs(int4 v) => new int4(Math.Abs(v.x), Math.Abs(v.y), Math.Abs(v.z), Math.Abs(v.w));
+    public static float ddx(float v) => GpuOnlyFloat();
+    public static float2 ddx(float2 v) => new float2(GpuOnlyFloat(), GpuOnlyFloat());
+    public static float3 ddx(float3 v) => new float3(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float4 ddx(float4 v) => new float4(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float ddy(float v) => GpuOnlyFloat();
+    public static float2 ddy(float2 v) => new float2(GpuOnlyFloat(), GpuOnlyFloat());
+    public static float3 ddy(float3 v) => new float3(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float4 ddy(float4 v) => new float4(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float ddx_coarse(float v) => GpuOnlyFloat();
+    public static float2 ddx_coarse(float2 v) => new float2(GpuOnlyFloat(), GpuOnlyFloat());
+    public static float3 ddx_coarse(float3 v) => new float3(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float4 ddx_coarse(float4 v) => new float4(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float ddy_coarse(float v) => GpuOnlyFloat();
+    public static float2 ddy_coarse(float2 v) => new float2(GpuOnlyFloat(), GpuOnlyFloat());
+    public static float3 ddy_coarse(float3 v) => new float3(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float4 ddy_coarse(float4 v) => new float4(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float ddx_fine(float v) => GpuOnlyFloat();
+    public static float2 ddx_fine(float2 v) => new float2(GpuOnlyFloat(), GpuOnlyFloat());
+    public static float3 ddx_fine(float3 v) => new float3(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float4 ddx_fine(float4 v) => new float4(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float ddy_fine(float v) => GpuOnlyFloat();
+    public static float2 ddy_fine(float2 v) => new float2(GpuOnlyFloat(), GpuOnlyFloat());
+    public static float3 ddy_fine(float3 v) => new float3(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float4 ddy_fine(float4 v) => new float4(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float fwidth(float v) => GpuOnlyFloat();
+    public static float2 fwidth(float2 v) => new float2(GpuOnlyFloat(), GpuOnlyFloat());
+    public static float3 fwidth(float3 v) => new float3(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static float4 fwidth(float4 v) => new float4(GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat(), GpuOnlyFloat());
+    public static int sign(float v) => MathF.Sign(v);
     public static int sign(int v) => Math.Sign(v);
+    public static int abs(int v) => Math.Abs(v);
+    public static bool isnan(float v) => float.IsNaN(v);
+    public static bool isinf(float v) => float.IsInfinity(v);
+    public static bool isfinite(float v) => float.IsFinite(v);
+    public static void clip(float v) { }
+    public static float modf(float v, out float ip) { ip = trunc(v); return v - ip; }
+    public static float frexp(float v, out float exponent) => throw new NotSupportedException();
+    public static void sincos(float v, out float s, out float c) { s = sin(v); c = cos(v); }
+    public static int2 sign(float2 v) => new int2(MathF.Sign(v.x), MathF.Sign(v.y));
     public static int2 sign(int2 v) => new int2(Math.Sign(v.x), Math.Sign(v.y));
+    public static int2 abs(int2 v) => new int2(Math.Abs(v.x), Math.Abs(v.y));
+    public static bool2 isnan(float2 v) => new bool2(float.IsNaN(v.x), float.IsNaN(v.y));
+    public static bool2 isinf(float2 v) => new bool2(float.IsInfinity(v.x), float.IsInfinity(v.y));
+    public static bool2 isfinite(float2 v) => new bool2(float.IsFinite(v.x), float.IsFinite(v.y));
+    public static void clip(float2 v) { }
+    public static float2 modf(float2 v, out float2 ip) { ip = trunc(v); return v - ip; }
+    public static float2 frexp(float2 v, out float2 exponent) => throw new NotSupportedException();
+    public static void sincos(float2 v, out float2 s, out float2 c) { s = sin(v); c = cos(v); }
+    public static int3 sign(float3 v) => new int3(MathF.Sign(v.x), MathF.Sign(v.y), MathF.Sign(v.z));
     public static int3 sign(int3 v) => new int3(Math.Sign(v.x), Math.Sign(v.y), Math.Sign(v.z));
+    public static int3 abs(int3 v) => new int3(Math.Abs(v.x), Math.Abs(v.y), Math.Abs(v.z));
+    public static bool3 isnan(float3 v) => new bool3(float.IsNaN(v.x), float.IsNaN(v.y), float.IsNaN(v.z));
+    public static bool3 isinf(float3 v) => new bool3(float.IsInfinity(v.x), float.IsInfinity(v.y), float.IsInfinity(v.z));
+    public static bool3 isfinite(float3 v) => new bool3(float.IsFinite(v.x), float.IsFinite(v.y), float.IsFinite(v.z));
+    public static void clip(float3 v) { }
+    public static float3 modf(float3 v, out float3 ip) { ip = trunc(v); return v - ip; }
+    public static float3 frexp(float3 v, out float3 exponent) => throw new NotSupportedException();
+    public static void sincos(float3 v, out float3 s, out float3 c) { s = sin(v); c = cos(v); }
+    public static int4 sign(float4 v) => new int4(MathF.Sign(v.x), MathF.Sign(v.y), MathF.Sign(v.z), MathF.Sign(v.w));
     public static int4 sign(int4 v) => new int4(Math.Sign(v.x), Math.Sign(v.y), Math.Sign(v.z), Math.Sign(v.w));
+    public static int4 abs(int4 v) => new int4(Math.Abs(v.x), Math.Abs(v.y), Math.Abs(v.z), Math.Abs(v.w));
+    public static bool4 isnan(float4 v) => new bool4(float.IsNaN(v.x), float.IsNaN(v.y), float.IsNaN(v.z), float.IsNaN(v.w));
+    public static bool4 isinf(float4 v) => new bool4(float.IsInfinity(v.x), float.IsInfinity(v.y), float.IsInfinity(v.z), float.IsInfinity(v.w));
+    public static bool4 isfinite(float4 v) => new bool4(float.IsFinite(v.x), float.IsFinite(v.y), float.IsFinite(v.z), float.IsFinite(v.w));
+    public static void clip(float4 v) { }
+    public static float4 modf(float4 v, out float4 ip) { ip = trunc(v); return v - ip; }
+    public static float4 frexp(float4 v, out float4 exponent) => throw new NotSupportedException();
+    public static void sincos(float4 v, out float4 s, out float4 c) { s = sin(v); c = cos(v); }
     public static float pow(float a, float b) => MathF.Pow(a, b);
     public static float2 pow(float2 a, float2 b) => new float2(MathF.Pow(a.x, b.x), MathF.Pow(a.y, b.y));
     public static float3 pow(float3 a, float3 b) => new float3(MathF.Pow(a.x, b.x), MathF.Pow(a.y, b.y), MathF.Pow(a.z, b.z));
@@ -172,67 +239,173 @@ public static partial class Intrinsics
     public static uint4 min(uint4 a, uint4 b) => new uint4(Math.Min(a.x, b.x), Math.Min(a.y, b.y), Math.Min(a.z, b.z), Math.Min(a.w, b.w));
     public static uint4 max(uint4 a, uint4 b) => new uint4(Math.Max(a.x, b.x), Math.Max(a.y, b.y), Math.Max(a.z, b.z), Math.Max(a.w, b.w));
     public static uint4 clamp(uint4 v, uint4 lo, uint4 hi) => new uint4(Math.Clamp(v.x, lo.x, hi.x), Math.Clamp(v.y, lo.y, hi.y), Math.Clamp(v.z, lo.z, hi.z), Math.Clamp(v.w, lo.w, hi.w));
+    public static double min(double a, double b) => Math.Min(a, b);
+    public static double max(double a, double b) => Math.Max(a, b);
+    public static double clamp(double v, double lo, double hi) => Math.Clamp(v, lo, hi);
+    public static double2 min(double2 a, double2 b) => new double2(Math.Min(a.x, b.x), Math.Min(a.y, b.y));
+    public static double2 max(double2 a, double2 b) => new double2(Math.Max(a.x, b.x), Math.Max(a.y, b.y));
+    public static double2 clamp(double2 v, double2 lo, double2 hi) => new double2(Math.Clamp(v.x, lo.x, hi.x), Math.Clamp(v.y, lo.y, hi.y));
+    public static double3 min(double3 a, double3 b) => new double3(Math.Min(a.x, b.x), Math.Min(a.y, b.y), Math.Min(a.z, b.z));
+    public static double3 max(double3 a, double3 b) => new double3(Math.Max(a.x, b.x), Math.Max(a.y, b.y), Math.Max(a.z, b.z));
+    public static double3 clamp(double3 v, double3 lo, double3 hi) => new double3(Math.Clamp(v.x, lo.x, hi.x), Math.Clamp(v.y, lo.y, hi.y), Math.Clamp(v.z, lo.z, hi.z));
+    public static double4 min(double4 a, double4 b) => new double4(Math.Min(a.x, b.x), Math.Min(a.y, b.y), Math.Min(a.z, b.z), Math.Min(a.w, b.w));
+    public static double4 max(double4 a, double4 b) => new double4(Math.Max(a.x, b.x), Math.Max(a.y, b.y), Math.Max(a.z, b.z), Math.Max(a.w, b.w));
+    public static double4 clamp(double4 v, double4 lo, double4 hi) => new double4(Math.Clamp(v.x, lo.x, hi.x), Math.Clamp(v.y, lo.y, hi.y), Math.Clamp(v.z, lo.z, hi.z), Math.Clamp(v.w, lo.w, hi.w));
     public static float lerp(float a, float b, float s) => (a + (b - a) * s);
     public static float smoothstep(float lo, float hi, float v) => SmoothStep(lo, hi, v);
     public static float mad(float a, float b, float c) => (a * b + c);
-    public static bool isnan(float v) => float.IsNaN(v);
-    public static bool isinf(float v) => float.IsInfinity(v);
+    public static int mad(int a, int b, int c) => a * b + c;
+    public static uint mad(uint a, uint b, uint c) => a * b + c;
+    public static double fma(double a, double b, double c) => a * b + c;
+    public static float asfloat(uint v) => BitConverter.Int32BitsToSingle((int)v);
+    public static float asfloat(int v) => BitConverter.Int32BitsToSingle(v);
+    public static float asfloat(float v) => v;
+    public static uint asuint(float v) => (uint)BitConverter.SingleToInt32Bits(v);
+    public static uint asuint(int v) => (uint)v;
+    public static uint asuint(uint v) => v;
+    public static int asint(float v) => BitConverter.SingleToInt32Bits(v);
+    public static int asint(uint v) => (int)v;
+    public static int asint(int v) => v;
+    public static float f16tof32(uint v) => (float)BitConverter.UInt16BitsToHalf((ushort)(v & 0xFFFF));
+    public static uint f32tof16(float v) => (uint)BitConverter.HalfToUInt16Bits((Half)v);
+    public static uint countbits(uint v) => (uint)System.Numerics.BitOperations.PopCount(v);
+    public static uint firstbitlow(uint v) => FirstBitLow(v);
+    public static uint firstbithigh(uint v) => FirstBitHigh(v);
+    public static int firstbithigh(int v) => (int)FirstBitHigh((uint)v);
+    public static uint reversebits(uint v) => ReverseBits(v);
     public static float2 lerp(float2 a, float2 b, float2 s) => new float2((a.x + (b.x - a.x) * s.x), (a.y + (b.y - a.y) * s.y));
-    public static float2 lerp(float2 a, float2 b, float s) => new float2((a.x + (b.x - a.x) * s), (a.y + (b.y - a.y) * s));
     public static float2 smoothstep(float2 lo, float2 hi, float2 v) => new float2(SmoothStep(lo.x, hi.x, v.x), SmoothStep(lo.y, hi.y, v.y));
     public static float2 mad(float2 a, float2 b, float2 c) => new float2((a.x * b.x + c.x), (a.y * b.y + c.y));
-    public static bool2 isnan(float2 v) => new bool2(float.IsNaN(v.x), float.IsNaN(v.y));
-    public static bool2 isinf(float2 v) => new bool2(float.IsInfinity(v.x), float.IsInfinity(v.y));
+    public static int2 mad(int2 a, int2 b, int2 c) => a * b + c;
+    public static uint2 mad(uint2 a, uint2 b, uint2 c) => a * b + c;
+    public static double2 fma(double2 a, double2 b, double2 c) => a * b + c;
+    public static float2 asfloat(uint2 v) => new float2(BitConverter.Int32BitsToSingle((int)v.x), BitConverter.Int32BitsToSingle((int)v.y));
+    public static float2 asfloat(int2 v) => new float2(BitConverter.Int32BitsToSingle(v.x), BitConverter.Int32BitsToSingle(v.y));
+    public static float2 asfloat(float2 v) => v;
+    public static uint2 asuint(float2 v) => new uint2((uint)BitConverter.SingleToInt32Bits(v.x), (uint)BitConverter.SingleToInt32Bits(v.y));
+    public static uint2 asuint(int2 v) => new uint2((uint)v.x, (uint)v.y);
+    public static uint2 asuint(uint2 v) => v;
+    public static int2 asint(float2 v) => new int2(BitConverter.SingleToInt32Bits(v.x), BitConverter.SingleToInt32Bits(v.y));
+    public static int2 asint(uint2 v) => new int2((int)v.x, (int)v.y);
+    public static int2 asint(int2 v) => v;
+    public static float2 f16tof32(uint2 v) => new float2((float)BitConverter.UInt16BitsToHalf((ushort)(v.x & 0xFFFF)), (float)BitConverter.UInt16BitsToHalf((ushort)(v.y & 0xFFFF)));
+    public static uint2 f32tof16(float2 v) => new uint2((uint)BitConverter.HalfToUInt16Bits((Half)v.x), (uint)BitConverter.HalfToUInt16Bits((Half)v.y));
+    public static uint2 countbits(uint2 v) => new uint2((uint)System.Numerics.BitOperations.PopCount(v.x), (uint)System.Numerics.BitOperations.PopCount(v.y));
+    public static uint2 firstbitlow(uint2 v) => new uint2(FirstBitLow(v.x), FirstBitLow(v.y));
+    public static uint2 firstbithigh(uint2 v) => new uint2(FirstBitHigh(v.x), FirstBitHigh(v.y));
+    public static int2 firstbithigh(int2 v) => new int2((int)FirstBitHigh((uint)v.x), (int)FirstBitHigh((uint)v.y));
+    public static uint2 reversebits(uint2 v) => new uint2(ReverseBits(v.x), ReverseBits(v.y));
     public static float3 lerp(float3 a, float3 b, float3 s) => new float3((a.x + (b.x - a.x) * s.x), (a.y + (b.y - a.y) * s.y), (a.z + (b.z - a.z) * s.z));
-    public static float3 lerp(float3 a, float3 b, float s) => new float3((a.x + (b.x - a.x) * s), (a.y + (b.y - a.y) * s), (a.z + (b.z - a.z) * s));
     public static float3 smoothstep(float3 lo, float3 hi, float3 v) => new float3(SmoothStep(lo.x, hi.x, v.x), SmoothStep(lo.y, hi.y, v.y), SmoothStep(lo.z, hi.z, v.z));
     public static float3 mad(float3 a, float3 b, float3 c) => new float3((a.x * b.x + c.x), (a.y * b.y + c.y), (a.z * b.z + c.z));
-    public static bool3 isnan(float3 v) => new bool3(float.IsNaN(v.x), float.IsNaN(v.y), float.IsNaN(v.z));
-    public static bool3 isinf(float3 v) => new bool3(float.IsInfinity(v.x), float.IsInfinity(v.y), float.IsInfinity(v.z));
+    public static int3 mad(int3 a, int3 b, int3 c) => a * b + c;
+    public static uint3 mad(uint3 a, uint3 b, uint3 c) => a * b + c;
+    public static double3 fma(double3 a, double3 b, double3 c) => a * b + c;
+    public static float3 asfloat(uint3 v) => new float3(BitConverter.Int32BitsToSingle((int)v.x), BitConverter.Int32BitsToSingle((int)v.y), BitConverter.Int32BitsToSingle((int)v.z));
+    public static float3 asfloat(int3 v) => new float3(BitConverter.Int32BitsToSingle(v.x), BitConverter.Int32BitsToSingle(v.y), BitConverter.Int32BitsToSingle(v.z));
+    public static float3 asfloat(float3 v) => v;
+    public static uint3 asuint(float3 v) => new uint3((uint)BitConverter.SingleToInt32Bits(v.x), (uint)BitConverter.SingleToInt32Bits(v.y), (uint)BitConverter.SingleToInt32Bits(v.z));
+    public static uint3 asuint(int3 v) => new uint3((uint)v.x, (uint)v.y, (uint)v.z);
+    public static uint3 asuint(uint3 v) => v;
+    public static int3 asint(float3 v) => new int3(BitConverter.SingleToInt32Bits(v.x), BitConverter.SingleToInt32Bits(v.y), BitConverter.SingleToInt32Bits(v.z));
+    public static int3 asint(uint3 v) => new int3((int)v.x, (int)v.y, (int)v.z);
+    public static int3 asint(int3 v) => v;
+    public static float3 f16tof32(uint3 v) => new float3((float)BitConverter.UInt16BitsToHalf((ushort)(v.x & 0xFFFF)), (float)BitConverter.UInt16BitsToHalf((ushort)(v.y & 0xFFFF)), (float)BitConverter.UInt16BitsToHalf((ushort)(v.z & 0xFFFF)));
+    public static uint3 f32tof16(float3 v) => new uint3((uint)BitConverter.HalfToUInt16Bits((Half)v.x), (uint)BitConverter.HalfToUInt16Bits((Half)v.y), (uint)BitConverter.HalfToUInt16Bits((Half)v.z));
+    public static uint3 countbits(uint3 v) => new uint3((uint)System.Numerics.BitOperations.PopCount(v.x), (uint)System.Numerics.BitOperations.PopCount(v.y), (uint)System.Numerics.BitOperations.PopCount(v.z));
+    public static uint3 firstbitlow(uint3 v) => new uint3(FirstBitLow(v.x), FirstBitLow(v.y), FirstBitLow(v.z));
+    public static uint3 firstbithigh(uint3 v) => new uint3(FirstBitHigh(v.x), FirstBitHigh(v.y), FirstBitHigh(v.z));
+    public static int3 firstbithigh(int3 v) => new int3((int)FirstBitHigh((uint)v.x), (int)FirstBitHigh((uint)v.y), (int)FirstBitHigh((uint)v.z));
+    public static uint3 reversebits(uint3 v) => new uint3(ReverseBits(v.x), ReverseBits(v.y), ReverseBits(v.z));
     public static float4 lerp(float4 a, float4 b, float4 s) => new float4((a.x + (b.x - a.x) * s.x), (a.y + (b.y - a.y) * s.y), (a.z + (b.z - a.z) * s.z), (a.w + (b.w - a.w) * s.w));
-    public static float4 lerp(float4 a, float4 b, float s) => new float4((a.x + (b.x - a.x) * s), (a.y + (b.y - a.y) * s), (a.z + (b.z - a.z) * s), (a.w + (b.w - a.w) * s));
     public static float4 smoothstep(float4 lo, float4 hi, float4 v) => new float4(SmoothStep(lo.x, hi.x, v.x), SmoothStep(lo.y, hi.y, v.y), SmoothStep(lo.z, hi.z, v.z), SmoothStep(lo.w, hi.w, v.w));
     public static float4 mad(float4 a, float4 b, float4 c) => new float4((a.x * b.x + c.x), (a.y * b.y + c.y), (a.z * b.z + c.z), (a.w * b.w + c.w));
-    public static bool4 isnan(float4 v) => new bool4(float.IsNaN(v.x), float.IsNaN(v.y), float.IsNaN(v.z), float.IsNaN(v.w));
-    public static bool4 isinf(float4 v) => new bool4(float.IsInfinity(v.x), float.IsInfinity(v.y), float.IsInfinity(v.z), float.IsInfinity(v.w));
+    public static int4 mad(int4 a, int4 b, int4 c) => a * b + c;
+    public static uint4 mad(uint4 a, uint4 b, uint4 c) => a * b + c;
+    public static double4 fma(double4 a, double4 b, double4 c) => a * b + c;
+    public static float4 asfloat(uint4 v) => new float4(BitConverter.Int32BitsToSingle((int)v.x), BitConverter.Int32BitsToSingle((int)v.y), BitConverter.Int32BitsToSingle((int)v.z), BitConverter.Int32BitsToSingle((int)v.w));
+    public static float4 asfloat(int4 v) => new float4(BitConverter.Int32BitsToSingle(v.x), BitConverter.Int32BitsToSingle(v.y), BitConverter.Int32BitsToSingle(v.z), BitConverter.Int32BitsToSingle(v.w));
+    public static float4 asfloat(float4 v) => v;
+    public static uint4 asuint(float4 v) => new uint4((uint)BitConverter.SingleToInt32Bits(v.x), (uint)BitConverter.SingleToInt32Bits(v.y), (uint)BitConverter.SingleToInt32Bits(v.z), (uint)BitConverter.SingleToInt32Bits(v.w));
+    public static uint4 asuint(int4 v) => new uint4((uint)v.x, (uint)v.y, (uint)v.z, (uint)v.w);
+    public static uint4 asuint(uint4 v) => v;
+    public static int4 asint(float4 v) => new int4(BitConverter.SingleToInt32Bits(v.x), BitConverter.SingleToInt32Bits(v.y), BitConverter.SingleToInt32Bits(v.z), BitConverter.SingleToInt32Bits(v.w));
+    public static int4 asint(uint4 v) => new int4((int)v.x, (int)v.y, (int)v.z, (int)v.w);
+    public static int4 asint(int4 v) => v;
+    public static float4 f16tof32(uint4 v) => new float4((float)BitConverter.UInt16BitsToHalf((ushort)(v.x & 0xFFFF)), (float)BitConverter.UInt16BitsToHalf((ushort)(v.y & 0xFFFF)), (float)BitConverter.UInt16BitsToHalf((ushort)(v.z & 0xFFFF)), (float)BitConverter.UInt16BitsToHalf((ushort)(v.w & 0xFFFF)));
+    public static uint4 f32tof16(float4 v) => new uint4((uint)BitConverter.HalfToUInt16Bits((Half)v.x), (uint)BitConverter.HalfToUInt16Bits((Half)v.y), (uint)BitConverter.HalfToUInt16Bits((Half)v.z), (uint)BitConverter.HalfToUInt16Bits((Half)v.w));
+    public static uint4 countbits(uint4 v) => new uint4((uint)System.Numerics.BitOperations.PopCount(v.x), (uint)System.Numerics.BitOperations.PopCount(v.y), (uint)System.Numerics.BitOperations.PopCount(v.z), (uint)System.Numerics.BitOperations.PopCount(v.w));
+    public static uint4 firstbitlow(uint4 v) => new uint4(FirstBitLow(v.x), FirstBitLow(v.y), FirstBitLow(v.z), FirstBitLow(v.w));
+    public static uint4 firstbithigh(uint4 v) => new uint4(FirstBitHigh(v.x), FirstBitHigh(v.y), FirstBitHigh(v.z), FirstBitHigh(v.w));
+    public static int4 firstbithigh(int4 v) => new int4((int)FirstBitHigh((uint)v.x), (int)FirstBitHigh((uint)v.y), (int)FirstBitHigh((uint)v.z), (int)FirstBitHigh((uint)v.w));
+    public static uint4 reversebits(uint4 v) => new uint4(ReverseBits(v.x), ReverseBits(v.y), ReverseBits(v.z), ReverseBits(v.w));
+    public static double asdouble(uint low, uint high) => BitConverter.Int64BitsToDouble((long)(((ulong)high << 32) | low));
     private static float SmoothStep(float lo, float hi, float v) { var x = Math.Clamp((v - lo) / (hi - lo), 0f, 1f); return x * x * (3f - 2f * x); }
+    private static uint FirstBitLow(uint v) => v == 0 ? uint.MaxValue : (uint)System.Numerics.BitOperations.TrailingZeroCount(v);
+    private static uint FirstBitHigh(uint v) => v == 0 ? uint.MaxValue : (uint)(31 - System.Numerics.BitOperations.LeadingZeroCount(v));
+    private static uint ReverseBits(uint v) { uint r = 0; for (int i = 0; i < 32; i++) { r = (r << 1) | (v & 1); v >>= 1; } return r; }
+    private static float GpuOnlyFloat() => throw new NotSupportedException("Derivatives exist on the GPU only");
     public static float dot(float2 a, float2 b) => a.x * b.x + a.y * b.y;
     public static int dot(int2 a, int2 b) => a.x * b.x + a.y * b.y;
+    public static uint dot(uint2 a, uint2 b) => a.x * b.x + a.y * b.y;
     public static float length(float2 v) => MathF.Sqrt(dot(v, v));
     public static float distance(float2 a, float2 b) => length(a - b);
     public static float2 normalize(float2 v) => v / length(v);
-    public static bool any(float2 v) => v.x != 0 || v.y != 0;
-    public static bool all(float2 v) => v.x != 0 && v.y != 0;
+    public static float2 reflect(float2 i, float2 n) => i - 2f * dot(i, n) * n;
+    public static float2 refract(float2 i, float2 n, float eta) { var c = dot(-i, n); var k = 1f - eta * eta * (1f - c * c); return k < 0f ? new float2(0f) : eta * i + (eta * c - MathF.Sqrt(k)) * n; }
+    public static float2 faceforward(float2 n, float2 i, float2 ng) => dot(i, ng) < 0f ? n : -n;
     public static bool any(int2 v) => v.x != 0 || v.y != 0;
     public static bool all(int2 v) => v.x != 0 && v.y != 0;
     public static bool any(uint2 v) => v.x != 0 || v.y != 0;
     public static bool all(uint2 v) => v.x != 0 && v.y != 0;
+    public static bool any(half2 v) => (float)v.x != 0f || (float)v.y != 0f;
+    public static bool all(half2 v) => (float)v.x != 0f && (float)v.y != 0f;
+    public static bool any(float2 v) => v.x != 0 || v.y != 0;
+    public static bool all(float2 v) => v.x != 0 && v.y != 0;
+    public static bool any(double2 v) => v.x != 0 || v.y != 0;
+    public static bool all(double2 v) => v.x != 0 && v.y != 0;
     public static bool any(bool2 v) => v.x || v.y;
     public static bool all(bool2 v) => v.x && v.y;
     public static float dot(float3 a, float3 b) => a.x * b.x + a.y * b.y + a.z * b.z;
     public static int dot(int3 a, int3 b) => a.x * b.x + a.y * b.y + a.z * b.z;
+    public static uint dot(uint3 a, uint3 b) => a.x * b.x + a.y * b.y + a.z * b.z;
     public static float length(float3 v) => MathF.Sqrt(dot(v, v));
     public static float distance(float3 a, float3 b) => length(a - b);
     public static float3 normalize(float3 v) => v / length(v);
-    public static bool any(float3 v) => v.x != 0 || v.y != 0 || v.z != 0;
-    public static bool all(float3 v) => v.x != 0 && v.y != 0 && v.z != 0;
+    public static float3 reflect(float3 i, float3 n) => i - 2f * dot(i, n) * n;
+    public static float3 refract(float3 i, float3 n, float eta) { var c = dot(-i, n); var k = 1f - eta * eta * (1f - c * c); return k < 0f ? new float3(0f) : eta * i + (eta * c - MathF.Sqrt(k)) * n; }
+    public static float3 faceforward(float3 n, float3 i, float3 ng) => dot(i, ng) < 0f ? n : -n;
     public static bool any(int3 v) => v.x != 0 || v.y != 0 || v.z != 0;
     public static bool all(int3 v) => v.x != 0 && v.y != 0 && v.z != 0;
     public static bool any(uint3 v) => v.x != 0 || v.y != 0 || v.z != 0;
     public static bool all(uint3 v) => v.x != 0 && v.y != 0 && v.z != 0;
+    public static bool any(half3 v) => (float)v.x != 0f || (float)v.y != 0f || (float)v.z != 0f;
+    public static bool all(half3 v) => (float)v.x != 0f && (float)v.y != 0f && (float)v.z != 0f;
+    public static bool any(float3 v) => v.x != 0 || v.y != 0 || v.z != 0;
+    public static bool all(float3 v) => v.x != 0 && v.y != 0 && v.z != 0;
+    public static bool any(double3 v) => v.x != 0 || v.y != 0 || v.z != 0;
+    public static bool all(double3 v) => v.x != 0 && v.y != 0 && v.z != 0;
     public static bool any(bool3 v) => v.x || v.y || v.z;
     public static bool all(bool3 v) => v.x && v.y && v.z;
     public static float dot(float4 a, float4 b) => a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     public static int dot(int4 a, int4 b) => a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+    public static uint dot(uint4 a, uint4 b) => a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     public static float length(float4 v) => MathF.Sqrt(dot(v, v));
     public static float distance(float4 a, float4 b) => length(a - b);
     public static float4 normalize(float4 v) => v / length(v);
-    public static bool any(float4 v) => v.x != 0 || v.y != 0 || v.z != 0 || v.w != 0;
-    public static bool all(float4 v) => v.x != 0 && v.y != 0 && v.z != 0 && v.w != 0;
+    public static float4 reflect(float4 i, float4 n) => i - 2f * dot(i, n) * n;
+    public static float4 refract(float4 i, float4 n, float eta) { var c = dot(-i, n); var k = 1f - eta * eta * (1f - c * c); return k < 0f ? new float4(0f) : eta * i + (eta * c - MathF.Sqrt(k)) * n; }
+    public static float4 faceforward(float4 n, float4 i, float4 ng) => dot(i, ng) < 0f ? n : -n;
     public static bool any(int4 v) => v.x != 0 || v.y != 0 || v.z != 0 || v.w != 0;
     public static bool all(int4 v) => v.x != 0 && v.y != 0 && v.z != 0 && v.w != 0;
     public static bool any(uint4 v) => v.x != 0 || v.y != 0 || v.z != 0 || v.w != 0;
     public static bool all(uint4 v) => v.x != 0 && v.y != 0 && v.z != 0 && v.w != 0;
+    public static bool any(half4 v) => (float)v.x != 0f || (float)v.y != 0f || (float)v.z != 0f || (float)v.w != 0f;
+    public static bool all(half4 v) => (float)v.x != 0f && (float)v.y != 0f && (float)v.z != 0f && (float)v.w != 0f;
+    public static bool any(float4 v) => v.x != 0 || v.y != 0 || v.z != 0 || v.w != 0;
+    public static bool all(float4 v) => v.x != 0 && v.y != 0 && v.z != 0 && v.w != 0;
+    public static bool any(double4 v) => v.x != 0 || v.y != 0 || v.z != 0 || v.w != 0;
+    public static bool all(double4 v) => v.x != 0 && v.y != 0 && v.z != 0 && v.w != 0;
     public static bool any(bool4 v) => v.x || v.y || v.z || v.w;
     public static bool all(bool4 v) => v.x && v.y && v.z && v.w;
     public static bool any(bool v) => v;
@@ -243,15 +416,10 @@ public static partial class Intrinsics
     public static bool all(int v) => v != 0;
     public static bool any(uint v) => v != 0;
     public static bool all(uint v) => v != 0;
+    public static bool any(double v) => v != 0;
+    public static bool all(double v) => v != 0;
     public static float3 cross(float3 a, float3 b) => new float3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-    public static float asfloat(uint v) => BitConverter.Int32BitsToSingle((int)v);
-    public static float asfloat(int v) => BitConverter.Int32BitsToSingle(v);
-    public static uint asuint(float v) => (uint)BitConverter.SingleToInt32Bits(v);
-    public static int asint(float v) => BitConverter.SingleToInt32Bits(v);
-    public static int asint(uint v) => (int)v;
-    public static uint asuint(int v) => (uint)v;
-    public static uint countbits(uint v) => (uint)System.Numerics.BitOperations.PopCount(v);
-    public static uint firstbitlow(uint v) => (uint)System.Numerics.BitOperations.TrailingZeroCount(v);
-    public static uint firstbithigh(uint v) => v == 0 ? uint.MaxValue : (uint)(31 - System.Numerics.BitOperations.LeadingZeroCount(v));
-    public static uint reversebits(uint v) { uint r = 0; for (int i = 0; i < 32; i++) { r = (r << 1) | (v & 1); v >>= 1; } return r; }
+    public static float4 lit(float nDotL, float nDotH, float m) => new float4(1f, MathF.Max(0f, nDotL), nDotL < 0f || nDotH < 0f ? 0f : MathF.Pow(nDotH, m), 1f);
+    public static float4 dst(float4 a, float4 b) => new float4(1f, a.y * b.y, a.z, b.w);
+    public static float noise(float v) => throw new NotSupportedException();
 }

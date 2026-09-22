@@ -56,7 +56,7 @@ public sealed class ShaderEffectGenerator : IIncrementalGenerator
             foreach (var diagnostic in shader.Diagnostics)
                 production.ReportDiagnostic(diagnostic);
             if (shader.MixinStubs != null)
-                production.AddSource(shader.ClassName + ".Mixins.g.cs", shader.MixinStubs);
+                production.AddSource(HintName(shader) + ".Partial.g.cs", shader.MixinStubs);
             if (shader.IsExternal || shader.Sdsl == null)
                 continue;
             var existing = files.SelectMany(f => f.Shaders, (f, s) => (File: f, Shader: s)).FirstOrDefault(e => e.Shader.Name == shader.ShaderName);
@@ -75,7 +75,7 @@ public sealed class ShaderEffectGenerator : IIncrementalGenerator
             var keysNamespace = shader.Namespace ?? "Stride.Rendering";
             foreach (var parsed in file.Shaders)
                 production.AddSource(parsed.Name + "Keys.g.cs", KeysEmitter.Emit(parsed, keysNamespace));
-            production.AddSource(shader.ClassName + ".Sdsl.g.cs", SdslSourceEmitter.EmitPartial(shader));
+            production.AddSource(HintName(shader) + ".Sdsl.g.cs", SdslSourceEmitter.EmitPartial(shader));
         }
         if (fromCSharp.Count > 0)
             production.AddSource("CslShaderSources.g.cs", SdslSourceEmitter.EmitRegistration(fromCSharp.Values.OrderBy(s => s.ShaderName, StringComparer.Ordinal)));
@@ -117,6 +117,8 @@ public sealed class ShaderEffectGenerator : IIncrementalGenerator
             production.AddSource(model.ClassName + ".g.cs", WrapperEmitter.Emit(model));
         }
     }
+
+    private static string HintName(TranslatedShader shader) => shader.Namespace == null ? shader.ClassName : shader.Namespace + "." + shader.ClassName;
 
     private static bool ReachesComputeBase(string name, Dictionary<string, (SdslShader Shader, SdslFile File)> shaders, HashSet<string> visiting)
     {

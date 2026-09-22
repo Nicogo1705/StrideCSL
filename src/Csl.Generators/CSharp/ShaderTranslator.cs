@@ -110,6 +110,11 @@ public sealed class ShaderTranslator
                 result.NumThreads = ((int)attribute.ConstructorArguments[0].Value!, (int)attribute.ConstructorArguments[1].Value!, (int)attribute.ConstructorArguments[2].Value!);
         }
 
+        foreach (var mixin in ShaderPartialEmitter.MixinsOf(shader))
+            if (IsShaderClass(mixin))
+                mixins.Add(mixin);
+        result.MixinStubs = ShaderPartialEmitter.Emit(shader, result);
+
         if (result.IsExternal)
             return;
 
@@ -130,18 +135,13 @@ public sealed class ShaderTranslator
             foreach (var argument in attribute.ConstructorArguments.SelectMany(a => a.Kind == TypedConstantKind.Array ? a.Values : System.Collections.Immutable.ImmutableArray.Create(a)))
             {
                 if (argument.Value is INamedTypeSymbol mixin && IsShaderClass(mixin))
-                {
                     bases.Add(ShaderNameOf(mixin));
-                    mixins.Add(mixin);
-                }
                 else
                 {
                     Report(Diagnostics.BaseNotShader, location, argument.Value?.ToString() ?? "?");
                 }
             }
         }
-        if (mixins.Count > 0)
-            result.MixinStubs = MixinStubEmitter.Emit(shader, mixins, result);
 
         if (result.Namespace != null)
         {

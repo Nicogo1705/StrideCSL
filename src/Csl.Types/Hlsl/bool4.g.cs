@@ -2,717 +2,785 @@
 // Written by tools/gen_hlsl_types.py. Do not edit; edit the script and run it again.
 // </auto-generated>
 #nullable enable
-#pragma warning disable IDE1006, CS1591
+#pragma warning disable IDE1006, CS1591, CS0660, CS0661
 using System;
 using System.Runtime.InteropServices;
 
 namespace Csl.Hlsl;
 
-/// <summary>HLSL bool4: 4 components of bool. Runs on the GPU; the C# operations exist so shader code type-checks and can be unit tested.</summary>
+/// <summary>HLSL bool4: 4 components of bool.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct bool4 : IEquatable<bool4>
 {
     public bool x, y, z, w;
     public bool4(bool x, bool y, bool z, bool w) { this.x = x; this.y = y; this.z = z; this.w = w; }
     public bool4(bool v) { x = v; y = v; z = v; w = v; }
-    public bool4(bool3 xyz, bool w) { x = xyz.x; y = xyz.y; z = xyz.z; this.w = w; }
-    public bool4(bool x, bool3 yzw) { this.x = x; y = yzw.x; z = yzw.y; w = yzw.z; }
-    public bool4(bool2 xy, bool2 zw) { x = xy.x; y = xy.y; z = zw.x; w = zw.y; }
-    public bool4(bool2 xy, bool z, bool w) { x = xy.x; y = xy.y; this.z = z; this.w = w; }
+    public bool4(bool p0, bool p1, bool2 p2) { x = p0; y = p1; z = p2.x; w = p2.y; }
+    public bool4(bool p0, bool2 p1, bool p2) { x = p0; y = p1.x; z = p1.y; w = p2; }
+    public bool4(bool p0, bool3 p1) { x = p0; y = p1.x; z = p1.y; w = p1.z; }
+    public bool4(bool2 p0, bool p1, bool p2) { x = p0.x; y = p0.y; z = p1; w = p2; }
+    public bool4(bool2 p0, bool2 p1) { x = p0.x; y = p0.y; z = p1.x; w = p1.y; }
+    public bool4(bool3 p0, bool p1) { x = p0.x; y = p0.y; z = p0.z; w = p1; }
+    public bool4(double v) { x = (v != 0); y = (v != 0); z = (v != 0); w = (v != 0); }
+    public bool4(double p0, double p1, double p2, double p3) { x = (p0 != 0); y = (p1 != 0); z = (p2 != 0); w = (p3 != 0); }
+    public bool4(double p0, double p1, int2 p2) { x = (p0 != 0); y = (p1 != 0); z = (p2.x != 0); w = (p2.y != 0); }
+    public bool4(double p0, double p1, uint2 p2) { x = (p0 != 0); y = (p1 != 0); z = (p2.x != 0); w = (p2.y != 0); }
+    public bool4(double p0, double p1, half2 p2) { x = (p0 != 0); y = (p1 != 0); z = ((float)p2.x != 0f); w = ((float)p2.y != 0f); }
+    public bool4(double p0, double p1, float2 p2) { x = (p0 != 0); y = (p1 != 0); z = (p2.x != 0); w = (p2.y != 0); }
+    public bool4(double p0, double p1, double2 p2) { x = (p0 != 0); y = (p1 != 0); z = (p2.x != 0); w = (p2.y != 0); }
+    public bool4(double p0, int2 p1, double p2) { x = (p0 != 0); y = (p1.x != 0); z = (p1.y != 0); w = (p2 != 0); }
+    public bool4(double p0, uint2 p1, double p2) { x = (p0 != 0); y = (p1.x != 0); z = (p1.y != 0); w = (p2 != 0); }
+    public bool4(double p0, half2 p1, double p2) { x = (p0 != 0); y = ((float)p1.x != 0f); z = ((float)p1.y != 0f); w = (p2 != 0); }
+    public bool4(double p0, float2 p1, double p2) { x = (p0 != 0); y = (p1.x != 0); z = (p1.y != 0); w = (p2 != 0); }
+    public bool4(double p0, double2 p1, double p2) { x = (p0 != 0); y = (p1.x != 0); z = (p1.y != 0); w = (p2 != 0); }
+    public bool4(double p0, int3 p1) { x = (p0 != 0); y = (p1.x != 0); z = (p1.y != 0); w = (p1.z != 0); }
+    public bool4(double p0, uint3 p1) { x = (p0 != 0); y = (p1.x != 0); z = (p1.y != 0); w = (p1.z != 0); }
+    public bool4(double p0, half3 p1) { x = (p0 != 0); y = ((float)p1.x != 0f); z = ((float)p1.y != 0f); w = ((float)p1.z != 0f); }
+    public bool4(double p0, float3 p1) { x = (p0 != 0); y = (p1.x != 0); z = (p1.y != 0); w = (p1.z != 0); }
+    public bool4(double p0, double3 p1) { x = (p0 != 0); y = (p1.x != 0); z = (p1.y != 0); w = (p1.z != 0); }
+    public bool4(int2 p0, double p1, double p2) { x = (p0.x != 0); y = (p0.y != 0); z = (p1 != 0); w = (p2 != 0); }
+    public bool4(uint2 p0, double p1, double p2) { x = (p0.x != 0); y = (p0.y != 0); z = (p1 != 0); w = (p2 != 0); }
+    public bool4(half2 p0, double p1, double p2) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); z = (p1 != 0); w = (p2 != 0); }
+    public bool4(float2 p0, double p1, double p2) { x = (p0.x != 0); y = (p0.y != 0); z = (p1 != 0); w = (p2 != 0); }
+    public bool4(double2 p0, double p1, double p2) { x = (p0.x != 0); y = (p0.y != 0); z = (p1 != 0); w = (p2 != 0); }
+    public bool4(int2 p0, int2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(int2 p0, uint2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(int2 p0, half2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = ((float)p1.x != 0f); w = ((float)p1.y != 0f); }
+    public bool4(int2 p0, float2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(int2 p0, double2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(uint2 p0, int2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(uint2 p0, uint2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(uint2 p0, half2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = ((float)p1.x != 0f); w = ((float)p1.y != 0f); }
+    public bool4(uint2 p0, float2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(uint2 p0, double2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(half2 p0, int2 p1) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(half2 p0, uint2 p1) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(half2 p0, half2 p1) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); z = ((float)p1.x != 0f); w = ((float)p1.y != 0f); }
+    public bool4(half2 p0, float2 p1) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(half2 p0, double2 p1) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(float2 p0, int2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(float2 p0, uint2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(float2 p0, half2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = ((float)p1.x != 0f); w = ((float)p1.y != 0f); }
+    public bool4(float2 p0, float2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(float2 p0, double2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(double2 p0, int2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(double2 p0, uint2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(double2 p0, half2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = ((float)p1.x != 0f); w = ((float)p1.y != 0f); }
+    public bool4(double2 p0, float2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(double2 p0, double2 p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p1.x != 0); w = (p1.y != 0); }
+    public bool4(int3 p0, double p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p1 != 0); }
+    public bool4(uint3 p0, double p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p1 != 0); }
+    public bool4(half3 p0, double p1) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); z = ((float)p0.z != 0f); w = (p1 != 0); }
+    public bool4(float3 p0, double p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p1 != 0); }
+    public bool4(double3 p0, double p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p1 != 0); }
     public static implicit operator bool4(bool v) => new bool4(v);
+    public static explicit operator bool4(int4 v) => new bool4((v.x != 0), (v.y != 0), (v.z != 0), (v.w != 0));
+    public static explicit operator bool4(uint4 v) => new bool4((v.x != 0), (v.y != 0), (v.z != 0), (v.w != 0));
+    public static explicit operator bool4(half4 v) => new bool4(((float)v.x != 0f), ((float)v.y != 0f), ((float)v.z != 0f), ((float)v.w != 0f));
+    public static explicit operator bool4(float4 v) => new bool4((v.x != 0), (v.y != 0), (v.z != 0), (v.w != 0));
+    public static explicit operator bool4(double4 v) => new bool4((v.x != 0), (v.y != 0), (v.z != 0), (v.w != 0));
+    public static explicit operator bool(bool4 v) => v.x;
+    public static explicit operator int(bool4 v) => (v.x ? 1 : 0);
+    public static explicit operator uint(bool4 v) => (v.x ? 1u : 0u);
+    public static explicit operator half(bool4 v) => (v.x ? (half)1f : default(half));
+    public static explicit operator float(bool4 v) => (v.x ? 1f : 0f);
+    public static explicit operator double(bool4 v) => (v.x ? 1d : 0d);
     public bool this[int i]
     {
         get => i switch { 0 => x, 1 => y, 2 => z, 3 => w, _ => throw new IndexOutOfRangeException() };
         set { switch (i) { case 0: x = value; break; case 1: y = value; break; case 2: z = value; break; case 3: w = value; break; default: throw new IndexOutOfRangeException(); } }
     }
+    public bool this[uint i] { get => this[(int)i]; set => this[(int)i] = value; }
     public static bool4 operator &(bool4 a, bool4 b) => new bool4(a.x & b.x, a.y & b.y, a.z & b.z, a.w & b.w);
     public static bool4 operator |(bool4 a, bool4 b) => new bool4(a.x | b.x, a.y | b.y, a.z | b.z, a.w | b.w);
     public static bool4 operator ^(bool4 a, bool4 b) => new bool4(a.x ^ b.x, a.y ^ b.y, a.z ^ b.z, a.w ^ b.w);
     public static bool4 operator !(bool4 a) => new bool4(!a.x, !a.y, !a.z, !a.w);
+    public static bool operator true(bool4 a) => a.x && a.y && a.z && a.w;
+    public static bool operator false(bool4 a) => !(a.x || a.y || a.z || a.w);
     public static bool4 operator ==(bool4 a, bool4 b) => new bool4(a.x == b.x, a.y == b.y, a.z == b.z, a.w == b.w);
     public static bool4 operator !=(bool4 a, bool4 b) => new bool4(a.x != b.x, a.y != b.y, a.z != b.z, a.w != b.w);
     public static bool4 operator ==(bool4 a, bool b) => new bool4(a.x == b, a.y == b, a.z == b, a.w == b);
     public static bool4 operator !=(bool4 a, bool b) => new bool4(a.x != b, a.y != b, a.z != b, a.w != b);
-    public bool Equals(bool4 other) => x == other.x && y == other.y && z == other.z && w == other.w;
+    public bool Equals(bool4 other) => x.Equals(other.x) && y.Equals(other.y) && z.Equals(other.z) && w.Equals(other.w);
     public override bool Equals(object? obj) => obj is bool4 other && Equals(other);
     public override int GetHashCode() => HashCode.Combine(x, y, z, w);
     public override string ToString() => $"bool4({x}, {y}, {z}, {w})";
 
     // Swizzles, xyzw and rgba. Setters only where no component repeats.
-    public bool2 xx => new bool2(x, x);
-    public bool2 xy { get => new bool2(x, y); set { x = value.x; y = value.y; } }
-    public bool2 xz { get => new bool2(x, z); set { x = value.x; z = value.y; } }
-    public bool2 xw { get => new bool2(x, w); set { x = value.x; w = value.y; } }
-    public bool2 yx { get => new bool2(y, x); set { y = value.x; x = value.y; } }
-    public bool2 yy => new bool2(y, y);
-    public bool2 yz { get => new bool2(y, z); set { y = value.x; z = value.y; } }
-    public bool2 yw { get => new bool2(y, w); set { y = value.x; w = value.y; } }
-    public bool2 zx { get => new bool2(z, x); set { z = value.x; x = value.y; } }
-    public bool2 zy { get => new bool2(z, y); set { z = value.x; y = value.y; } }
-    public bool2 zz => new bool2(z, z);
-    public bool2 zw { get => new bool2(z, w); set { z = value.x; w = value.y; } }
-    public bool2 wx { get => new bool2(w, x); set { w = value.x; x = value.y; } }
-    public bool2 wy { get => new bool2(w, y); set { w = value.x; y = value.y; } }
-    public bool2 wz { get => new bool2(w, z); set { w = value.x; z = value.y; } }
-    public bool2 ww => new bool2(w, w);
-    public bool3 xxx => new bool3(x, x, x);
-    public bool3 xxy => new bool3(x, x, y);
-    public bool3 xxz => new bool3(x, x, z);
-    public bool3 xxw => new bool3(x, x, w);
-    public bool3 xyx => new bool3(x, y, x);
-    public bool3 xyy => new bool3(x, y, y);
-    public bool3 xyz { get => new bool3(x, y, z); set { x = value.x; y = value.y; z = value.z; } }
-    public bool3 xyw { get => new bool3(x, y, w); set { x = value.x; y = value.y; w = value.z; } }
-    public bool3 xzx => new bool3(x, z, x);
-    public bool3 xzy { get => new bool3(x, z, y); set { x = value.x; z = value.y; y = value.z; } }
-    public bool3 xzz => new bool3(x, z, z);
-    public bool3 xzw { get => new bool3(x, z, w); set { x = value.x; z = value.y; w = value.z; } }
-    public bool3 xwx => new bool3(x, w, x);
-    public bool3 xwy { get => new bool3(x, w, y); set { x = value.x; w = value.y; y = value.z; } }
-    public bool3 xwz { get => new bool3(x, w, z); set { x = value.x; w = value.y; z = value.z; } }
-    public bool3 xww => new bool3(x, w, w);
-    public bool3 yxx => new bool3(y, x, x);
-    public bool3 yxy => new bool3(y, x, y);
-    public bool3 yxz { get => new bool3(y, x, z); set { y = value.x; x = value.y; z = value.z; } }
-    public bool3 yxw { get => new bool3(y, x, w); set { y = value.x; x = value.y; w = value.z; } }
-    public bool3 yyx => new bool3(y, y, x);
-    public bool3 yyy => new bool3(y, y, y);
-    public bool3 yyz => new bool3(y, y, z);
-    public bool3 yyw => new bool3(y, y, w);
-    public bool3 yzx { get => new bool3(y, z, x); set { y = value.x; z = value.y; x = value.z; } }
-    public bool3 yzy => new bool3(y, z, y);
-    public bool3 yzz => new bool3(y, z, z);
-    public bool3 yzw { get => new bool3(y, z, w); set { y = value.x; z = value.y; w = value.z; } }
-    public bool3 ywx { get => new bool3(y, w, x); set { y = value.x; w = value.y; x = value.z; } }
-    public bool3 ywy => new bool3(y, w, y);
-    public bool3 ywz { get => new bool3(y, w, z); set { y = value.x; w = value.y; z = value.z; } }
-    public bool3 yww => new bool3(y, w, w);
-    public bool3 zxx => new bool3(z, x, x);
-    public bool3 zxy { get => new bool3(z, x, y); set { z = value.x; x = value.y; y = value.z; } }
-    public bool3 zxz => new bool3(z, x, z);
-    public bool3 zxw { get => new bool3(z, x, w); set { z = value.x; x = value.y; w = value.z; } }
-    public bool3 zyx { get => new bool3(z, y, x); set { z = value.x; y = value.y; x = value.z; } }
-    public bool3 zyy => new bool3(z, y, y);
-    public bool3 zyz => new bool3(z, y, z);
-    public bool3 zyw { get => new bool3(z, y, w); set { z = value.x; y = value.y; w = value.z; } }
-    public bool3 zzx => new bool3(z, z, x);
-    public bool3 zzy => new bool3(z, z, y);
-    public bool3 zzz => new bool3(z, z, z);
-    public bool3 zzw => new bool3(z, z, w);
-    public bool3 zwx { get => new bool3(z, w, x); set { z = value.x; w = value.y; x = value.z; } }
-    public bool3 zwy { get => new bool3(z, w, y); set { z = value.x; w = value.y; y = value.z; } }
-    public bool3 zwz => new bool3(z, w, z);
-    public bool3 zww => new bool3(z, w, w);
-    public bool3 wxx => new bool3(w, x, x);
-    public bool3 wxy { get => new bool3(w, x, y); set { w = value.x; x = value.y; y = value.z; } }
-    public bool3 wxz { get => new bool3(w, x, z); set { w = value.x; x = value.y; z = value.z; } }
-    public bool3 wxw => new bool3(w, x, w);
-    public bool3 wyx { get => new bool3(w, y, x); set { w = value.x; y = value.y; x = value.z; } }
-    public bool3 wyy => new bool3(w, y, y);
-    public bool3 wyz { get => new bool3(w, y, z); set { w = value.x; y = value.y; z = value.z; } }
-    public bool3 wyw => new bool3(w, y, w);
-    public bool3 wzx { get => new bool3(w, z, x); set { w = value.x; z = value.y; x = value.z; } }
-    public bool3 wzy { get => new bool3(w, z, y); set { w = value.x; z = value.y; y = value.z; } }
-    public bool3 wzz => new bool3(w, z, z);
-    public bool3 wzw => new bool3(w, z, w);
-    public bool3 wwx => new bool3(w, w, x);
-    public bool3 wwy => new bool3(w, w, y);
-    public bool3 wwz => new bool3(w, w, z);
-    public bool3 www => new bool3(w, w, w);
-    public bool4 xxxx => new bool4(x, x, x, x);
-    public bool4 xxxy => new bool4(x, x, x, y);
-    public bool4 xxxz => new bool4(x, x, x, z);
-    public bool4 xxxw => new bool4(x, x, x, w);
-    public bool4 xxyx => new bool4(x, x, y, x);
-    public bool4 xxyy => new bool4(x, x, y, y);
-    public bool4 xxyz => new bool4(x, x, y, z);
-    public bool4 xxyw => new bool4(x, x, y, w);
-    public bool4 xxzx => new bool4(x, x, z, x);
-    public bool4 xxzy => new bool4(x, x, z, y);
-    public bool4 xxzz => new bool4(x, x, z, z);
-    public bool4 xxzw => new bool4(x, x, z, w);
-    public bool4 xxwx => new bool4(x, x, w, x);
-    public bool4 xxwy => new bool4(x, x, w, y);
-    public bool4 xxwz => new bool4(x, x, w, z);
-    public bool4 xxww => new bool4(x, x, w, w);
-    public bool4 xyxx => new bool4(x, y, x, x);
-    public bool4 xyxy => new bool4(x, y, x, y);
-    public bool4 xyxz => new bool4(x, y, x, z);
-    public bool4 xyxw => new bool4(x, y, x, w);
-    public bool4 xyyx => new bool4(x, y, y, x);
-    public bool4 xyyy => new bool4(x, y, y, y);
-    public bool4 xyyz => new bool4(x, y, y, z);
-    public bool4 xyyw => new bool4(x, y, y, w);
-    public bool4 xyzx => new bool4(x, y, z, x);
-    public bool4 xyzy => new bool4(x, y, z, y);
-    public bool4 xyzz => new bool4(x, y, z, z);
-    public bool4 xyzw { get => new bool4(x, y, z, w); set { x = value.x; y = value.y; z = value.z; w = value.w; } }
-    public bool4 xywx => new bool4(x, y, w, x);
-    public bool4 xywy => new bool4(x, y, w, y);
-    public bool4 xywz { get => new bool4(x, y, w, z); set { x = value.x; y = value.y; w = value.z; z = value.w; } }
-    public bool4 xyww => new bool4(x, y, w, w);
-    public bool4 xzxx => new bool4(x, z, x, x);
-    public bool4 xzxy => new bool4(x, z, x, y);
-    public bool4 xzxz => new bool4(x, z, x, z);
-    public bool4 xzxw => new bool4(x, z, x, w);
-    public bool4 xzyx => new bool4(x, z, y, x);
-    public bool4 xzyy => new bool4(x, z, y, y);
-    public bool4 xzyz => new bool4(x, z, y, z);
-    public bool4 xzyw { get => new bool4(x, z, y, w); set { x = value.x; z = value.y; y = value.z; w = value.w; } }
-    public bool4 xzzx => new bool4(x, z, z, x);
-    public bool4 xzzy => new bool4(x, z, z, y);
-    public bool4 xzzz => new bool4(x, z, z, z);
-    public bool4 xzzw => new bool4(x, z, z, w);
-    public bool4 xzwx => new bool4(x, z, w, x);
-    public bool4 xzwy { get => new bool4(x, z, w, y); set { x = value.x; z = value.y; w = value.z; y = value.w; } }
-    public bool4 xzwz => new bool4(x, z, w, z);
-    public bool4 xzww => new bool4(x, z, w, w);
-    public bool4 xwxx => new bool4(x, w, x, x);
-    public bool4 xwxy => new bool4(x, w, x, y);
-    public bool4 xwxz => new bool4(x, w, x, z);
-    public bool4 xwxw => new bool4(x, w, x, w);
-    public bool4 xwyx => new bool4(x, w, y, x);
-    public bool4 xwyy => new bool4(x, w, y, y);
-    public bool4 xwyz { get => new bool4(x, w, y, z); set { x = value.x; w = value.y; y = value.z; z = value.w; } }
-    public bool4 xwyw => new bool4(x, w, y, w);
-    public bool4 xwzx => new bool4(x, w, z, x);
-    public bool4 xwzy { get => new bool4(x, w, z, y); set { x = value.x; w = value.y; z = value.z; y = value.w; } }
-    public bool4 xwzz => new bool4(x, w, z, z);
-    public bool4 xwzw => new bool4(x, w, z, w);
-    public bool4 xwwx => new bool4(x, w, w, x);
-    public bool4 xwwy => new bool4(x, w, w, y);
-    public bool4 xwwz => new bool4(x, w, w, z);
-    public bool4 xwww => new bool4(x, w, w, w);
-    public bool4 yxxx => new bool4(y, x, x, x);
-    public bool4 yxxy => new bool4(y, x, x, y);
-    public bool4 yxxz => new bool4(y, x, x, z);
-    public bool4 yxxw => new bool4(y, x, x, w);
-    public bool4 yxyx => new bool4(y, x, y, x);
-    public bool4 yxyy => new bool4(y, x, y, y);
-    public bool4 yxyz => new bool4(y, x, y, z);
-    public bool4 yxyw => new bool4(y, x, y, w);
-    public bool4 yxzx => new bool4(y, x, z, x);
-    public bool4 yxzy => new bool4(y, x, z, y);
-    public bool4 yxzz => new bool4(y, x, z, z);
-    public bool4 yxzw { get => new bool4(y, x, z, w); set { y = value.x; x = value.y; z = value.z; w = value.w; } }
-    public bool4 yxwx => new bool4(y, x, w, x);
-    public bool4 yxwy => new bool4(y, x, w, y);
-    public bool4 yxwz { get => new bool4(y, x, w, z); set { y = value.x; x = value.y; w = value.z; z = value.w; } }
-    public bool4 yxww => new bool4(y, x, w, w);
-    public bool4 yyxx => new bool4(y, y, x, x);
-    public bool4 yyxy => new bool4(y, y, x, y);
-    public bool4 yyxz => new bool4(y, y, x, z);
-    public bool4 yyxw => new bool4(y, y, x, w);
-    public bool4 yyyx => new bool4(y, y, y, x);
-    public bool4 yyyy => new bool4(y, y, y, y);
-    public bool4 yyyz => new bool4(y, y, y, z);
-    public bool4 yyyw => new bool4(y, y, y, w);
-    public bool4 yyzx => new bool4(y, y, z, x);
-    public bool4 yyzy => new bool4(y, y, z, y);
-    public bool4 yyzz => new bool4(y, y, z, z);
-    public bool4 yyzw => new bool4(y, y, z, w);
-    public bool4 yywx => new bool4(y, y, w, x);
-    public bool4 yywy => new bool4(y, y, w, y);
-    public bool4 yywz => new bool4(y, y, w, z);
-    public bool4 yyww => new bool4(y, y, w, w);
-    public bool4 yzxx => new bool4(y, z, x, x);
-    public bool4 yzxy => new bool4(y, z, x, y);
-    public bool4 yzxz => new bool4(y, z, x, z);
-    public bool4 yzxw { get => new bool4(y, z, x, w); set { y = value.x; z = value.y; x = value.z; w = value.w; } }
-    public bool4 yzyx => new bool4(y, z, y, x);
-    public bool4 yzyy => new bool4(y, z, y, y);
-    public bool4 yzyz => new bool4(y, z, y, z);
-    public bool4 yzyw => new bool4(y, z, y, w);
-    public bool4 yzzx => new bool4(y, z, z, x);
-    public bool4 yzzy => new bool4(y, z, z, y);
-    public bool4 yzzz => new bool4(y, z, z, z);
-    public bool4 yzzw => new bool4(y, z, z, w);
-    public bool4 yzwx { get => new bool4(y, z, w, x); set { y = value.x; z = value.y; w = value.z; x = value.w; } }
-    public bool4 yzwy => new bool4(y, z, w, y);
-    public bool4 yzwz => new bool4(y, z, w, z);
-    public bool4 yzww => new bool4(y, z, w, w);
-    public bool4 ywxx => new bool4(y, w, x, x);
-    public bool4 ywxy => new bool4(y, w, x, y);
-    public bool4 ywxz { get => new bool4(y, w, x, z); set { y = value.x; w = value.y; x = value.z; z = value.w; } }
-    public bool4 ywxw => new bool4(y, w, x, w);
-    public bool4 ywyx => new bool4(y, w, y, x);
-    public bool4 ywyy => new bool4(y, w, y, y);
-    public bool4 ywyz => new bool4(y, w, y, z);
-    public bool4 ywyw => new bool4(y, w, y, w);
-    public bool4 ywzx { get => new bool4(y, w, z, x); set { y = value.x; w = value.y; z = value.z; x = value.w; } }
-    public bool4 ywzy => new bool4(y, w, z, y);
-    public bool4 ywzz => new bool4(y, w, z, z);
-    public bool4 ywzw => new bool4(y, w, z, w);
-    public bool4 ywwx => new bool4(y, w, w, x);
-    public bool4 ywwy => new bool4(y, w, w, y);
-    public bool4 ywwz => new bool4(y, w, w, z);
-    public bool4 ywww => new bool4(y, w, w, w);
-    public bool4 zxxx => new bool4(z, x, x, x);
-    public bool4 zxxy => new bool4(z, x, x, y);
-    public bool4 zxxz => new bool4(z, x, x, z);
-    public bool4 zxxw => new bool4(z, x, x, w);
-    public bool4 zxyx => new bool4(z, x, y, x);
-    public bool4 zxyy => new bool4(z, x, y, y);
-    public bool4 zxyz => new bool4(z, x, y, z);
-    public bool4 zxyw { get => new bool4(z, x, y, w); set { z = value.x; x = value.y; y = value.z; w = value.w; } }
-    public bool4 zxzx => new bool4(z, x, z, x);
-    public bool4 zxzy => new bool4(z, x, z, y);
-    public bool4 zxzz => new bool4(z, x, z, z);
-    public bool4 zxzw => new bool4(z, x, z, w);
-    public bool4 zxwx => new bool4(z, x, w, x);
-    public bool4 zxwy { get => new bool4(z, x, w, y); set { z = value.x; x = value.y; w = value.z; y = value.w; } }
-    public bool4 zxwz => new bool4(z, x, w, z);
-    public bool4 zxww => new bool4(z, x, w, w);
-    public bool4 zyxx => new bool4(z, y, x, x);
-    public bool4 zyxy => new bool4(z, y, x, y);
-    public bool4 zyxz => new bool4(z, y, x, z);
-    public bool4 zyxw { get => new bool4(z, y, x, w); set { z = value.x; y = value.y; x = value.z; w = value.w; } }
-    public bool4 zyyx => new bool4(z, y, y, x);
-    public bool4 zyyy => new bool4(z, y, y, y);
-    public bool4 zyyz => new bool4(z, y, y, z);
-    public bool4 zyyw => new bool4(z, y, y, w);
-    public bool4 zyzx => new bool4(z, y, z, x);
-    public bool4 zyzy => new bool4(z, y, z, y);
-    public bool4 zyzz => new bool4(z, y, z, z);
-    public bool4 zyzw => new bool4(z, y, z, w);
-    public bool4 zywx { get => new bool4(z, y, w, x); set { z = value.x; y = value.y; w = value.z; x = value.w; } }
-    public bool4 zywy => new bool4(z, y, w, y);
-    public bool4 zywz => new bool4(z, y, w, z);
-    public bool4 zyww => new bool4(z, y, w, w);
-    public bool4 zzxx => new bool4(z, z, x, x);
-    public bool4 zzxy => new bool4(z, z, x, y);
-    public bool4 zzxz => new bool4(z, z, x, z);
-    public bool4 zzxw => new bool4(z, z, x, w);
-    public bool4 zzyx => new bool4(z, z, y, x);
-    public bool4 zzyy => new bool4(z, z, y, y);
-    public bool4 zzyz => new bool4(z, z, y, z);
-    public bool4 zzyw => new bool4(z, z, y, w);
-    public bool4 zzzx => new bool4(z, z, z, x);
-    public bool4 zzzy => new bool4(z, z, z, y);
-    public bool4 zzzz => new bool4(z, z, z, z);
-    public bool4 zzzw => new bool4(z, z, z, w);
-    public bool4 zzwx => new bool4(z, z, w, x);
-    public bool4 zzwy => new bool4(z, z, w, y);
-    public bool4 zzwz => new bool4(z, z, w, z);
-    public bool4 zzww => new bool4(z, z, w, w);
-    public bool4 zwxx => new bool4(z, w, x, x);
-    public bool4 zwxy { get => new bool4(z, w, x, y); set { z = value.x; w = value.y; x = value.z; y = value.w; } }
-    public bool4 zwxz => new bool4(z, w, x, z);
-    public bool4 zwxw => new bool4(z, w, x, w);
-    public bool4 zwyx { get => new bool4(z, w, y, x); set { z = value.x; w = value.y; y = value.z; x = value.w; } }
-    public bool4 zwyy => new bool4(z, w, y, y);
-    public bool4 zwyz => new bool4(z, w, y, z);
-    public bool4 zwyw => new bool4(z, w, y, w);
-    public bool4 zwzx => new bool4(z, w, z, x);
-    public bool4 zwzy => new bool4(z, w, z, y);
-    public bool4 zwzz => new bool4(z, w, z, z);
-    public bool4 zwzw => new bool4(z, w, z, w);
-    public bool4 zwwx => new bool4(z, w, w, x);
-    public bool4 zwwy => new bool4(z, w, w, y);
-    public bool4 zwwz => new bool4(z, w, w, z);
-    public bool4 zwww => new bool4(z, w, w, w);
-    public bool4 wxxx => new bool4(w, x, x, x);
-    public bool4 wxxy => new bool4(w, x, x, y);
-    public bool4 wxxz => new bool4(w, x, x, z);
-    public bool4 wxxw => new bool4(w, x, x, w);
-    public bool4 wxyx => new bool4(w, x, y, x);
-    public bool4 wxyy => new bool4(w, x, y, y);
-    public bool4 wxyz { get => new bool4(w, x, y, z); set { w = value.x; x = value.y; y = value.z; z = value.w; } }
-    public bool4 wxyw => new bool4(w, x, y, w);
-    public bool4 wxzx => new bool4(w, x, z, x);
-    public bool4 wxzy { get => new bool4(w, x, z, y); set { w = value.x; x = value.y; z = value.z; y = value.w; } }
-    public bool4 wxzz => new bool4(w, x, z, z);
-    public bool4 wxzw => new bool4(w, x, z, w);
-    public bool4 wxwx => new bool4(w, x, w, x);
-    public bool4 wxwy => new bool4(w, x, w, y);
-    public bool4 wxwz => new bool4(w, x, w, z);
-    public bool4 wxww => new bool4(w, x, w, w);
-    public bool4 wyxx => new bool4(w, y, x, x);
-    public bool4 wyxy => new bool4(w, y, x, y);
-    public bool4 wyxz { get => new bool4(w, y, x, z); set { w = value.x; y = value.y; x = value.z; z = value.w; } }
-    public bool4 wyxw => new bool4(w, y, x, w);
-    public bool4 wyyx => new bool4(w, y, y, x);
-    public bool4 wyyy => new bool4(w, y, y, y);
-    public bool4 wyyz => new bool4(w, y, y, z);
-    public bool4 wyyw => new bool4(w, y, y, w);
-    public bool4 wyzx { get => new bool4(w, y, z, x); set { w = value.x; y = value.y; z = value.z; x = value.w; } }
-    public bool4 wyzy => new bool4(w, y, z, y);
-    public bool4 wyzz => new bool4(w, y, z, z);
-    public bool4 wyzw => new bool4(w, y, z, w);
-    public bool4 wywx => new bool4(w, y, w, x);
-    public bool4 wywy => new bool4(w, y, w, y);
-    public bool4 wywz => new bool4(w, y, w, z);
-    public bool4 wyww => new bool4(w, y, w, w);
-    public bool4 wzxx => new bool4(w, z, x, x);
-    public bool4 wzxy { get => new bool4(w, z, x, y); set { w = value.x; z = value.y; x = value.z; y = value.w; } }
-    public bool4 wzxz => new bool4(w, z, x, z);
-    public bool4 wzxw => new bool4(w, z, x, w);
-    public bool4 wzyx { get => new bool4(w, z, y, x); set { w = value.x; z = value.y; y = value.z; x = value.w; } }
-    public bool4 wzyy => new bool4(w, z, y, y);
-    public bool4 wzyz => new bool4(w, z, y, z);
-    public bool4 wzyw => new bool4(w, z, y, w);
-    public bool4 wzzx => new bool4(w, z, z, x);
-    public bool4 wzzy => new bool4(w, z, z, y);
-    public bool4 wzzz => new bool4(w, z, z, z);
-    public bool4 wzzw => new bool4(w, z, z, w);
-    public bool4 wzwx => new bool4(w, z, w, x);
-    public bool4 wzwy => new bool4(w, z, w, y);
-    public bool4 wzwz => new bool4(w, z, w, z);
-    public bool4 wzww => new bool4(w, z, w, w);
-    public bool4 wwxx => new bool4(w, w, x, x);
-    public bool4 wwxy => new bool4(w, w, x, y);
-    public bool4 wwxz => new bool4(w, w, x, z);
-    public bool4 wwxw => new bool4(w, w, x, w);
-    public bool4 wwyx => new bool4(w, w, y, x);
-    public bool4 wwyy => new bool4(w, w, y, y);
-    public bool4 wwyz => new bool4(w, w, y, z);
-    public bool4 wwyw => new bool4(w, w, y, w);
-    public bool4 wwzx => new bool4(w, w, z, x);
-    public bool4 wwzy => new bool4(w, w, z, y);
-    public bool4 wwzz => new bool4(w, w, z, z);
-    public bool4 wwzw => new bool4(w, w, z, w);
-    public bool4 wwwx => new bool4(w, w, w, x);
-    public bool4 wwwy => new bool4(w, w, w, y);
-    public bool4 wwwz => new bool4(w, w, w, z);
-    public bool4 wwww => new bool4(w, w, w, w);
-    public bool r { get => x; set => x = value; }
-    public bool g { get => y; set => y = value; }
-    public bool b { get => z; set => z = value; }
-    public bool a { get => w; set => w = value; }
-    public bool2 rr => new bool2(x, x);
-    public bool2 rg { get => new bool2(x, y); set { x = value.x; y = value.y; } }
-    public bool2 rb { get => new bool2(x, z); set { x = value.x; z = value.y; } }
-    public bool2 ra { get => new bool2(x, w); set { x = value.x; w = value.y; } }
-    public bool2 gr { get => new bool2(y, x); set { y = value.x; x = value.y; } }
-    public bool2 gg => new bool2(y, y);
-    public bool2 gb { get => new bool2(y, z); set { y = value.x; z = value.y; } }
-    public bool2 ga { get => new bool2(y, w); set { y = value.x; w = value.y; } }
-    public bool2 br { get => new bool2(z, x); set { z = value.x; x = value.y; } }
-    public bool2 bg { get => new bool2(z, y); set { z = value.x; y = value.y; } }
-    public bool2 bb => new bool2(z, z);
-    public bool2 ba { get => new bool2(z, w); set { z = value.x; w = value.y; } }
-    public bool2 ar { get => new bool2(w, x); set { w = value.x; x = value.y; } }
-    public bool2 ag { get => new bool2(w, y); set { w = value.x; y = value.y; } }
-    public bool2 ab { get => new bool2(w, z); set { w = value.x; z = value.y; } }
-    public bool2 aa => new bool2(w, w);
-    public bool3 rrr => new bool3(x, x, x);
-    public bool3 rrg => new bool3(x, x, y);
-    public bool3 rrb => new bool3(x, x, z);
-    public bool3 rra => new bool3(x, x, w);
-    public bool3 rgr => new bool3(x, y, x);
-    public bool3 rgg => new bool3(x, y, y);
-    public bool3 rgb { get => new bool3(x, y, z); set { x = value.x; y = value.y; z = value.z; } }
-    public bool3 rga { get => new bool3(x, y, w); set { x = value.x; y = value.y; w = value.z; } }
-    public bool3 rbr => new bool3(x, z, x);
-    public bool3 rbg { get => new bool3(x, z, y); set { x = value.x; z = value.y; y = value.z; } }
-    public bool3 rbb => new bool3(x, z, z);
-    public bool3 rba { get => new bool3(x, z, w); set { x = value.x; z = value.y; w = value.z; } }
-    public bool3 rar => new bool3(x, w, x);
-    public bool3 rag { get => new bool3(x, w, y); set { x = value.x; w = value.y; y = value.z; } }
-    public bool3 rab { get => new bool3(x, w, z); set { x = value.x; w = value.y; z = value.z; } }
-    public bool3 raa => new bool3(x, w, w);
-    public bool3 grr => new bool3(y, x, x);
-    public bool3 grg => new bool3(y, x, y);
-    public bool3 grb { get => new bool3(y, x, z); set { y = value.x; x = value.y; z = value.z; } }
-    public bool3 gra { get => new bool3(y, x, w); set { y = value.x; x = value.y; w = value.z; } }
-    public bool3 ggr => new bool3(y, y, x);
-    public bool3 ggg => new bool3(y, y, y);
-    public bool3 ggb => new bool3(y, y, z);
-    public bool3 gga => new bool3(y, y, w);
-    public bool3 gbr { get => new bool3(y, z, x); set { y = value.x; z = value.y; x = value.z; } }
-    public bool3 gbg => new bool3(y, z, y);
-    public bool3 gbb => new bool3(y, z, z);
-    public bool3 gba { get => new bool3(y, z, w); set { y = value.x; z = value.y; w = value.z; } }
-    public bool3 gar { get => new bool3(y, w, x); set { y = value.x; w = value.y; x = value.z; } }
-    public bool3 gag => new bool3(y, w, y);
-    public bool3 gab { get => new bool3(y, w, z); set { y = value.x; w = value.y; z = value.z; } }
-    public bool3 gaa => new bool3(y, w, w);
-    public bool3 brr => new bool3(z, x, x);
-    public bool3 brg { get => new bool3(z, x, y); set { z = value.x; x = value.y; y = value.z; } }
-    public bool3 brb => new bool3(z, x, z);
-    public bool3 bra { get => new bool3(z, x, w); set { z = value.x; x = value.y; w = value.z; } }
-    public bool3 bgr { get => new bool3(z, y, x); set { z = value.x; y = value.y; x = value.z; } }
-    public bool3 bgg => new bool3(z, y, y);
-    public bool3 bgb => new bool3(z, y, z);
-    public bool3 bga { get => new bool3(z, y, w); set { z = value.x; y = value.y; w = value.z; } }
-    public bool3 bbr => new bool3(z, z, x);
-    public bool3 bbg => new bool3(z, z, y);
-    public bool3 bbb => new bool3(z, z, z);
-    public bool3 bba => new bool3(z, z, w);
-    public bool3 bar { get => new bool3(z, w, x); set { z = value.x; w = value.y; x = value.z; } }
-    public bool3 bag { get => new bool3(z, w, y); set { z = value.x; w = value.y; y = value.z; } }
-    public bool3 bab => new bool3(z, w, z);
-    public bool3 baa => new bool3(z, w, w);
-    public bool3 arr => new bool3(w, x, x);
-    public bool3 arg { get => new bool3(w, x, y); set { w = value.x; x = value.y; y = value.z; } }
-    public bool3 arb { get => new bool3(w, x, z); set { w = value.x; x = value.y; z = value.z; } }
-    public bool3 ara => new bool3(w, x, w);
-    public bool3 agr { get => new bool3(w, y, x); set { w = value.x; y = value.y; x = value.z; } }
-    public bool3 agg => new bool3(w, y, y);
-    public bool3 agb { get => new bool3(w, y, z); set { w = value.x; y = value.y; z = value.z; } }
-    public bool3 aga => new bool3(w, y, w);
-    public bool3 abr { get => new bool3(w, z, x); set { w = value.x; z = value.y; x = value.z; } }
-    public bool3 abg { get => new bool3(w, z, y); set { w = value.x; z = value.y; y = value.z; } }
-    public bool3 abb => new bool3(w, z, z);
-    public bool3 aba => new bool3(w, z, w);
-    public bool3 aar => new bool3(w, w, x);
-    public bool3 aag => new bool3(w, w, y);
-    public bool3 aab => new bool3(w, w, z);
-    public bool3 aaa => new bool3(w, w, w);
-    public bool4 rrrr => new bool4(x, x, x, x);
-    public bool4 rrrg => new bool4(x, x, x, y);
-    public bool4 rrrb => new bool4(x, x, x, z);
-    public bool4 rrra => new bool4(x, x, x, w);
-    public bool4 rrgr => new bool4(x, x, y, x);
-    public bool4 rrgg => new bool4(x, x, y, y);
-    public bool4 rrgb => new bool4(x, x, y, z);
-    public bool4 rrga => new bool4(x, x, y, w);
-    public bool4 rrbr => new bool4(x, x, z, x);
-    public bool4 rrbg => new bool4(x, x, z, y);
-    public bool4 rrbb => new bool4(x, x, z, z);
-    public bool4 rrba => new bool4(x, x, z, w);
-    public bool4 rrar => new bool4(x, x, w, x);
-    public bool4 rrag => new bool4(x, x, w, y);
-    public bool4 rrab => new bool4(x, x, w, z);
-    public bool4 rraa => new bool4(x, x, w, w);
-    public bool4 rgrr => new bool4(x, y, x, x);
-    public bool4 rgrg => new bool4(x, y, x, y);
-    public bool4 rgrb => new bool4(x, y, x, z);
-    public bool4 rgra => new bool4(x, y, x, w);
-    public bool4 rggr => new bool4(x, y, y, x);
-    public bool4 rggg => new bool4(x, y, y, y);
-    public bool4 rggb => new bool4(x, y, y, z);
-    public bool4 rgga => new bool4(x, y, y, w);
-    public bool4 rgbr => new bool4(x, y, z, x);
-    public bool4 rgbg => new bool4(x, y, z, y);
-    public bool4 rgbb => new bool4(x, y, z, z);
-    public bool4 rgba { get => new bool4(x, y, z, w); set { x = value.x; y = value.y; z = value.z; w = value.w; } }
-    public bool4 rgar => new bool4(x, y, w, x);
-    public bool4 rgag => new bool4(x, y, w, y);
-    public bool4 rgab { get => new bool4(x, y, w, z); set { x = value.x; y = value.y; w = value.z; z = value.w; } }
-    public bool4 rgaa => new bool4(x, y, w, w);
-    public bool4 rbrr => new bool4(x, z, x, x);
-    public bool4 rbrg => new bool4(x, z, x, y);
-    public bool4 rbrb => new bool4(x, z, x, z);
-    public bool4 rbra => new bool4(x, z, x, w);
-    public bool4 rbgr => new bool4(x, z, y, x);
-    public bool4 rbgg => new bool4(x, z, y, y);
-    public bool4 rbgb => new bool4(x, z, y, z);
-    public bool4 rbga { get => new bool4(x, z, y, w); set { x = value.x; z = value.y; y = value.z; w = value.w; } }
-    public bool4 rbbr => new bool4(x, z, z, x);
-    public bool4 rbbg => new bool4(x, z, z, y);
-    public bool4 rbbb => new bool4(x, z, z, z);
-    public bool4 rbba => new bool4(x, z, z, w);
-    public bool4 rbar => new bool4(x, z, w, x);
-    public bool4 rbag { get => new bool4(x, z, w, y); set { x = value.x; z = value.y; w = value.z; y = value.w; } }
-    public bool4 rbab => new bool4(x, z, w, z);
-    public bool4 rbaa => new bool4(x, z, w, w);
-    public bool4 rarr => new bool4(x, w, x, x);
-    public bool4 rarg => new bool4(x, w, x, y);
-    public bool4 rarb => new bool4(x, w, x, z);
-    public bool4 rara => new bool4(x, w, x, w);
-    public bool4 ragr => new bool4(x, w, y, x);
-    public bool4 ragg => new bool4(x, w, y, y);
-    public bool4 ragb { get => new bool4(x, w, y, z); set { x = value.x; w = value.y; y = value.z; z = value.w; } }
-    public bool4 raga => new bool4(x, w, y, w);
-    public bool4 rabr => new bool4(x, w, z, x);
-    public bool4 rabg { get => new bool4(x, w, z, y); set { x = value.x; w = value.y; z = value.z; y = value.w; } }
-    public bool4 rabb => new bool4(x, w, z, z);
-    public bool4 raba => new bool4(x, w, z, w);
-    public bool4 raar => new bool4(x, w, w, x);
-    public bool4 raag => new bool4(x, w, w, y);
-    public bool4 raab => new bool4(x, w, w, z);
-    public bool4 raaa => new bool4(x, w, w, w);
-    public bool4 grrr => new bool4(y, x, x, x);
-    public bool4 grrg => new bool4(y, x, x, y);
-    public bool4 grrb => new bool4(y, x, x, z);
-    public bool4 grra => new bool4(y, x, x, w);
-    public bool4 grgr => new bool4(y, x, y, x);
-    public bool4 grgg => new bool4(y, x, y, y);
-    public bool4 grgb => new bool4(y, x, y, z);
-    public bool4 grga => new bool4(y, x, y, w);
-    public bool4 grbr => new bool4(y, x, z, x);
-    public bool4 grbg => new bool4(y, x, z, y);
-    public bool4 grbb => new bool4(y, x, z, z);
-    public bool4 grba { get => new bool4(y, x, z, w); set { y = value.x; x = value.y; z = value.z; w = value.w; } }
-    public bool4 grar => new bool4(y, x, w, x);
-    public bool4 grag => new bool4(y, x, w, y);
-    public bool4 grab { get => new bool4(y, x, w, z); set { y = value.x; x = value.y; w = value.z; z = value.w; } }
-    public bool4 graa => new bool4(y, x, w, w);
-    public bool4 ggrr => new bool4(y, y, x, x);
-    public bool4 ggrg => new bool4(y, y, x, y);
-    public bool4 ggrb => new bool4(y, y, x, z);
-    public bool4 ggra => new bool4(y, y, x, w);
-    public bool4 gggr => new bool4(y, y, y, x);
-    public bool4 gggg => new bool4(y, y, y, y);
-    public bool4 gggb => new bool4(y, y, y, z);
-    public bool4 ggga => new bool4(y, y, y, w);
-    public bool4 ggbr => new bool4(y, y, z, x);
-    public bool4 ggbg => new bool4(y, y, z, y);
-    public bool4 ggbb => new bool4(y, y, z, z);
-    public bool4 ggba => new bool4(y, y, z, w);
-    public bool4 ggar => new bool4(y, y, w, x);
-    public bool4 ggag => new bool4(y, y, w, y);
-    public bool4 ggab => new bool4(y, y, w, z);
-    public bool4 ggaa => new bool4(y, y, w, w);
-    public bool4 gbrr => new bool4(y, z, x, x);
-    public bool4 gbrg => new bool4(y, z, x, y);
-    public bool4 gbrb => new bool4(y, z, x, z);
-    public bool4 gbra { get => new bool4(y, z, x, w); set { y = value.x; z = value.y; x = value.z; w = value.w; } }
-    public bool4 gbgr => new bool4(y, z, y, x);
-    public bool4 gbgg => new bool4(y, z, y, y);
-    public bool4 gbgb => new bool4(y, z, y, z);
-    public bool4 gbga => new bool4(y, z, y, w);
-    public bool4 gbbr => new bool4(y, z, z, x);
-    public bool4 gbbg => new bool4(y, z, z, y);
-    public bool4 gbbb => new bool4(y, z, z, z);
-    public bool4 gbba => new bool4(y, z, z, w);
-    public bool4 gbar { get => new bool4(y, z, w, x); set { y = value.x; z = value.y; w = value.z; x = value.w; } }
-    public bool4 gbag => new bool4(y, z, w, y);
-    public bool4 gbab => new bool4(y, z, w, z);
-    public bool4 gbaa => new bool4(y, z, w, w);
-    public bool4 garr => new bool4(y, w, x, x);
-    public bool4 garg => new bool4(y, w, x, y);
-    public bool4 garb { get => new bool4(y, w, x, z); set { y = value.x; w = value.y; x = value.z; z = value.w; } }
-    public bool4 gara => new bool4(y, w, x, w);
-    public bool4 gagr => new bool4(y, w, y, x);
-    public bool4 gagg => new bool4(y, w, y, y);
-    public bool4 gagb => new bool4(y, w, y, z);
-    public bool4 gaga => new bool4(y, w, y, w);
-    public bool4 gabr { get => new bool4(y, w, z, x); set { y = value.x; w = value.y; z = value.z; x = value.w; } }
-    public bool4 gabg => new bool4(y, w, z, y);
-    public bool4 gabb => new bool4(y, w, z, z);
-    public bool4 gaba => new bool4(y, w, z, w);
-    public bool4 gaar => new bool4(y, w, w, x);
-    public bool4 gaag => new bool4(y, w, w, y);
-    public bool4 gaab => new bool4(y, w, w, z);
-    public bool4 gaaa => new bool4(y, w, w, w);
-    public bool4 brrr => new bool4(z, x, x, x);
-    public bool4 brrg => new bool4(z, x, x, y);
-    public bool4 brrb => new bool4(z, x, x, z);
-    public bool4 brra => new bool4(z, x, x, w);
-    public bool4 brgr => new bool4(z, x, y, x);
-    public bool4 brgg => new bool4(z, x, y, y);
-    public bool4 brgb => new bool4(z, x, y, z);
-    public bool4 brga { get => new bool4(z, x, y, w); set { z = value.x; x = value.y; y = value.z; w = value.w; } }
-    public bool4 brbr => new bool4(z, x, z, x);
-    public bool4 brbg => new bool4(z, x, z, y);
-    public bool4 brbb => new bool4(z, x, z, z);
-    public bool4 brba => new bool4(z, x, z, w);
-    public bool4 brar => new bool4(z, x, w, x);
-    public bool4 brag { get => new bool4(z, x, w, y); set { z = value.x; x = value.y; w = value.z; y = value.w; } }
-    public bool4 brab => new bool4(z, x, w, z);
-    public bool4 braa => new bool4(z, x, w, w);
-    public bool4 bgrr => new bool4(z, y, x, x);
-    public bool4 bgrg => new bool4(z, y, x, y);
-    public bool4 bgrb => new bool4(z, y, x, z);
-    public bool4 bgra { get => new bool4(z, y, x, w); set { z = value.x; y = value.y; x = value.z; w = value.w; } }
-    public bool4 bggr => new bool4(z, y, y, x);
-    public bool4 bggg => new bool4(z, y, y, y);
-    public bool4 bggb => new bool4(z, y, y, z);
-    public bool4 bgga => new bool4(z, y, y, w);
-    public bool4 bgbr => new bool4(z, y, z, x);
-    public bool4 bgbg => new bool4(z, y, z, y);
-    public bool4 bgbb => new bool4(z, y, z, z);
-    public bool4 bgba => new bool4(z, y, z, w);
-    public bool4 bgar { get => new bool4(z, y, w, x); set { z = value.x; y = value.y; w = value.z; x = value.w; } }
-    public bool4 bgag => new bool4(z, y, w, y);
-    public bool4 bgab => new bool4(z, y, w, z);
-    public bool4 bgaa => new bool4(z, y, w, w);
-    public bool4 bbrr => new bool4(z, z, x, x);
-    public bool4 bbrg => new bool4(z, z, x, y);
-    public bool4 bbrb => new bool4(z, z, x, z);
-    public bool4 bbra => new bool4(z, z, x, w);
-    public bool4 bbgr => new bool4(z, z, y, x);
-    public bool4 bbgg => new bool4(z, z, y, y);
-    public bool4 bbgb => new bool4(z, z, y, z);
-    public bool4 bbga => new bool4(z, z, y, w);
-    public bool4 bbbr => new bool4(z, z, z, x);
-    public bool4 bbbg => new bool4(z, z, z, y);
-    public bool4 bbbb => new bool4(z, z, z, z);
-    public bool4 bbba => new bool4(z, z, z, w);
-    public bool4 bbar => new bool4(z, z, w, x);
-    public bool4 bbag => new bool4(z, z, w, y);
-    public bool4 bbab => new bool4(z, z, w, z);
-    public bool4 bbaa => new bool4(z, z, w, w);
-    public bool4 barr => new bool4(z, w, x, x);
-    public bool4 barg { get => new bool4(z, w, x, y); set { z = value.x; w = value.y; x = value.z; y = value.w; } }
-    public bool4 barb => new bool4(z, w, x, z);
-    public bool4 bara => new bool4(z, w, x, w);
-    public bool4 bagr { get => new bool4(z, w, y, x); set { z = value.x; w = value.y; y = value.z; x = value.w; } }
-    public bool4 bagg => new bool4(z, w, y, y);
-    public bool4 bagb => new bool4(z, w, y, z);
-    public bool4 baga => new bool4(z, w, y, w);
-    public bool4 babr => new bool4(z, w, z, x);
-    public bool4 babg => new bool4(z, w, z, y);
-    public bool4 babb => new bool4(z, w, z, z);
-    public bool4 baba => new bool4(z, w, z, w);
-    public bool4 baar => new bool4(z, w, w, x);
-    public bool4 baag => new bool4(z, w, w, y);
-    public bool4 baab => new bool4(z, w, w, z);
-    public bool4 baaa => new bool4(z, w, w, w);
-    public bool4 arrr => new bool4(w, x, x, x);
-    public bool4 arrg => new bool4(w, x, x, y);
-    public bool4 arrb => new bool4(w, x, x, z);
-    public bool4 arra => new bool4(w, x, x, w);
-    public bool4 argr => new bool4(w, x, y, x);
-    public bool4 argg => new bool4(w, x, y, y);
-    public bool4 argb { get => new bool4(w, x, y, z); set { w = value.x; x = value.y; y = value.z; z = value.w; } }
-    public bool4 arga => new bool4(w, x, y, w);
-    public bool4 arbr => new bool4(w, x, z, x);
-    public bool4 arbg { get => new bool4(w, x, z, y); set { w = value.x; x = value.y; z = value.z; y = value.w; } }
-    public bool4 arbb => new bool4(w, x, z, z);
-    public bool4 arba => new bool4(w, x, z, w);
-    public bool4 arar => new bool4(w, x, w, x);
-    public bool4 arag => new bool4(w, x, w, y);
-    public bool4 arab => new bool4(w, x, w, z);
-    public bool4 araa => new bool4(w, x, w, w);
-    public bool4 agrr => new bool4(w, y, x, x);
-    public bool4 agrg => new bool4(w, y, x, y);
-    public bool4 agrb { get => new bool4(w, y, x, z); set { w = value.x; y = value.y; x = value.z; z = value.w; } }
-    public bool4 agra => new bool4(w, y, x, w);
-    public bool4 aggr => new bool4(w, y, y, x);
-    public bool4 aggg => new bool4(w, y, y, y);
-    public bool4 aggb => new bool4(w, y, y, z);
-    public bool4 agga => new bool4(w, y, y, w);
-    public bool4 agbr { get => new bool4(w, y, z, x); set { w = value.x; y = value.y; z = value.z; x = value.w; } }
-    public bool4 agbg => new bool4(w, y, z, y);
-    public bool4 agbb => new bool4(w, y, z, z);
-    public bool4 agba => new bool4(w, y, z, w);
-    public bool4 agar => new bool4(w, y, w, x);
-    public bool4 agag => new bool4(w, y, w, y);
-    public bool4 agab => new bool4(w, y, w, z);
-    public bool4 agaa => new bool4(w, y, w, w);
-    public bool4 abrr => new bool4(w, z, x, x);
-    public bool4 abrg { get => new bool4(w, z, x, y); set { w = value.x; z = value.y; x = value.z; y = value.w; } }
-    public bool4 abrb => new bool4(w, z, x, z);
-    public bool4 abra => new bool4(w, z, x, w);
-    public bool4 abgr { get => new bool4(w, z, y, x); set { w = value.x; z = value.y; y = value.z; x = value.w; } }
-    public bool4 abgg => new bool4(w, z, y, y);
-    public bool4 abgb => new bool4(w, z, y, z);
-    public bool4 abga => new bool4(w, z, y, w);
-    public bool4 abbr => new bool4(w, z, z, x);
-    public bool4 abbg => new bool4(w, z, z, y);
-    public bool4 abbb => new bool4(w, z, z, z);
-    public bool4 abba => new bool4(w, z, z, w);
-    public bool4 abar => new bool4(w, z, w, x);
-    public bool4 abag => new bool4(w, z, w, y);
-    public bool4 abab => new bool4(w, z, w, z);
-    public bool4 abaa => new bool4(w, z, w, w);
-    public bool4 aarr => new bool4(w, w, x, x);
-    public bool4 aarg => new bool4(w, w, x, y);
-    public bool4 aarb => new bool4(w, w, x, z);
-    public bool4 aara => new bool4(w, w, x, w);
-    public bool4 aagr => new bool4(w, w, y, x);
-    public bool4 aagg => new bool4(w, w, y, y);
-    public bool4 aagb => new bool4(w, w, y, z);
-    public bool4 aaga => new bool4(w, w, y, w);
-    public bool4 aabr => new bool4(w, w, z, x);
-    public bool4 aabg => new bool4(w, w, z, y);
-    public bool4 aabb => new bool4(w, w, z, z);
-    public bool4 aaba => new bool4(w, w, z, w);
-    public bool4 aaar => new bool4(w, w, w, x);
-    public bool4 aaag => new bool4(w, w, w, y);
-    public bool4 aaab => new bool4(w, w, w, z);
-    public bool4 aaaa => new bool4(w, w, w, w);
+    public readonly bool2 xx => new bool2(x, x);
+    public bool2 xy { readonly get => new bool2(x, y); set { x = value.x; y = value.y; } }
+    public bool2 xz { readonly get => new bool2(x, z); set { x = value.x; z = value.y; } }
+    public bool2 xw { readonly get => new bool2(x, w); set { x = value.x; w = value.y; } }
+    public bool2 yx { readonly get => new bool2(y, x); set { y = value.x; x = value.y; } }
+    public readonly bool2 yy => new bool2(y, y);
+    public bool2 yz { readonly get => new bool2(y, z); set { y = value.x; z = value.y; } }
+    public bool2 yw { readonly get => new bool2(y, w); set { y = value.x; w = value.y; } }
+    public bool2 zx { readonly get => new bool2(z, x); set { z = value.x; x = value.y; } }
+    public bool2 zy { readonly get => new bool2(z, y); set { z = value.x; y = value.y; } }
+    public readonly bool2 zz => new bool2(z, z);
+    public bool2 zw { readonly get => new bool2(z, w); set { z = value.x; w = value.y; } }
+    public bool2 wx { readonly get => new bool2(w, x); set { w = value.x; x = value.y; } }
+    public bool2 wy { readonly get => new bool2(w, y); set { w = value.x; y = value.y; } }
+    public bool2 wz { readonly get => new bool2(w, z); set { w = value.x; z = value.y; } }
+    public readonly bool2 ww => new bool2(w, w);
+    public readonly bool3 xxx => new bool3(x, x, x);
+    public readonly bool3 xxy => new bool3(x, x, y);
+    public readonly bool3 xxz => new bool3(x, x, z);
+    public readonly bool3 xxw => new bool3(x, x, w);
+    public readonly bool3 xyx => new bool3(x, y, x);
+    public readonly bool3 xyy => new bool3(x, y, y);
+    public bool3 xyz { readonly get => new bool3(x, y, z); set { x = value.x; y = value.y; z = value.z; } }
+    public bool3 xyw { readonly get => new bool3(x, y, w); set { x = value.x; y = value.y; w = value.z; } }
+    public readonly bool3 xzx => new bool3(x, z, x);
+    public bool3 xzy { readonly get => new bool3(x, z, y); set { x = value.x; z = value.y; y = value.z; } }
+    public readonly bool3 xzz => new bool3(x, z, z);
+    public bool3 xzw { readonly get => new bool3(x, z, w); set { x = value.x; z = value.y; w = value.z; } }
+    public readonly bool3 xwx => new bool3(x, w, x);
+    public bool3 xwy { readonly get => new bool3(x, w, y); set { x = value.x; w = value.y; y = value.z; } }
+    public bool3 xwz { readonly get => new bool3(x, w, z); set { x = value.x; w = value.y; z = value.z; } }
+    public readonly bool3 xww => new bool3(x, w, w);
+    public readonly bool3 yxx => new bool3(y, x, x);
+    public readonly bool3 yxy => new bool3(y, x, y);
+    public bool3 yxz { readonly get => new bool3(y, x, z); set { y = value.x; x = value.y; z = value.z; } }
+    public bool3 yxw { readonly get => new bool3(y, x, w); set { y = value.x; x = value.y; w = value.z; } }
+    public readonly bool3 yyx => new bool3(y, y, x);
+    public readonly bool3 yyy => new bool3(y, y, y);
+    public readonly bool3 yyz => new bool3(y, y, z);
+    public readonly bool3 yyw => new bool3(y, y, w);
+    public bool3 yzx { readonly get => new bool3(y, z, x); set { y = value.x; z = value.y; x = value.z; } }
+    public readonly bool3 yzy => new bool3(y, z, y);
+    public readonly bool3 yzz => new bool3(y, z, z);
+    public bool3 yzw { readonly get => new bool3(y, z, w); set { y = value.x; z = value.y; w = value.z; } }
+    public bool3 ywx { readonly get => new bool3(y, w, x); set { y = value.x; w = value.y; x = value.z; } }
+    public readonly bool3 ywy => new bool3(y, w, y);
+    public bool3 ywz { readonly get => new bool3(y, w, z); set { y = value.x; w = value.y; z = value.z; } }
+    public readonly bool3 yww => new bool3(y, w, w);
+    public readonly bool3 zxx => new bool3(z, x, x);
+    public bool3 zxy { readonly get => new bool3(z, x, y); set { z = value.x; x = value.y; y = value.z; } }
+    public readonly bool3 zxz => new bool3(z, x, z);
+    public bool3 zxw { readonly get => new bool3(z, x, w); set { z = value.x; x = value.y; w = value.z; } }
+    public bool3 zyx { readonly get => new bool3(z, y, x); set { z = value.x; y = value.y; x = value.z; } }
+    public readonly bool3 zyy => new bool3(z, y, y);
+    public readonly bool3 zyz => new bool3(z, y, z);
+    public bool3 zyw { readonly get => new bool3(z, y, w); set { z = value.x; y = value.y; w = value.z; } }
+    public readonly bool3 zzx => new bool3(z, z, x);
+    public readonly bool3 zzy => new bool3(z, z, y);
+    public readonly bool3 zzz => new bool3(z, z, z);
+    public readonly bool3 zzw => new bool3(z, z, w);
+    public bool3 zwx { readonly get => new bool3(z, w, x); set { z = value.x; w = value.y; x = value.z; } }
+    public bool3 zwy { readonly get => new bool3(z, w, y); set { z = value.x; w = value.y; y = value.z; } }
+    public readonly bool3 zwz => new bool3(z, w, z);
+    public readonly bool3 zww => new bool3(z, w, w);
+    public readonly bool3 wxx => new bool3(w, x, x);
+    public bool3 wxy { readonly get => new bool3(w, x, y); set { w = value.x; x = value.y; y = value.z; } }
+    public bool3 wxz { readonly get => new bool3(w, x, z); set { w = value.x; x = value.y; z = value.z; } }
+    public readonly bool3 wxw => new bool3(w, x, w);
+    public bool3 wyx { readonly get => new bool3(w, y, x); set { w = value.x; y = value.y; x = value.z; } }
+    public readonly bool3 wyy => new bool3(w, y, y);
+    public bool3 wyz { readonly get => new bool3(w, y, z); set { w = value.x; y = value.y; z = value.z; } }
+    public readonly bool3 wyw => new bool3(w, y, w);
+    public bool3 wzx { readonly get => new bool3(w, z, x); set { w = value.x; z = value.y; x = value.z; } }
+    public bool3 wzy { readonly get => new bool3(w, z, y); set { w = value.x; z = value.y; y = value.z; } }
+    public readonly bool3 wzz => new bool3(w, z, z);
+    public readonly bool3 wzw => new bool3(w, z, w);
+    public readonly bool3 wwx => new bool3(w, w, x);
+    public readonly bool3 wwy => new bool3(w, w, y);
+    public readonly bool3 wwz => new bool3(w, w, z);
+    public readonly bool3 www => new bool3(w, w, w);
+    public readonly bool4 xxxx => new bool4(x, x, x, x);
+    public readonly bool4 xxxy => new bool4(x, x, x, y);
+    public readonly bool4 xxxz => new bool4(x, x, x, z);
+    public readonly bool4 xxxw => new bool4(x, x, x, w);
+    public readonly bool4 xxyx => new bool4(x, x, y, x);
+    public readonly bool4 xxyy => new bool4(x, x, y, y);
+    public readonly bool4 xxyz => new bool4(x, x, y, z);
+    public readonly bool4 xxyw => new bool4(x, x, y, w);
+    public readonly bool4 xxzx => new bool4(x, x, z, x);
+    public readonly bool4 xxzy => new bool4(x, x, z, y);
+    public readonly bool4 xxzz => new bool4(x, x, z, z);
+    public readonly bool4 xxzw => new bool4(x, x, z, w);
+    public readonly bool4 xxwx => new bool4(x, x, w, x);
+    public readonly bool4 xxwy => new bool4(x, x, w, y);
+    public readonly bool4 xxwz => new bool4(x, x, w, z);
+    public readonly bool4 xxww => new bool4(x, x, w, w);
+    public readonly bool4 xyxx => new bool4(x, y, x, x);
+    public readonly bool4 xyxy => new bool4(x, y, x, y);
+    public readonly bool4 xyxz => new bool4(x, y, x, z);
+    public readonly bool4 xyxw => new bool4(x, y, x, w);
+    public readonly bool4 xyyx => new bool4(x, y, y, x);
+    public readonly bool4 xyyy => new bool4(x, y, y, y);
+    public readonly bool4 xyyz => new bool4(x, y, y, z);
+    public readonly bool4 xyyw => new bool4(x, y, y, w);
+    public readonly bool4 xyzx => new bool4(x, y, z, x);
+    public readonly bool4 xyzy => new bool4(x, y, z, y);
+    public readonly bool4 xyzz => new bool4(x, y, z, z);
+    public bool4 xyzw { readonly get => new bool4(x, y, z, w); set { x = value.x; y = value.y; z = value.z; w = value.w; } }
+    public readonly bool4 xywx => new bool4(x, y, w, x);
+    public readonly bool4 xywy => new bool4(x, y, w, y);
+    public bool4 xywz { readonly get => new bool4(x, y, w, z); set { x = value.x; y = value.y; w = value.z; z = value.w; } }
+    public readonly bool4 xyww => new bool4(x, y, w, w);
+    public readonly bool4 xzxx => new bool4(x, z, x, x);
+    public readonly bool4 xzxy => new bool4(x, z, x, y);
+    public readonly bool4 xzxz => new bool4(x, z, x, z);
+    public readonly bool4 xzxw => new bool4(x, z, x, w);
+    public readonly bool4 xzyx => new bool4(x, z, y, x);
+    public readonly bool4 xzyy => new bool4(x, z, y, y);
+    public readonly bool4 xzyz => new bool4(x, z, y, z);
+    public bool4 xzyw { readonly get => new bool4(x, z, y, w); set { x = value.x; z = value.y; y = value.z; w = value.w; } }
+    public readonly bool4 xzzx => new bool4(x, z, z, x);
+    public readonly bool4 xzzy => new bool4(x, z, z, y);
+    public readonly bool4 xzzz => new bool4(x, z, z, z);
+    public readonly bool4 xzzw => new bool4(x, z, z, w);
+    public readonly bool4 xzwx => new bool4(x, z, w, x);
+    public bool4 xzwy { readonly get => new bool4(x, z, w, y); set { x = value.x; z = value.y; w = value.z; y = value.w; } }
+    public readonly bool4 xzwz => new bool4(x, z, w, z);
+    public readonly bool4 xzww => new bool4(x, z, w, w);
+    public readonly bool4 xwxx => new bool4(x, w, x, x);
+    public readonly bool4 xwxy => new bool4(x, w, x, y);
+    public readonly bool4 xwxz => new bool4(x, w, x, z);
+    public readonly bool4 xwxw => new bool4(x, w, x, w);
+    public readonly bool4 xwyx => new bool4(x, w, y, x);
+    public readonly bool4 xwyy => new bool4(x, w, y, y);
+    public bool4 xwyz { readonly get => new bool4(x, w, y, z); set { x = value.x; w = value.y; y = value.z; z = value.w; } }
+    public readonly bool4 xwyw => new bool4(x, w, y, w);
+    public readonly bool4 xwzx => new bool4(x, w, z, x);
+    public bool4 xwzy { readonly get => new bool4(x, w, z, y); set { x = value.x; w = value.y; z = value.z; y = value.w; } }
+    public readonly bool4 xwzz => new bool4(x, w, z, z);
+    public readonly bool4 xwzw => new bool4(x, w, z, w);
+    public readonly bool4 xwwx => new bool4(x, w, w, x);
+    public readonly bool4 xwwy => new bool4(x, w, w, y);
+    public readonly bool4 xwwz => new bool4(x, w, w, z);
+    public readonly bool4 xwww => new bool4(x, w, w, w);
+    public readonly bool4 yxxx => new bool4(y, x, x, x);
+    public readonly bool4 yxxy => new bool4(y, x, x, y);
+    public readonly bool4 yxxz => new bool4(y, x, x, z);
+    public readonly bool4 yxxw => new bool4(y, x, x, w);
+    public readonly bool4 yxyx => new bool4(y, x, y, x);
+    public readonly bool4 yxyy => new bool4(y, x, y, y);
+    public readonly bool4 yxyz => new bool4(y, x, y, z);
+    public readonly bool4 yxyw => new bool4(y, x, y, w);
+    public readonly bool4 yxzx => new bool4(y, x, z, x);
+    public readonly bool4 yxzy => new bool4(y, x, z, y);
+    public readonly bool4 yxzz => new bool4(y, x, z, z);
+    public bool4 yxzw { readonly get => new bool4(y, x, z, w); set { y = value.x; x = value.y; z = value.z; w = value.w; } }
+    public readonly bool4 yxwx => new bool4(y, x, w, x);
+    public readonly bool4 yxwy => new bool4(y, x, w, y);
+    public bool4 yxwz { readonly get => new bool4(y, x, w, z); set { y = value.x; x = value.y; w = value.z; z = value.w; } }
+    public readonly bool4 yxww => new bool4(y, x, w, w);
+    public readonly bool4 yyxx => new bool4(y, y, x, x);
+    public readonly bool4 yyxy => new bool4(y, y, x, y);
+    public readonly bool4 yyxz => new bool4(y, y, x, z);
+    public readonly bool4 yyxw => new bool4(y, y, x, w);
+    public readonly bool4 yyyx => new bool4(y, y, y, x);
+    public readonly bool4 yyyy => new bool4(y, y, y, y);
+    public readonly bool4 yyyz => new bool4(y, y, y, z);
+    public readonly bool4 yyyw => new bool4(y, y, y, w);
+    public readonly bool4 yyzx => new bool4(y, y, z, x);
+    public readonly bool4 yyzy => new bool4(y, y, z, y);
+    public readonly bool4 yyzz => new bool4(y, y, z, z);
+    public readonly bool4 yyzw => new bool4(y, y, z, w);
+    public readonly bool4 yywx => new bool4(y, y, w, x);
+    public readonly bool4 yywy => new bool4(y, y, w, y);
+    public readonly bool4 yywz => new bool4(y, y, w, z);
+    public readonly bool4 yyww => new bool4(y, y, w, w);
+    public readonly bool4 yzxx => new bool4(y, z, x, x);
+    public readonly bool4 yzxy => new bool4(y, z, x, y);
+    public readonly bool4 yzxz => new bool4(y, z, x, z);
+    public bool4 yzxw { readonly get => new bool4(y, z, x, w); set { y = value.x; z = value.y; x = value.z; w = value.w; } }
+    public readonly bool4 yzyx => new bool4(y, z, y, x);
+    public readonly bool4 yzyy => new bool4(y, z, y, y);
+    public readonly bool4 yzyz => new bool4(y, z, y, z);
+    public readonly bool4 yzyw => new bool4(y, z, y, w);
+    public readonly bool4 yzzx => new bool4(y, z, z, x);
+    public readonly bool4 yzzy => new bool4(y, z, z, y);
+    public readonly bool4 yzzz => new bool4(y, z, z, z);
+    public readonly bool4 yzzw => new bool4(y, z, z, w);
+    public bool4 yzwx { readonly get => new bool4(y, z, w, x); set { y = value.x; z = value.y; w = value.z; x = value.w; } }
+    public readonly bool4 yzwy => new bool4(y, z, w, y);
+    public readonly bool4 yzwz => new bool4(y, z, w, z);
+    public readonly bool4 yzww => new bool4(y, z, w, w);
+    public readonly bool4 ywxx => new bool4(y, w, x, x);
+    public readonly bool4 ywxy => new bool4(y, w, x, y);
+    public bool4 ywxz { readonly get => new bool4(y, w, x, z); set { y = value.x; w = value.y; x = value.z; z = value.w; } }
+    public readonly bool4 ywxw => new bool4(y, w, x, w);
+    public readonly bool4 ywyx => new bool4(y, w, y, x);
+    public readonly bool4 ywyy => new bool4(y, w, y, y);
+    public readonly bool4 ywyz => new bool4(y, w, y, z);
+    public readonly bool4 ywyw => new bool4(y, w, y, w);
+    public bool4 ywzx { readonly get => new bool4(y, w, z, x); set { y = value.x; w = value.y; z = value.z; x = value.w; } }
+    public readonly bool4 ywzy => new bool4(y, w, z, y);
+    public readonly bool4 ywzz => new bool4(y, w, z, z);
+    public readonly bool4 ywzw => new bool4(y, w, z, w);
+    public readonly bool4 ywwx => new bool4(y, w, w, x);
+    public readonly bool4 ywwy => new bool4(y, w, w, y);
+    public readonly bool4 ywwz => new bool4(y, w, w, z);
+    public readonly bool4 ywww => new bool4(y, w, w, w);
+    public readonly bool4 zxxx => new bool4(z, x, x, x);
+    public readonly bool4 zxxy => new bool4(z, x, x, y);
+    public readonly bool4 zxxz => new bool4(z, x, x, z);
+    public readonly bool4 zxxw => new bool4(z, x, x, w);
+    public readonly bool4 zxyx => new bool4(z, x, y, x);
+    public readonly bool4 zxyy => new bool4(z, x, y, y);
+    public readonly bool4 zxyz => new bool4(z, x, y, z);
+    public bool4 zxyw { readonly get => new bool4(z, x, y, w); set { z = value.x; x = value.y; y = value.z; w = value.w; } }
+    public readonly bool4 zxzx => new bool4(z, x, z, x);
+    public readonly bool4 zxzy => new bool4(z, x, z, y);
+    public readonly bool4 zxzz => new bool4(z, x, z, z);
+    public readonly bool4 zxzw => new bool4(z, x, z, w);
+    public readonly bool4 zxwx => new bool4(z, x, w, x);
+    public bool4 zxwy { readonly get => new bool4(z, x, w, y); set { z = value.x; x = value.y; w = value.z; y = value.w; } }
+    public readonly bool4 zxwz => new bool4(z, x, w, z);
+    public readonly bool4 zxww => new bool4(z, x, w, w);
+    public readonly bool4 zyxx => new bool4(z, y, x, x);
+    public readonly bool4 zyxy => new bool4(z, y, x, y);
+    public readonly bool4 zyxz => new bool4(z, y, x, z);
+    public bool4 zyxw { readonly get => new bool4(z, y, x, w); set { z = value.x; y = value.y; x = value.z; w = value.w; } }
+    public readonly bool4 zyyx => new bool4(z, y, y, x);
+    public readonly bool4 zyyy => new bool4(z, y, y, y);
+    public readonly bool4 zyyz => new bool4(z, y, y, z);
+    public readonly bool4 zyyw => new bool4(z, y, y, w);
+    public readonly bool4 zyzx => new bool4(z, y, z, x);
+    public readonly bool4 zyzy => new bool4(z, y, z, y);
+    public readonly bool4 zyzz => new bool4(z, y, z, z);
+    public readonly bool4 zyzw => new bool4(z, y, z, w);
+    public bool4 zywx { readonly get => new bool4(z, y, w, x); set { z = value.x; y = value.y; w = value.z; x = value.w; } }
+    public readonly bool4 zywy => new bool4(z, y, w, y);
+    public readonly bool4 zywz => new bool4(z, y, w, z);
+    public readonly bool4 zyww => new bool4(z, y, w, w);
+    public readonly bool4 zzxx => new bool4(z, z, x, x);
+    public readonly bool4 zzxy => new bool4(z, z, x, y);
+    public readonly bool4 zzxz => new bool4(z, z, x, z);
+    public readonly bool4 zzxw => new bool4(z, z, x, w);
+    public readonly bool4 zzyx => new bool4(z, z, y, x);
+    public readonly bool4 zzyy => new bool4(z, z, y, y);
+    public readonly bool4 zzyz => new bool4(z, z, y, z);
+    public readonly bool4 zzyw => new bool4(z, z, y, w);
+    public readonly bool4 zzzx => new bool4(z, z, z, x);
+    public readonly bool4 zzzy => new bool4(z, z, z, y);
+    public readonly bool4 zzzz => new bool4(z, z, z, z);
+    public readonly bool4 zzzw => new bool4(z, z, z, w);
+    public readonly bool4 zzwx => new bool4(z, z, w, x);
+    public readonly bool4 zzwy => new bool4(z, z, w, y);
+    public readonly bool4 zzwz => new bool4(z, z, w, z);
+    public readonly bool4 zzww => new bool4(z, z, w, w);
+    public readonly bool4 zwxx => new bool4(z, w, x, x);
+    public bool4 zwxy { readonly get => new bool4(z, w, x, y); set { z = value.x; w = value.y; x = value.z; y = value.w; } }
+    public readonly bool4 zwxz => new bool4(z, w, x, z);
+    public readonly bool4 zwxw => new bool4(z, w, x, w);
+    public bool4 zwyx { readonly get => new bool4(z, w, y, x); set { z = value.x; w = value.y; y = value.z; x = value.w; } }
+    public readonly bool4 zwyy => new bool4(z, w, y, y);
+    public readonly bool4 zwyz => new bool4(z, w, y, z);
+    public readonly bool4 zwyw => new bool4(z, w, y, w);
+    public readonly bool4 zwzx => new bool4(z, w, z, x);
+    public readonly bool4 zwzy => new bool4(z, w, z, y);
+    public readonly bool4 zwzz => new bool4(z, w, z, z);
+    public readonly bool4 zwzw => new bool4(z, w, z, w);
+    public readonly bool4 zwwx => new bool4(z, w, w, x);
+    public readonly bool4 zwwy => new bool4(z, w, w, y);
+    public readonly bool4 zwwz => new bool4(z, w, w, z);
+    public readonly bool4 zwww => new bool4(z, w, w, w);
+    public readonly bool4 wxxx => new bool4(w, x, x, x);
+    public readonly bool4 wxxy => new bool4(w, x, x, y);
+    public readonly bool4 wxxz => new bool4(w, x, x, z);
+    public readonly bool4 wxxw => new bool4(w, x, x, w);
+    public readonly bool4 wxyx => new bool4(w, x, y, x);
+    public readonly bool4 wxyy => new bool4(w, x, y, y);
+    public bool4 wxyz { readonly get => new bool4(w, x, y, z); set { w = value.x; x = value.y; y = value.z; z = value.w; } }
+    public readonly bool4 wxyw => new bool4(w, x, y, w);
+    public readonly bool4 wxzx => new bool4(w, x, z, x);
+    public bool4 wxzy { readonly get => new bool4(w, x, z, y); set { w = value.x; x = value.y; z = value.z; y = value.w; } }
+    public readonly bool4 wxzz => new bool4(w, x, z, z);
+    public readonly bool4 wxzw => new bool4(w, x, z, w);
+    public readonly bool4 wxwx => new bool4(w, x, w, x);
+    public readonly bool4 wxwy => new bool4(w, x, w, y);
+    public readonly bool4 wxwz => new bool4(w, x, w, z);
+    public readonly bool4 wxww => new bool4(w, x, w, w);
+    public readonly bool4 wyxx => new bool4(w, y, x, x);
+    public readonly bool4 wyxy => new bool4(w, y, x, y);
+    public bool4 wyxz { readonly get => new bool4(w, y, x, z); set { w = value.x; y = value.y; x = value.z; z = value.w; } }
+    public readonly bool4 wyxw => new bool4(w, y, x, w);
+    public readonly bool4 wyyx => new bool4(w, y, y, x);
+    public readonly bool4 wyyy => new bool4(w, y, y, y);
+    public readonly bool4 wyyz => new bool4(w, y, y, z);
+    public readonly bool4 wyyw => new bool4(w, y, y, w);
+    public bool4 wyzx { readonly get => new bool4(w, y, z, x); set { w = value.x; y = value.y; z = value.z; x = value.w; } }
+    public readonly bool4 wyzy => new bool4(w, y, z, y);
+    public readonly bool4 wyzz => new bool4(w, y, z, z);
+    public readonly bool4 wyzw => new bool4(w, y, z, w);
+    public readonly bool4 wywx => new bool4(w, y, w, x);
+    public readonly bool4 wywy => new bool4(w, y, w, y);
+    public readonly bool4 wywz => new bool4(w, y, w, z);
+    public readonly bool4 wyww => new bool4(w, y, w, w);
+    public readonly bool4 wzxx => new bool4(w, z, x, x);
+    public bool4 wzxy { readonly get => new bool4(w, z, x, y); set { w = value.x; z = value.y; x = value.z; y = value.w; } }
+    public readonly bool4 wzxz => new bool4(w, z, x, z);
+    public readonly bool4 wzxw => new bool4(w, z, x, w);
+    public bool4 wzyx { readonly get => new bool4(w, z, y, x); set { w = value.x; z = value.y; y = value.z; x = value.w; } }
+    public readonly bool4 wzyy => new bool4(w, z, y, y);
+    public readonly bool4 wzyz => new bool4(w, z, y, z);
+    public readonly bool4 wzyw => new bool4(w, z, y, w);
+    public readonly bool4 wzzx => new bool4(w, z, z, x);
+    public readonly bool4 wzzy => new bool4(w, z, z, y);
+    public readonly bool4 wzzz => new bool4(w, z, z, z);
+    public readonly bool4 wzzw => new bool4(w, z, z, w);
+    public readonly bool4 wzwx => new bool4(w, z, w, x);
+    public readonly bool4 wzwy => new bool4(w, z, w, y);
+    public readonly bool4 wzwz => new bool4(w, z, w, z);
+    public readonly bool4 wzww => new bool4(w, z, w, w);
+    public readonly bool4 wwxx => new bool4(w, w, x, x);
+    public readonly bool4 wwxy => new bool4(w, w, x, y);
+    public readonly bool4 wwxz => new bool4(w, w, x, z);
+    public readonly bool4 wwxw => new bool4(w, w, x, w);
+    public readonly bool4 wwyx => new bool4(w, w, y, x);
+    public readonly bool4 wwyy => new bool4(w, w, y, y);
+    public readonly bool4 wwyz => new bool4(w, w, y, z);
+    public readonly bool4 wwyw => new bool4(w, w, y, w);
+    public readonly bool4 wwzx => new bool4(w, w, z, x);
+    public readonly bool4 wwzy => new bool4(w, w, z, y);
+    public readonly bool4 wwzz => new bool4(w, w, z, z);
+    public readonly bool4 wwzw => new bool4(w, w, z, w);
+    public readonly bool4 wwwx => new bool4(w, w, w, x);
+    public readonly bool4 wwwy => new bool4(w, w, w, y);
+    public readonly bool4 wwwz => new bool4(w, w, w, z);
+    public readonly bool4 wwww => new bool4(w, w, w, w);
+    public bool r { readonly get => x; set => x = value; }
+    public bool g { readonly get => y; set => y = value; }
+    public bool b { readonly get => z; set => z = value; }
+    public bool a { readonly get => w; set => w = value; }
+    public readonly bool2 rr => new bool2(x, x);
+    public bool2 rg { readonly get => new bool2(x, y); set { x = value.x; y = value.y; } }
+    public bool2 rb { readonly get => new bool2(x, z); set { x = value.x; z = value.y; } }
+    public bool2 ra { readonly get => new bool2(x, w); set { x = value.x; w = value.y; } }
+    public bool2 gr { readonly get => new bool2(y, x); set { y = value.x; x = value.y; } }
+    public readonly bool2 gg => new bool2(y, y);
+    public bool2 gb { readonly get => new bool2(y, z); set { y = value.x; z = value.y; } }
+    public bool2 ga { readonly get => new bool2(y, w); set { y = value.x; w = value.y; } }
+    public bool2 br { readonly get => new bool2(z, x); set { z = value.x; x = value.y; } }
+    public bool2 bg { readonly get => new bool2(z, y); set { z = value.x; y = value.y; } }
+    public readonly bool2 bb => new bool2(z, z);
+    public bool2 ba { readonly get => new bool2(z, w); set { z = value.x; w = value.y; } }
+    public bool2 ar { readonly get => new bool2(w, x); set { w = value.x; x = value.y; } }
+    public bool2 ag { readonly get => new bool2(w, y); set { w = value.x; y = value.y; } }
+    public bool2 ab { readonly get => new bool2(w, z); set { w = value.x; z = value.y; } }
+    public readonly bool2 aa => new bool2(w, w);
+    public readonly bool3 rrr => new bool3(x, x, x);
+    public readonly bool3 rrg => new bool3(x, x, y);
+    public readonly bool3 rrb => new bool3(x, x, z);
+    public readonly bool3 rra => new bool3(x, x, w);
+    public readonly bool3 rgr => new bool3(x, y, x);
+    public readonly bool3 rgg => new bool3(x, y, y);
+    public bool3 rgb { readonly get => new bool3(x, y, z); set { x = value.x; y = value.y; z = value.z; } }
+    public bool3 rga { readonly get => new bool3(x, y, w); set { x = value.x; y = value.y; w = value.z; } }
+    public readonly bool3 rbr => new bool3(x, z, x);
+    public bool3 rbg { readonly get => new bool3(x, z, y); set { x = value.x; z = value.y; y = value.z; } }
+    public readonly bool3 rbb => new bool3(x, z, z);
+    public bool3 rba { readonly get => new bool3(x, z, w); set { x = value.x; z = value.y; w = value.z; } }
+    public readonly bool3 rar => new bool3(x, w, x);
+    public bool3 rag { readonly get => new bool3(x, w, y); set { x = value.x; w = value.y; y = value.z; } }
+    public bool3 rab { readonly get => new bool3(x, w, z); set { x = value.x; w = value.y; z = value.z; } }
+    public readonly bool3 raa => new bool3(x, w, w);
+    public readonly bool3 grr => new bool3(y, x, x);
+    public readonly bool3 grg => new bool3(y, x, y);
+    public bool3 grb { readonly get => new bool3(y, x, z); set { y = value.x; x = value.y; z = value.z; } }
+    public bool3 gra { readonly get => new bool3(y, x, w); set { y = value.x; x = value.y; w = value.z; } }
+    public readonly bool3 ggr => new bool3(y, y, x);
+    public readonly bool3 ggg => new bool3(y, y, y);
+    public readonly bool3 ggb => new bool3(y, y, z);
+    public readonly bool3 gga => new bool3(y, y, w);
+    public bool3 gbr { readonly get => new bool3(y, z, x); set { y = value.x; z = value.y; x = value.z; } }
+    public readonly bool3 gbg => new bool3(y, z, y);
+    public readonly bool3 gbb => new bool3(y, z, z);
+    public bool3 gba { readonly get => new bool3(y, z, w); set { y = value.x; z = value.y; w = value.z; } }
+    public bool3 gar { readonly get => new bool3(y, w, x); set { y = value.x; w = value.y; x = value.z; } }
+    public readonly bool3 gag => new bool3(y, w, y);
+    public bool3 gab { readonly get => new bool3(y, w, z); set { y = value.x; w = value.y; z = value.z; } }
+    public readonly bool3 gaa => new bool3(y, w, w);
+    public readonly bool3 brr => new bool3(z, x, x);
+    public bool3 brg { readonly get => new bool3(z, x, y); set { z = value.x; x = value.y; y = value.z; } }
+    public readonly bool3 brb => new bool3(z, x, z);
+    public bool3 bra { readonly get => new bool3(z, x, w); set { z = value.x; x = value.y; w = value.z; } }
+    public bool3 bgr { readonly get => new bool3(z, y, x); set { z = value.x; y = value.y; x = value.z; } }
+    public readonly bool3 bgg => new bool3(z, y, y);
+    public readonly bool3 bgb => new bool3(z, y, z);
+    public bool3 bga { readonly get => new bool3(z, y, w); set { z = value.x; y = value.y; w = value.z; } }
+    public readonly bool3 bbr => new bool3(z, z, x);
+    public readonly bool3 bbg => new bool3(z, z, y);
+    public readonly bool3 bbb => new bool3(z, z, z);
+    public readonly bool3 bba => new bool3(z, z, w);
+    public bool3 bar { readonly get => new bool3(z, w, x); set { z = value.x; w = value.y; x = value.z; } }
+    public bool3 bag { readonly get => new bool3(z, w, y); set { z = value.x; w = value.y; y = value.z; } }
+    public readonly bool3 bab => new bool3(z, w, z);
+    public readonly bool3 baa => new bool3(z, w, w);
+    public readonly bool3 arr => new bool3(w, x, x);
+    public bool3 arg { readonly get => new bool3(w, x, y); set { w = value.x; x = value.y; y = value.z; } }
+    public bool3 arb { readonly get => new bool3(w, x, z); set { w = value.x; x = value.y; z = value.z; } }
+    public readonly bool3 ara => new bool3(w, x, w);
+    public bool3 agr { readonly get => new bool3(w, y, x); set { w = value.x; y = value.y; x = value.z; } }
+    public readonly bool3 agg => new bool3(w, y, y);
+    public bool3 agb { readonly get => new bool3(w, y, z); set { w = value.x; y = value.y; z = value.z; } }
+    public readonly bool3 aga => new bool3(w, y, w);
+    public bool3 abr { readonly get => new bool3(w, z, x); set { w = value.x; z = value.y; x = value.z; } }
+    public bool3 abg { readonly get => new bool3(w, z, y); set { w = value.x; z = value.y; y = value.z; } }
+    public readonly bool3 abb => new bool3(w, z, z);
+    public readonly bool3 aba => new bool3(w, z, w);
+    public readonly bool3 aar => new bool3(w, w, x);
+    public readonly bool3 aag => new bool3(w, w, y);
+    public readonly bool3 aab => new bool3(w, w, z);
+    public readonly bool3 aaa => new bool3(w, w, w);
+    public readonly bool4 rrrr => new bool4(x, x, x, x);
+    public readonly bool4 rrrg => new bool4(x, x, x, y);
+    public readonly bool4 rrrb => new bool4(x, x, x, z);
+    public readonly bool4 rrra => new bool4(x, x, x, w);
+    public readonly bool4 rrgr => new bool4(x, x, y, x);
+    public readonly bool4 rrgg => new bool4(x, x, y, y);
+    public readonly bool4 rrgb => new bool4(x, x, y, z);
+    public readonly bool4 rrga => new bool4(x, x, y, w);
+    public readonly bool4 rrbr => new bool4(x, x, z, x);
+    public readonly bool4 rrbg => new bool4(x, x, z, y);
+    public readonly bool4 rrbb => new bool4(x, x, z, z);
+    public readonly bool4 rrba => new bool4(x, x, z, w);
+    public readonly bool4 rrar => new bool4(x, x, w, x);
+    public readonly bool4 rrag => new bool4(x, x, w, y);
+    public readonly bool4 rrab => new bool4(x, x, w, z);
+    public readonly bool4 rraa => new bool4(x, x, w, w);
+    public readonly bool4 rgrr => new bool4(x, y, x, x);
+    public readonly bool4 rgrg => new bool4(x, y, x, y);
+    public readonly bool4 rgrb => new bool4(x, y, x, z);
+    public readonly bool4 rgra => new bool4(x, y, x, w);
+    public readonly bool4 rggr => new bool4(x, y, y, x);
+    public readonly bool4 rggg => new bool4(x, y, y, y);
+    public readonly bool4 rggb => new bool4(x, y, y, z);
+    public readonly bool4 rgga => new bool4(x, y, y, w);
+    public readonly bool4 rgbr => new bool4(x, y, z, x);
+    public readonly bool4 rgbg => new bool4(x, y, z, y);
+    public readonly bool4 rgbb => new bool4(x, y, z, z);
+    public bool4 rgba { readonly get => new bool4(x, y, z, w); set { x = value.x; y = value.y; z = value.z; w = value.w; } }
+    public readonly bool4 rgar => new bool4(x, y, w, x);
+    public readonly bool4 rgag => new bool4(x, y, w, y);
+    public bool4 rgab { readonly get => new bool4(x, y, w, z); set { x = value.x; y = value.y; w = value.z; z = value.w; } }
+    public readonly bool4 rgaa => new bool4(x, y, w, w);
+    public readonly bool4 rbrr => new bool4(x, z, x, x);
+    public readonly bool4 rbrg => new bool4(x, z, x, y);
+    public readonly bool4 rbrb => new bool4(x, z, x, z);
+    public readonly bool4 rbra => new bool4(x, z, x, w);
+    public readonly bool4 rbgr => new bool4(x, z, y, x);
+    public readonly bool4 rbgg => new bool4(x, z, y, y);
+    public readonly bool4 rbgb => new bool4(x, z, y, z);
+    public bool4 rbga { readonly get => new bool4(x, z, y, w); set { x = value.x; z = value.y; y = value.z; w = value.w; } }
+    public readonly bool4 rbbr => new bool4(x, z, z, x);
+    public readonly bool4 rbbg => new bool4(x, z, z, y);
+    public readonly bool4 rbbb => new bool4(x, z, z, z);
+    public readonly bool4 rbba => new bool4(x, z, z, w);
+    public readonly bool4 rbar => new bool4(x, z, w, x);
+    public bool4 rbag { readonly get => new bool4(x, z, w, y); set { x = value.x; z = value.y; w = value.z; y = value.w; } }
+    public readonly bool4 rbab => new bool4(x, z, w, z);
+    public readonly bool4 rbaa => new bool4(x, z, w, w);
+    public readonly bool4 rarr => new bool4(x, w, x, x);
+    public readonly bool4 rarg => new bool4(x, w, x, y);
+    public readonly bool4 rarb => new bool4(x, w, x, z);
+    public readonly bool4 rara => new bool4(x, w, x, w);
+    public readonly bool4 ragr => new bool4(x, w, y, x);
+    public readonly bool4 ragg => new bool4(x, w, y, y);
+    public bool4 ragb { readonly get => new bool4(x, w, y, z); set { x = value.x; w = value.y; y = value.z; z = value.w; } }
+    public readonly bool4 raga => new bool4(x, w, y, w);
+    public readonly bool4 rabr => new bool4(x, w, z, x);
+    public bool4 rabg { readonly get => new bool4(x, w, z, y); set { x = value.x; w = value.y; z = value.z; y = value.w; } }
+    public readonly bool4 rabb => new bool4(x, w, z, z);
+    public readonly bool4 raba => new bool4(x, w, z, w);
+    public readonly bool4 raar => new bool4(x, w, w, x);
+    public readonly bool4 raag => new bool4(x, w, w, y);
+    public readonly bool4 raab => new bool4(x, w, w, z);
+    public readonly bool4 raaa => new bool4(x, w, w, w);
+    public readonly bool4 grrr => new bool4(y, x, x, x);
+    public readonly bool4 grrg => new bool4(y, x, x, y);
+    public readonly bool4 grrb => new bool4(y, x, x, z);
+    public readonly bool4 grra => new bool4(y, x, x, w);
+    public readonly bool4 grgr => new bool4(y, x, y, x);
+    public readonly bool4 grgg => new bool4(y, x, y, y);
+    public readonly bool4 grgb => new bool4(y, x, y, z);
+    public readonly bool4 grga => new bool4(y, x, y, w);
+    public readonly bool4 grbr => new bool4(y, x, z, x);
+    public readonly bool4 grbg => new bool4(y, x, z, y);
+    public readonly bool4 grbb => new bool4(y, x, z, z);
+    public bool4 grba { readonly get => new bool4(y, x, z, w); set { y = value.x; x = value.y; z = value.z; w = value.w; } }
+    public readonly bool4 grar => new bool4(y, x, w, x);
+    public readonly bool4 grag => new bool4(y, x, w, y);
+    public bool4 grab { readonly get => new bool4(y, x, w, z); set { y = value.x; x = value.y; w = value.z; z = value.w; } }
+    public readonly bool4 graa => new bool4(y, x, w, w);
+    public readonly bool4 ggrr => new bool4(y, y, x, x);
+    public readonly bool4 ggrg => new bool4(y, y, x, y);
+    public readonly bool4 ggrb => new bool4(y, y, x, z);
+    public readonly bool4 ggra => new bool4(y, y, x, w);
+    public readonly bool4 gggr => new bool4(y, y, y, x);
+    public readonly bool4 gggg => new bool4(y, y, y, y);
+    public readonly bool4 gggb => new bool4(y, y, y, z);
+    public readonly bool4 ggga => new bool4(y, y, y, w);
+    public readonly bool4 ggbr => new bool4(y, y, z, x);
+    public readonly bool4 ggbg => new bool4(y, y, z, y);
+    public readonly bool4 ggbb => new bool4(y, y, z, z);
+    public readonly bool4 ggba => new bool4(y, y, z, w);
+    public readonly bool4 ggar => new bool4(y, y, w, x);
+    public readonly bool4 ggag => new bool4(y, y, w, y);
+    public readonly bool4 ggab => new bool4(y, y, w, z);
+    public readonly bool4 ggaa => new bool4(y, y, w, w);
+    public readonly bool4 gbrr => new bool4(y, z, x, x);
+    public readonly bool4 gbrg => new bool4(y, z, x, y);
+    public readonly bool4 gbrb => new bool4(y, z, x, z);
+    public bool4 gbra { readonly get => new bool4(y, z, x, w); set { y = value.x; z = value.y; x = value.z; w = value.w; } }
+    public readonly bool4 gbgr => new bool4(y, z, y, x);
+    public readonly bool4 gbgg => new bool4(y, z, y, y);
+    public readonly bool4 gbgb => new bool4(y, z, y, z);
+    public readonly bool4 gbga => new bool4(y, z, y, w);
+    public readonly bool4 gbbr => new bool4(y, z, z, x);
+    public readonly bool4 gbbg => new bool4(y, z, z, y);
+    public readonly bool4 gbbb => new bool4(y, z, z, z);
+    public readonly bool4 gbba => new bool4(y, z, z, w);
+    public bool4 gbar { readonly get => new bool4(y, z, w, x); set { y = value.x; z = value.y; w = value.z; x = value.w; } }
+    public readonly bool4 gbag => new bool4(y, z, w, y);
+    public readonly bool4 gbab => new bool4(y, z, w, z);
+    public readonly bool4 gbaa => new bool4(y, z, w, w);
+    public readonly bool4 garr => new bool4(y, w, x, x);
+    public readonly bool4 garg => new bool4(y, w, x, y);
+    public bool4 garb { readonly get => new bool4(y, w, x, z); set { y = value.x; w = value.y; x = value.z; z = value.w; } }
+    public readonly bool4 gara => new bool4(y, w, x, w);
+    public readonly bool4 gagr => new bool4(y, w, y, x);
+    public readonly bool4 gagg => new bool4(y, w, y, y);
+    public readonly bool4 gagb => new bool4(y, w, y, z);
+    public readonly bool4 gaga => new bool4(y, w, y, w);
+    public bool4 gabr { readonly get => new bool4(y, w, z, x); set { y = value.x; w = value.y; z = value.z; x = value.w; } }
+    public readonly bool4 gabg => new bool4(y, w, z, y);
+    public readonly bool4 gabb => new bool4(y, w, z, z);
+    public readonly bool4 gaba => new bool4(y, w, z, w);
+    public readonly bool4 gaar => new bool4(y, w, w, x);
+    public readonly bool4 gaag => new bool4(y, w, w, y);
+    public readonly bool4 gaab => new bool4(y, w, w, z);
+    public readonly bool4 gaaa => new bool4(y, w, w, w);
+    public readonly bool4 brrr => new bool4(z, x, x, x);
+    public readonly bool4 brrg => new bool4(z, x, x, y);
+    public readonly bool4 brrb => new bool4(z, x, x, z);
+    public readonly bool4 brra => new bool4(z, x, x, w);
+    public readonly bool4 brgr => new bool4(z, x, y, x);
+    public readonly bool4 brgg => new bool4(z, x, y, y);
+    public readonly bool4 brgb => new bool4(z, x, y, z);
+    public bool4 brga { readonly get => new bool4(z, x, y, w); set { z = value.x; x = value.y; y = value.z; w = value.w; } }
+    public readonly bool4 brbr => new bool4(z, x, z, x);
+    public readonly bool4 brbg => new bool4(z, x, z, y);
+    public readonly bool4 brbb => new bool4(z, x, z, z);
+    public readonly bool4 brba => new bool4(z, x, z, w);
+    public readonly bool4 brar => new bool4(z, x, w, x);
+    public bool4 brag { readonly get => new bool4(z, x, w, y); set { z = value.x; x = value.y; w = value.z; y = value.w; } }
+    public readonly bool4 brab => new bool4(z, x, w, z);
+    public readonly bool4 braa => new bool4(z, x, w, w);
+    public readonly bool4 bgrr => new bool4(z, y, x, x);
+    public readonly bool4 bgrg => new bool4(z, y, x, y);
+    public readonly bool4 bgrb => new bool4(z, y, x, z);
+    public bool4 bgra { readonly get => new bool4(z, y, x, w); set { z = value.x; y = value.y; x = value.z; w = value.w; } }
+    public readonly bool4 bggr => new bool4(z, y, y, x);
+    public readonly bool4 bggg => new bool4(z, y, y, y);
+    public readonly bool4 bggb => new bool4(z, y, y, z);
+    public readonly bool4 bgga => new bool4(z, y, y, w);
+    public readonly bool4 bgbr => new bool4(z, y, z, x);
+    public readonly bool4 bgbg => new bool4(z, y, z, y);
+    public readonly bool4 bgbb => new bool4(z, y, z, z);
+    public readonly bool4 bgba => new bool4(z, y, z, w);
+    public bool4 bgar { readonly get => new bool4(z, y, w, x); set { z = value.x; y = value.y; w = value.z; x = value.w; } }
+    public readonly bool4 bgag => new bool4(z, y, w, y);
+    public readonly bool4 bgab => new bool4(z, y, w, z);
+    public readonly bool4 bgaa => new bool4(z, y, w, w);
+    public readonly bool4 bbrr => new bool4(z, z, x, x);
+    public readonly bool4 bbrg => new bool4(z, z, x, y);
+    public readonly bool4 bbrb => new bool4(z, z, x, z);
+    public readonly bool4 bbra => new bool4(z, z, x, w);
+    public readonly bool4 bbgr => new bool4(z, z, y, x);
+    public readonly bool4 bbgg => new bool4(z, z, y, y);
+    public readonly bool4 bbgb => new bool4(z, z, y, z);
+    public readonly bool4 bbga => new bool4(z, z, y, w);
+    public readonly bool4 bbbr => new bool4(z, z, z, x);
+    public readonly bool4 bbbg => new bool4(z, z, z, y);
+    public readonly bool4 bbbb => new bool4(z, z, z, z);
+    public readonly bool4 bbba => new bool4(z, z, z, w);
+    public readonly bool4 bbar => new bool4(z, z, w, x);
+    public readonly bool4 bbag => new bool4(z, z, w, y);
+    public readonly bool4 bbab => new bool4(z, z, w, z);
+    public readonly bool4 bbaa => new bool4(z, z, w, w);
+    public readonly bool4 barr => new bool4(z, w, x, x);
+    public bool4 barg { readonly get => new bool4(z, w, x, y); set { z = value.x; w = value.y; x = value.z; y = value.w; } }
+    public readonly bool4 barb => new bool4(z, w, x, z);
+    public readonly bool4 bara => new bool4(z, w, x, w);
+    public bool4 bagr { readonly get => new bool4(z, w, y, x); set { z = value.x; w = value.y; y = value.z; x = value.w; } }
+    public readonly bool4 bagg => new bool4(z, w, y, y);
+    public readonly bool4 bagb => new bool4(z, w, y, z);
+    public readonly bool4 baga => new bool4(z, w, y, w);
+    public readonly bool4 babr => new bool4(z, w, z, x);
+    public readonly bool4 babg => new bool4(z, w, z, y);
+    public readonly bool4 babb => new bool4(z, w, z, z);
+    public readonly bool4 baba => new bool4(z, w, z, w);
+    public readonly bool4 baar => new bool4(z, w, w, x);
+    public readonly bool4 baag => new bool4(z, w, w, y);
+    public readonly bool4 baab => new bool4(z, w, w, z);
+    public readonly bool4 baaa => new bool4(z, w, w, w);
+    public readonly bool4 arrr => new bool4(w, x, x, x);
+    public readonly bool4 arrg => new bool4(w, x, x, y);
+    public readonly bool4 arrb => new bool4(w, x, x, z);
+    public readonly bool4 arra => new bool4(w, x, x, w);
+    public readonly bool4 argr => new bool4(w, x, y, x);
+    public readonly bool4 argg => new bool4(w, x, y, y);
+    public bool4 argb { readonly get => new bool4(w, x, y, z); set { w = value.x; x = value.y; y = value.z; z = value.w; } }
+    public readonly bool4 arga => new bool4(w, x, y, w);
+    public readonly bool4 arbr => new bool4(w, x, z, x);
+    public bool4 arbg { readonly get => new bool4(w, x, z, y); set { w = value.x; x = value.y; z = value.z; y = value.w; } }
+    public readonly bool4 arbb => new bool4(w, x, z, z);
+    public readonly bool4 arba => new bool4(w, x, z, w);
+    public readonly bool4 arar => new bool4(w, x, w, x);
+    public readonly bool4 arag => new bool4(w, x, w, y);
+    public readonly bool4 arab => new bool4(w, x, w, z);
+    public readonly bool4 araa => new bool4(w, x, w, w);
+    public readonly bool4 agrr => new bool4(w, y, x, x);
+    public readonly bool4 agrg => new bool4(w, y, x, y);
+    public bool4 agrb { readonly get => new bool4(w, y, x, z); set { w = value.x; y = value.y; x = value.z; z = value.w; } }
+    public readonly bool4 agra => new bool4(w, y, x, w);
+    public readonly bool4 aggr => new bool4(w, y, y, x);
+    public readonly bool4 aggg => new bool4(w, y, y, y);
+    public readonly bool4 aggb => new bool4(w, y, y, z);
+    public readonly bool4 agga => new bool4(w, y, y, w);
+    public bool4 agbr { readonly get => new bool4(w, y, z, x); set { w = value.x; y = value.y; z = value.z; x = value.w; } }
+    public readonly bool4 agbg => new bool4(w, y, z, y);
+    public readonly bool4 agbb => new bool4(w, y, z, z);
+    public readonly bool4 agba => new bool4(w, y, z, w);
+    public readonly bool4 agar => new bool4(w, y, w, x);
+    public readonly bool4 agag => new bool4(w, y, w, y);
+    public readonly bool4 agab => new bool4(w, y, w, z);
+    public readonly bool4 agaa => new bool4(w, y, w, w);
+    public readonly bool4 abrr => new bool4(w, z, x, x);
+    public bool4 abrg { readonly get => new bool4(w, z, x, y); set { w = value.x; z = value.y; x = value.z; y = value.w; } }
+    public readonly bool4 abrb => new bool4(w, z, x, z);
+    public readonly bool4 abra => new bool4(w, z, x, w);
+    public bool4 abgr { readonly get => new bool4(w, z, y, x); set { w = value.x; z = value.y; y = value.z; x = value.w; } }
+    public readonly bool4 abgg => new bool4(w, z, y, y);
+    public readonly bool4 abgb => new bool4(w, z, y, z);
+    public readonly bool4 abga => new bool4(w, z, y, w);
+    public readonly bool4 abbr => new bool4(w, z, z, x);
+    public readonly bool4 abbg => new bool4(w, z, z, y);
+    public readonly bool4 abbb => new bool4(w, z, z, z);
+    public readonly bool4 abba => new bool4(w, z, z, w);
+    public readonly bool4 abar => new bool4(w, z, w, x);
+    public readonly bool4 abag => new bool4(w, z, w, y);
+    public readonly bool4 abab => new bool4(w, z, w, z);
+    public readonly bool4 abaa => new bool4(w, z, w, w);
+    public readonly bool4 aarr => new bool4(w, w, x, x);
+    public readonly bool4 aarg => new bool4(w, w, x, y);
+    public readonly bool4 aarb => new bool4(w, w, x, z);
+    public readonly bool4 aara => new bool4(w, w, x, w);
+    public readonly bool4 aagr => new bool4(w, w, y, x);
+    public readonly bool4 aagg => new bool4(w, w, y, y);
+    public readonly bool4 aagb => new bool4(w, w, y, z);
+    public readonly bool4 aaga => new bool4(w, w, y, w);
+    public readonly bool4 aabr => new bool4(w, w, z, x);
+    public readonly bool4 aabg => new bool4(w, w, z, y);
+    public readonly bool4 aabb => new bool4(w, w, z, z);
+    public readonly bool4 aaba => new bool4(w, w, z, w);
+    public readonly bool4 aaar => new bool4(w, w, w, x);
+    public readonly bool4 aaag => new bool4(w, w, w, y);
+    public readonly bool4 aaab => new bool4(w, w, w, z);
+    public readonly bool4 aaaa => new bool4(w, w, w, w);
 }
