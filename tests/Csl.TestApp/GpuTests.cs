@@ -1,5 +1,4 @@
 using Csl.TestApp.Shaders;
-using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
@@ -10,123 +9,46 @@ using Buffer = Stride.Graphics.Buffer;
 namespace Csl.TestApp;
 
 /// <summary>
-/// The C# shaders on the GPU: a game that runs each test on its second frame, reads the results
-/// back and compares them with what the CPU computes. Then, unless --check, the window shows the
-/// image shaders of Demos/ and redraws each one from its C# when it is saved (<see cref="DemoGallery"/>).
+/// The C# shaders on the GPU: a game that runs each test on its second frame, reads the results back,
+/// compares them with what the CPU computes, and exits. The window stays hidden.
 /// </summary>
 internal sealed class GpuTests : Game
 {
-    private enum Mode
-    {
-        /// <summary>The tests, then the demos in a window until it is closed.</summary>
-        Show,
-        /// <summary>The tests only, in a hidden window.</summary>
-        Check,
-        /// <summary>The tests, then the demos compiled from their files and drawn once, saved as an image; hidden.</summary>
-        Shot,
-    }
-
     private const int Count = 64;
     private readonly List<(string Name, bool Passed, string Detail)> results = new();
     private readonly List<(string Name, string Observed)> probes = new();
-    private readonly Mode mode;
-    private readonly string? shotPath;
-    private readonly float shotTime;
-    private DemoGallery? gallery;
     private int frame;
 
     public static int Run(string[] args)
     {
-        var mode = args.Contains("--check") ? Mode.Check : Mode.Show;
-        string? shotPath = null;
-        float shotTime = 2.0f;
-        for (int i = 0; i < args.Length - 1; i++)
-        {
-            if (args[i] == "--shot")
-            {
-                mode = Mode.Shot;
-                shotPath = Path.GetFullPath(args[i + 1]);
-            }
-            else if (args[i] == "--time")
-            {
-                shotTime = float.Parse(args[i + 1], System.Globalization.CultureInfo.InvariantCulture);
-            }
-        }
-        using var game = new GpuTests(mode, shotPath, shotTime);
+        using var game = new GpuTests();
         game.Run();
         return game.results.Count > 0 && game.results.All(r => r.Passed) ? 0 : 1;
     }
 
-    private GpuTests(Mode mode, string? shotPath, float shotTime)
+    private GpuTests()
     {
-        this.mode = mode;
-        this.shotPath = shotPath;
-        this.shotTime = shotTime;
         // No GameSettings to follow (their default profile is 10_0): typed UAVs (RWBuffer<T>) need 11_0 on Direct3D 11.
         AutoLoadDefaultSettings = false;
         GraphicsDeviceManager.PreferredGraphicsProfile = new[] { GraphicsProfile.Level_11_0 };
-        GraphicsDeviceManager.PreferredBackBufferWidth = mode == Mode.Check ? 64 : 1280;
-        GraphicsDeviceManager.PreferredBackBufferHeight = mode == Mode.Check ? 64 : 720;
-        // The demos' colours as they write them, no sRGB curve on top.
-        GraphicsDeviceManager.PreferredColorSpace = ColorSpace.Gamma;
-        // The effect compiler's notes on every demo recompiled would bury the C# errors; warnings stay.
-        ConsoleLogLevel = LogMessageType.Warning;
+        GraphicsDeviceManager.PreferredBackBufferWidth = 64;
+        GraphicsDeviceManager.PreferredBackBufferHeight = 64;
     }
 
     protected override void BeginRun()
     {
         base.BeginRun();
-        Window.Visible = mode == Mode.Show;
-        Window.AllowUserResizing = true;
-        Window.Title = "StrideCSL gpu";
-    }
-
-    protected override void Update(GameTime gameTime)
-    {
-        base.Update(gameTime);
-        if (gallery != null && mode == Mode.Show)
-        {
-            gallery.Update(Input);
-            Window.Title = gallery.Title;
-        }
+        Window.Visible = false;
     }
 
     protected override void Draw(GameTime gameTime)
     {
         base.Draw(gameTime);
         // The first frame sets the device up; the tests run on the second, inside a frame.
-        if (++frame == 2)
-        {
-            RunTests();
-            if (mode == Mode.Check)
-            {
-                Exit();
-                return;
-            }
-            gallery = new DemoGallery(Services, GraphicsDevice, Csl.ShaderContext.Get(Services).RenderContext);
-        }
-        if (gallery == null)
+        if (++frame != 2)
             return;
-        var context = Csl.ShaderContext.Get(Services);
-        var backBuffer = GraphicsDevice.Presenter.BackBuffer;
-        if (mode == Mode.Shot)
-        {
-            if (!gallery.ReloadAllNow())
-                Console.WriteLine("SHOT the demos did not compile from their files: drawn as built");
-            gallery.Draw(context.DrawContext, backBuffer, shotTime);
-            using (var file = File.Create(shotPath!))
-                backBuffer.Save(CommandList, file, ImageFileType.Png);
-            Console.WriteLine($"SHOT {shotPath} at t = {shotTime}");
-            Exit();
-            return;
-        }
-        gallery.Draw(context.DrawContext, backBuffer, (float)gameTime.Total.TotalSeconds);
-    }
-
-    protected override void Destroy()
-    {
-        gallery?.Dispose();
-        base.Destroy();
+        RunTests();
+        Exit();
     }
 
     private void RunTests()

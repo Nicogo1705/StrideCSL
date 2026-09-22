@@ -6,19 +6,19 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Csl.TestApp;
+namespace Csl.Demo;
 
 /// <summary>
 /// The C# shaders of a folder translated to SDSL while the app runs, as the build does: Roslyn over
 /// the files, the Csl generator for the stubs the classes compile against, the translator for the
 /// SDSL. The C# errors come back as the build would print them.
 /// </summary>
-internal sealed class DemoCompiler
+internal sealed class LiveCompiler
 {
     private static readonly CSharpParseOptions ParseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
     private static readonly Lazy<ImmutableArray<MetadataReference>> References = new(LoadReferences);
 
-    public DemoCompiler(string directory) => Directory = directory;
+    public LiveCompiler(string directory) => Directory = directory;
 
     public string Directory { get; }
 
@@ -89,7 +89,7 @@ internal sealed class DemoCompiler
     /// <summary>Everything the app runs with, except the app: its own copy of the demos would clash with the files.</summary>
     private static ImmutableArray<MetadataReference> LoadReferences()
     {
-        var self = typeof(DemoCompiler).Assembly.Location;
+        var self = typeof(LiveCompiler).Assembly.Location;
         var paths = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
         return paths.Where(p => !string.Equals(p, self, StringComparison.OrdinalIgnoreCase))
             .Select(p => (MetadataReference)MetadataReference.CreateFromFile(p))

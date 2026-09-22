@@ -14,6 +14,41 @@ compared instruction for instruction (see [Validation](#validation)).
 Built against Stride 4.4 (`StrideVersion` in `Directory.Build.props`, the published 4.4.0-beta8;
 `-p:StrideUseDevPackages=true` picks the packages a local Stride checkout packs).
 
+## Try it: the demo
+
+```
+dotnet run --project demo/Csl.Demo
+```
+
+(or `Csl.Demo`, the first project of `StrideCSL.slnx`, from Visual Studio). A window shows the shaders of
+`demo/Csl.Demo/Shaders/`, all written in C#. **Edit one and save while it runs: it is redrawn from the
+new C#**, no restart. C# errors are printed in the console the way the build prints them, and the
+previous version stays on screen until the file compiles again.
+
+| Shader | Kind | Shows |
+|--------|------|-------|
+| `DemoGradient` | image effect | The simplest one: start here. Colour from the coordinates, `Time` from the engine's `Global`. |
+| `DemoRings` | image effect | `length`, `sin`, `lerp`. |
+| `DemoPlasma` | image effect | A method of the shader called from `Shading`. |
+| `DemoMandelbrot` | image effect | A loop with a `break`. |
+| `DemoWobble` | image effect | Sampling `Texture0` (a checkerboard the demo makes). |
+| `DemoLuma` | image effect | Calling an engine shader's function (`LuminanceUtils.Luma`, from `Csl.Engine`). |
+| `DemoBlur` | compute | A gaussian blur over the whole window, one thread per pixel, run through its generated `DemoBlurEffect`. |
+
+Keys: 1-9 one shader alone, 0 or space all of them, B the blur on and off, + and - its radius.
+
+Each image effect is an `ImageEffectShader` with `Shading()` overridden; the tiles draw into a texture
+that `DemoBlur` blurs into the back buffer. A new `[Shader]` class in the folder gets a new tile.
+
+How the reload works: saving recompiles the folder the way the build does (Roslyn, the Csl generator,
+the translator: `LiveCompiler`), and each shader whose SDSL changed is registered again under a new
+name (`DemoRings_2`), so the effect compiler has nothing cached for it. For `DemoBlur`, the keys of each
+new name (`DemoBlur_2.Radius`) are registered as aliases of `DemoBlurKeys`, so the wrapper keeps
+setting them; a parameter added while the demo runs needs a rebuild.
+
+`Csl.Demo --shot FILE.png [--time T]` compiles the shaders from their files, draws once, saves the
+image and exits, the window hidden.
+
 ## Projects
 
 | Project | Target | Role |
@@ -23,7 +58,8 @@ Built against Stride 4.4 (`StrideVersion` in `Directory.Build.props`, the publis
 | `src/Csl.Engine` | net10.0 | The engine's shaders (476 of 479) as `[Shader(External = true)]` classes, declarations only: what C# shaders inherit and call. Written by `csl engine`. |
 | `src/Csl.Runtime` | net10.0 | Running C# compute shaders: `ComputeEffect` wrappers, `ShaderContext`, allocation helpers, `ShaderSourceRegistry` (hands the generated SDSL to the effect compiler). |
 | `src/Csl.Tool` | net10.0, exe `csl` | `csl convert`: `.sdsl` files, or engine shaders by name, to C#. `csl engine`: regenerates `Csl.Engine`. |
-| `tests/Csl.TestApp` | net10.0, exe | The test bench: the whole-engine round trip checked by the engine compiler, and C# shaders run on the GPU. |
+| `demo/Csl.Demo` | net10.0, exe | The demo: C# shaders in a window, reloaded on save. |
+| `tests/Csl.TestApp` | net10.0, exe | The test bench, for working on StrideCSL itself: the whole-engine round trip checked by the engine compiler, and C# shaders run on the GPU and checked. |
 | `tests/Csl.Tests` | net10.0, xunit | Unit tests of the generator, the wrappers, the analyzer and the runtime, without a GPU. |
 
 A project that writes shaders in C# references:
@@ -176,7 +212,7 @@ any mix of parts in their constructors (`new float4(v.xyz, 1)`), scalars have sw
 
 ## Validation
 
-`tests/Csl.TestApp`, `dotnet run --project tests/Csl.TestApp -- <command>`:
+`tests/Csl.TestApp` checks StrideCSL itself; nothing here is needed to use it. `dotnet run --project tests/Csl.TestApp -- <command>`:
 
 | Command | Does |
 |---------|------|
@@ -184,28 +220,7 @@ any mix of parts in their constructors (`new float4(v.xyz, 1)`), scalars have sw
 | `convert [--out DIR]` | Converts every engine shader SDSL → C# → SDSL; writes both and a report of what fails. |
 | `roundtrip [--out DIR]` | Compiles each converted engine shader with the engine's SDSL compiler (`ShaderMixer`, to SPIR-V) from its original source and from its round trip (its bases round-tripped too) and compares the SPIR-V without debug instructions. A shader without an entry point is hosted after `ShaderBase` or `ComputeShaderBase`; a generic one is instantiated with sample arguments. A difference is traced to the base that causes it. |
 | `compile NAME...` | Compiles engine shaders (and this app's C# shaders), mixed in this order. |
-| `gpu` | A code-only Stride game that runs the C# shaders of `Shaders/` and checks what they compute: a shader written in C#, an engine shader mixed in, an engine shader replaced by its modified C#, the engine's `ImageEffectShader` extended. Then it shows the image shaders of `Demos/` in a window, redrawn from their C# on each save (see [Live demos](#live-demos)). `--check`: the tests only, window hidden. `--shot FILE.png [--time T]`: the demos compiled from their files, drawn once and saved, window hidden. |
-
-### Live demos
-
-`Demos/` holds six image shaders in C#, each an `ImageEffectShader` with `Shading()` overridden and
-`Global` mixed in for `Time`: `DemoGradient` (start here), `DemoRings`, `DemoPlasma` (a method called
-from `Shading`), `DemoMandelbrot` (a loop with a break), `DemoWobble` (samples `Texture0`, a
-checkerboard the app makes) and `DemoLuma` (calls the engine's `LuminanceUtils.Luma`, which this app
-replaces). `gpu` draws them side by side; keys 1-9 show one alone, 0 or space all of them.
-
-`DemoBlur` is a compute shader over the whole window: the tiles draw into a texture, it blurs it (a
-gaussian, one thread per pixel) and the result goes to the back buffer. It runs through its
-generated `DemoBlurEffect`, which sets `Size` and `Radius`; B turns it on and off, + and - change the
-radius.
-
-Saving a file of `Demos/` while it runs recompiles the folder the way the build does (Roslyn, the Csl
-generator, the translator: `DemoCompiler`) and each shader whose SDSL changed is drawn again under a
-new name (`DemoRings_2`), so the effect compiler has nothing cached for it. C# errors are printed as
-the build prints them and the tiles stay as they were; an SDSL the effect compiler refuses leaves the
-previous shader on screen. A new `[Shader]` class in the folder gets a new tile. DemoBlur reloads the same way: the
-keys of each new name (`DemoBlur_2.Radius`) are registered as aliases of `DemoBlurKeys`, so the
-wrapper keeps setting them; a parameter added while the app runs needs a rebuild.
+| `gpu` | A code-only Stride game (hidden window) that runs the C# shaders of `Shaders/` and checks what they compute against the CPU: a shader written in C#, an engine shader mixed in, an engine shader replaced by its modified C#, the engine's `ImageEffectShader` extended. Prints PASS/FAIL. |
 
 Results on Stride 4.4.0-beta7 (479 shaders in the packages):
 

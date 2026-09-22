@@ -3,12 +3,11 @@ using Csl.Engine;
 using Csl.Types;
 using static Csl.Types.Intrinsics;
 
-namespace Csl.TestApp.Demos;
+namespace Csl.Demo.Shaders;
 
 /// <summary>
-/// Calls an engine shader: the checkerboard of Texture0 turned grey by LuminanceUtils.Luma, a sweep
-/// going across. In this app Luma is the modified one (Modified/LuminanceUtils.cs: the brightest
-/// channel), so the grey is lighter than the engine's.
+/// Calls an engine shader: the checkerboard of Texture0 turned grey by LuminanceUtils.Luma (Csl.Engine
+/// has every engine shader as a C# class to call, inherit or mix in), a sweep going across.
 /// </summary>
 [Shader, Mixin(typeof(Global))]
 public partial class DemoLuma : ImageEffectShader

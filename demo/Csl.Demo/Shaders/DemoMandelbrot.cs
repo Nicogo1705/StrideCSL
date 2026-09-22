@@ -3,7 +3,7 @@ using Csl.Engine;
 using Csl.Types;
 using static Csl.Types.Intrinsics;
 
-namespace Csl.TestApp.Demos;
+namespace Csl.Demo.Shaders;
 
 /// <summary>The Mandelbrot set, zooming in and out: a loop with a break.</summary>
 [Shader, Mixin(typeof(Global))]

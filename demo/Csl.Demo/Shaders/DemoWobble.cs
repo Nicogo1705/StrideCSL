@@ -3,7 +3,7 @@ using Csl.Engine;
 using Csl.Types;
 using static Csl.Types.Intrinsics;
 
-namespace Csl.TestApp.Demos;
+namespace Csl.Demo.Shaders;
 
 /// <summary>
 /// Reads a texture: Texture0 (a checkerboard the app makes) sampled at coordinates bent by a wave.

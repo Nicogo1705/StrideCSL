@@ -3,7 +3,7 @@ using Csl.Engine;
 using Csl.Types;
 using static Csl.Types.Intrinsics;
 
-namespace Csl.TestApp.Demos;
+namespace Csl.Demo.Shaders;
 
 /// <summary>
 /// A compute shader over the whole window: the tiles are drawn into Input, this blurs them into

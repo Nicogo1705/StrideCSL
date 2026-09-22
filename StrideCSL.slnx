@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/demo/">
+    <Project Path="demo/Csl.Demo/Csl.Demo.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Csl.Generators/Csl.Generators.csproj" />
     <Project Path="src/Csl.Runtime/Csl.Runtime.csproj" />

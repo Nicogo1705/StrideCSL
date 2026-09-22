@@ -1,19 +1,19 @@
 using System.Text.RegularExpressions;
-using Csl.TestApp.Demos;
+using Csl.Demo.Shaders;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
 using Stride.Rendering;
 
-namespace Csl.TestApp;
+namespace Csl.Demo;
 
 /// <summary>
-/// Demos/DemoBlur, a compute shader, run over everything the tiles drew: they draw into Scene, the
+/// Shaders/DemoBlur, a compute shader, run over everything the tiles drew: they draw into Scene, the
 /// blur writes Blurred, and Blurred is drawn to the back buffer. Reloaded like the tiles, under a new
 /// name; the generated DemoBlurEffect keeps setting its parameters, because each new name's keys are
 /// registered as aliases of DemoBlurKeys. A parameter added while the app runs needs a rebuild.
 /// </summary>
-internal sealed class DemoBlurPass : IDisposable
+internal sealed class BlurPass : IDisposable
 {
     private readonly DemoBlurEffect effect;
     private Texture? scene;
@@ -23,7 +23,7 @@ internal sealed class DemoBlurPass : IDisposable
     private string? rejected;
     private int version;
 
-    public DemoBlurPass(IServiceRegistry services) => effect = new DemoBlurEffect(services);
+    public BlurPass(IServiceRegistry services) => effect = new DemoBlurEffect(services);
 
     public bool Enabled { get; set; } = true;
 

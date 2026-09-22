@@ -3,7 +3,7 @@ using Csl.Engine;
 using Csl.Types;
 using static Csl.Types.Intrinsics;
 
-namespace Csl.TestApp.Demos;
+namespace Csl.Demo.Shaders;
 
 /// <summary>Rings moving out from the centre: the distance to it, through a sine.</summary>
 [Shader, Mixin(typeof(Global))]

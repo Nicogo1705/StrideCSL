@@ -3,11 +3,11 @@ using Csl.Engine;
 using Csl.Types;
 using static Csl.Types.Intrinsics;
 
-namespace Csl.TestApp.Demos;
+namespace Csl.Demo.Shaders;
 
 /// <summary>
 /// The simplest one: red across, green down, blue pulsing with time. Start here: change a channel,
-/// save, and the tile changes while "gpu" runs.
+/// save, and the tile changes while the demo runs.
 /// </summary>
 [Shader, Mixin(typeof(Global))]
 public partial class DemoGradient : ImageEffectShader

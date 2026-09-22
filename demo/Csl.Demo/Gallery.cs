@@ -6,15 +6,15 @@ using Stride.Input;
 using Stride.Rendering;
 using Stride.Rendering.Images;
 
-namespace Csl.TestApp;
+namespace Csl.Demo;
 
 /// <summary>
-/// The image shaders of Demos/ drawn side by side, and redrawn from their C# as it is saved: the
-/// folder is compiled again (<see cref="DemoCompiler"/>) and each shader whose SDSL changed comes back
+/// The image shaders of Shaders/ drawn side by side, and redrawn from their C# as it is saved: the
+/// folder is compiled again (<see cref="LiveCompiler"/>) and each shader whose SDSL changed comes back
 /// under a new name, so the effect compiler has nothing cached for it. One that does not compile
 /// leaves the previous one on screen and its errors in the console.
 /// </summary>
-internal sealed class DemoGallery : IDisposable
+internal sealed class Gallery : IDisposable
 {
     private sealed class Tile(string name, string sdsl, ImageEffectShader? effect)
     {
@@ -32,23 +32,23 @@ internal sealed class DemoGallery : IDisposable
     private readonly List<Tile> tiles = new();
     private readonly RenderContext renderContext;
     private readonly Texture checker;
-    private readonly DemoBlurPass blur;
-    private readonly DemoCompiler? compiler;
+    private readonly BlurPass blur;
+    private readonly LiveCompiler? compiler;
     private readonly FileSystemWatcher? watcher;
     private readonly object changeLock = new();
     private DateTime? changedAt;
-    private Task<DemoCompiler.Result>? compiling;
+    private Task<LiveCompiler.Result>? compiling;
     private bool hadErrors;
     private int solo = -1;
 
-    public DemoGallery(IServiceRegistry services, GraphicsDevice device, RenderContext renderContext)
+    public Gallery(IServiceRegistry services, GraphicsDevice device, RenderContext renderContext)
     {
         this.renderContext = renderContext;
-        blur = new DemoBlurPass(services);
-        // The demos are the C# shaders of this app that live in a Demos folder: their SDSL was
+        blur = new BlurPass(services);
+        // The demos are the C# shaders of this app that live in the Shaders folder: their SDSL was
         // registered at start-up by the build, so they draw before anything is compiled here.
         var demos = ShaderSourceRegistry.Sources
-            .Where(s => string.Equals(Path.GetFileName(Path.GetDirectoryName(s.Value.Path)), "Demos", StringComparison.OrdinalIgnoreCase))
+            .Where(s => string.Equals(Path.GetFileName(Path.GetDirectoryName(s.Value.Path)), "Shaders", StringComparison.OrdinalIgnoreCase))
             .OrderBy(s => s.Key, StringComparer.Ordinal)
             .ToList();
         // The image shaders are tiles; the compute one, DemoBlur, runs over all of them.
@@ -63,7 +63,7 @@ internal sealed class DemoGallery : IDisposable
         var directory = demos.Select(s => Path.GetDirectoryName(s.Value.Path)).FirstOrDefault();
         if (directory != null && Directory.Exists(directory))
         {
-            compiler = new DemoCompiler(directory);
+            compiler = new LiveCompiler(directory);
             watcher = new FileSystemWatcher(directory, "*.cs") { NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size };
             watcher.Changed += (_, _) => Touch();
             watcher.Created += (_, _) => Touch();
@@ -75,7 +75,7 @@ internal sealed class DemoGallery : IDisposable
         }
         else
         {
-            Console.WriteLine("The Demos folder is not where the build found it: no reload, the demos stay as built.");
+            Console.WriteLine("The Shaders folder is not where the build found it: no reload, the demos stay as built.");
         }
     }
 
@@ -87,7 +87,7 @@ internal sealed class DemoGallery : IDisposable
             var names = string.Join("  ", tiles.Select((t, i) => $"{i + 1} {t.Label}"));
             var shown = solo >= 0 ? $"{tiles[solo].Label} (0: all)" : names;
             var post = blur.Enabled ? $"B blur r{blur.Radius} (+/-)" : "B blur off";
-            return $"StrideCSL gpu - {shown} - {post} - edit Demos/*.cs, it redraws";
+            return $"StrideCSL demo - {shown} - {post} - edit Shaders/*.cs, it redraws";
         }
     }
 
@@ -133,13 +133,13 @@ internal sealed class DemoGallery : IDisposable
             var task = compiling;
             compiling = null;
             if (task.IsFaulted)
-                Console.WriteLine("Compiling Demos/ failed: " + task.Exception!.GetBaseException().Message);
+                Console.WriteLine("Compiling Shaders/ failed: " + task.Exception!.GetBaseException().Message);
             else
                 Apply(task.Result, force: false);
         }
     }
 
-    /// <summary>Compiles Demos/ now and takes every shader of it, changed or not: the whole reload path at once.</summary>
+    /// <summary>Compiles Shaders/ now and takes every shader of it, changed or not: the whole reload path at once.</summary>
     public bool ReloadAllNow()
     {
         if (compiler == null)
@@ -149,25 +149,25 @@ internal sealed class DemoGallery : IDisposable
         return Apply(compiler.Compile(), force: true);
     }
 
-    private bool Apply(DemoCompiler.Result result, bool force)
+    private bool Apply(LiveCompiler.Result result, bool force)
     {
         if (result.Errors.Count > 0)
         {
-            Console.WriteLine($"C# errors in Demos/ ({result.Errors.Count}), the tiles stay as they were:");
+            Console.WriteLine($"C# errors in Shaders/ ({result.Errors.Count}), the tiles stay as they were:");
             foreach (var error in result.Errors)
                 Console.WriteLine("  " + error);
             hadErrors = true;
             return false;
         }
         if (hadErrors)
-            Console.WriteLine("Demos/ compiles again.");
+            Console.WriteLine("Shaders/ compiles again.");
         hadErrors = false;
 
         foreach (var (name, sdsl, path, isCompute) in result.Shaders)
         {
             if (isCompute)
             {
-                if (name == Demos.DemoBlur.ShaderName)
+                if (name == Shaders.DemoBlur.ShaderName)
                     blur.Offer(sdsl, path, force);
                 else if (force)
                     Console.WriteLine($"{name}: a compute shader; only DemoBlur has a place in the gallery");
@@ -253,7 +253,7 @@ internal sealed class DemoGallery : IDisposable
     }
 
     private static bool IsComputeShader(string name)
-        => Type.GetType($"{typeof(Demos.DemoBlur).Namespace}.{name}")?.IsSubclassOf(typeof(Csl.Engine.ComputeShaderBase)) == true;
+        => Type.GetType($"{typeof(Shaders.DemoBlur).Namespace}.{name}")?.IsSubclassOf(typeof(Csl.Engine.ComputeShaderBase)) == true;
 
     private ImageEffectShader NewEffect(string shaderName)
     {

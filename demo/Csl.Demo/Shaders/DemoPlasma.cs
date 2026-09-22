@@ -3,7 +3,7 @@ using Csl.Engine;
 using Csl.Types;
 using static Csl.Types.Intrinsics;
 
-namespace Csl.TestApp.Demos;
+namespace Csl.Demo.Shaders;
 
 /// <summary>
 /// A plasma: a few sines summed, coloured by a cosine palette (a method of the shader, called from
