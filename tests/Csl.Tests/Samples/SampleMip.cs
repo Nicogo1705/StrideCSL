@@ -1,6 +1,6 @@
 using Csl.Engine;
-using Csl.Hlsl;
-using static Csl.Hlsl.Intrinsics;
+using Csl.Types;
+using static Csl.Types.Intrinsics;
 
 namespace Csl.Tests.Samples;
 

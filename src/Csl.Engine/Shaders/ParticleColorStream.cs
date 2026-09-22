@@ -4,8 +4,8 @@
 // This is a sample shader for plugging into the Shader input for ComputeColor computations
 
 using Csl;
-using Csl.Hlsl;
-using static Csl.Hlsl.Intrinsics;
+using Csl.Types;
+using static Csl.Types.Intrinsics;
 
 namespace Csl.Engine;
 

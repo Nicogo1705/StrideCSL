@@ -6,8 +6,8 @@
 // Temporary code for testing IMaterialSurface
 
 using Csl;
-using Csl.Hlsl;
-using static Csl.Hlsl.Intrinsics;
+using Csl.Types;
+using static Csl.Types.Intrinsics;
 
 namespace Csl.Engine;
 

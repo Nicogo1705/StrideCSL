@@ -353,7 +353,7 @@ public static class CSharpFixer
         if (info.CandidateSymbols.Length != 1)
             return false;
         // Not an intrinsic: HLSL would pick among its overloads by the argument, not truncate it.
-        return info.CandidateSymbols[0].ContainingType?.ToDisplayString() != "Csl.Hlsl.Intrinsics";
+        return info.CandidateSymbols[0].ContainingType?.ToDisplayString() != "Csl.Types.Intrinsics";
     }
 
     /// <summary>Both types are scalars, or vectors of the same size, or matrices of the same shape.</summary>
@@ -369,7 +369,7 @@ public static class CSharpFixer
     /// <summary>A type name as the compiler printed it, without the Csl namespaces.</summary>
     private static string TypeName(string name)
     {
-        foreach (var prefix in new[] { "Csl.Hlsl.", "Csl.", "global::" })
+        foreach (var prefix in new[] { "Csl.Types.", "Csl.", "global::" })
             if (name.StartsWith(prefix, StringComparison.Ordinal))
                 name = name.Substring(prefix.Length);
         return name;

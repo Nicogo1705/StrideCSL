@@ -50,7 +50,7 @@ public static class Diagnostics
 
     public static readonly DiagnosticDescriptor UnsupportedType = new DiagnosticDescriptor(
         "CSL102", "Type not available in shader code",
-        "Type '{0}' has no SDSL equivalent; use the Csl.Hlsl types, the primitives, or a struct nested in the shader",
+        "Type '{0}' has no SDSL equivalent; use the Csl.Types types, the primitives, or a struct nested in the shader",
         Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor ObjectCreation = new DiagnosticDescriptor(
@@ -75,7 +75,7 @@ public static class Diagnostics
 
     public static readonly DiagnosticDescriptor UnsupportedCall = new DiagnosticDescriptor(
         "CSL107", "Call not available in shader code",
-        "Shader code cannot call '{0}'; only the intrinsics (Csl.Hlsl.Intrinsics), resource methods and shader methods are available",
+        "Shader code cannot call '{0}'; only the intrinsics (Csl.Types.Intrinsics), resource methods and shader methods are available",
         Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor BaseNotShader = new DiagnosticDescriptor(

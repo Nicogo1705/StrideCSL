@@ -19,7 +19,7 @@ Built against Stride 4.4 (`StrideVersion` in `Directory.Build.props`, the publis
 | Project | Target | Role |
 |---------|--------|------|
 | `src/Csl.Generators` | netstandard2.0 | The code generation, both ways. As a Roslyn generator: C# `[Shader]` classes → SDSL, `*Keys` classes and compute wrappers; the stubs every shader class gets. As a library: the SDSL parser (whole files, bodies, preprocessor structure), the SDSL → C# converter and its compiler-guided fixes. |
-| `src/Csl.Types` | net10.0 | What shader code is written with: `Csl.Hlsl` (every HLSL scalar, vector and matrix type with HLSL's conversions and swizzles, the resources, the intrinsics), the attributes for what SDSL declares and C# has no keyword for, the `Sdsl` markers. No Stride dependency. |
+| `src/Csl.Types` | net10.0 | What shader code is written with: `Csl.Types` (every HLSL scalar, vector and matrix type with HLSL's conversions and swizzles, the resources, the intrinsics), the attributes for what SDSL declares and C# has no keyword for, the `Sdsl` markers. No Stride dependency. |
 | `src/Csl.Engine` | net10.0 | The engine's shaders (476 of 479) as `[Shader(External = true)]` classes, declarations only: what C# shaders inherit and call. Written by `csl engine`. |
 | `src/Csl.Runtime` | net10.0 | Running C# compute shaders: `ComputeEffect` wrappers, `ShaderContext`, allocation helpers, `ShaderSourceRegistry` (hands the generated SDSL to the effect compiler). |
 | `src/Csl.Tool` | net10.0, exe `csl` | `csl convert`: `.sdsl` files, or engine shaders by name, to C#. `csl engine`: regenerates `Csl.Engine`. |
@@ -38,7 +38,7 @@ A project that writes shaders in C# references:
 ## C# to SDSL: writing shaders in C#
 
 ```csharp
-using Csl; using Csl.Engine; using Csl.Hlsl; using static Csl.Hlsl.Intrinsics;
+using Csl; using Csl.Engine; using Csl.Types; using static Csl.Types.Intrinsics;
 
 /// <summary>Output[i] = ToLinear(i / 63): an engine shader mixed in, its method called with types.</summary>
 [Shader, NumThreads(64), Mixin(typeof(ColorUtility))]

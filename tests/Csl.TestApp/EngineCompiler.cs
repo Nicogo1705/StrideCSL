@@ -54,15 +54,21 @@ internal sealed class EngineCompiler
     /// <summary>Mixes the shaders in order (the first one alone, usually) and compiles them.</summary>
     public Result Compile(IEnumerable<string> mixins, IEnumerable<(string Name, object Value)>? macros = null)
     {
-        MemoryShaderLoader loader;
-        // Each loader registers a file provider with the engine's virtual file system, which is not thread-safe.
-        lock (ProviderLock)
-            loader = new MemoryShaderLoader(sources, cacheDirectory);
         var mixin = new ShaderMixinSource { Name = "CslTest" };
         foreach (var name in mixins)
             mixin.Mixins.Add(ClassSource(name));
         foreach (var (name, value) in macros ?? DefaultMacros)
             mixin.AddMacro(name, value);
+        return Compile(mixin);
+    }
+
+    /// <summary>Compiles a whole mixin: its classes, compositions and macros.</summary>
+    public Result Compile(ShaderMixinSource mixin)
+    {
+        MemoryShaderLoader loader;
+        // Each loader registers a file provider with the engine's virtual file system, which is not thread-safe.
+        lock (ProviderLock)
+            loader = new MemoryShaderLoader(sources, cacheDirectory);
         var log = new LoggerResult();
         var result = new Result();
         try

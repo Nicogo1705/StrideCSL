@@ -6,8 +6,8 @@
 // TODO: Inherit from SpriteBase; however we can't redefine SV_Target0 to have a different type due to ColorTarget being defined by ShaderBase => ShaderBaseStream
 
 using Csl;
-using Csl.Hlsl;
-using static Csl.Hlsl.Intrinsics;
+using Csl.Types;
+using static Csl.Types.Intrinsics;
 
 namespace Csl.Engine;
 

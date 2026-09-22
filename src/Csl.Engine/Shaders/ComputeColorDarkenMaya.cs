@@ -5,8 +5,8 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using Csl;
-using Csl.Hlsl;
-using static Csl.Hlsl.Intrinsics;
+using Csl.Types;
+using static Csl.Types.Intrinsics;
 
 namespace Csl.Engine;
 

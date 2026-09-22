@@ -110,7 +110,7 @@ public sealed class SdslToCSharp
             Line(string.Empty);
 
         Line("using Csl;");
-        Line("using Csl.Hlsl;");
+        Line("using Csl.Types;");
         var ownNamespace = options.Namespace ?? shader.Namespace;
         var usings = new SortedSet<string>(options.Usings, StringComparer.Ordinal);
         if (options.Namespace == null)
@@ -122,7 +122,7 @@ public sealed class SdslToCSharp
         }
         foreach (var ns in usings)
             Line("using " + ns + ";");
-        Line("using static Csl.Hlsl.Intrinsics;");
+        Line("using static Csl.Types.Intrinsics;");
         Line(string.Empty);
 
         var ns2 = options.Namespace ?? shader.Namespace;

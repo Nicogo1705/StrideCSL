@@ -2,8 +2,8 @@
 // The declarations of the engine's ComputeColorWhite (ComputeColorWhite.sdsl, Stride 4.4.0-beta8), written by csl engine. Do not edit: run it again.
 // </auto-generated>
 using Csl;
-using Csl.Hlsl;
-using static Csl.Hlsl.Intrinsics;
+using Csl.Types;
+using static Csl.Types.Intrinsics;
 
 namespace Csl.Engine;
 

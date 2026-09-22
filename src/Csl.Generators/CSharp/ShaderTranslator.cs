@@ -19,8 +19,8 @@ namespace Csl.Generators.CSharp;
 /// </summary>
 public sealed class ShaderTranslator
 {
-    private const string HlslNamespace = "Csl.Hlsl";
-    private const string IntrinsicsType = "Csl.Hlsl.Intrinsics";
+    private const string TypesNamespace = "Csl.Types";
+    private const string IntrinsicsType = "Csl.Types.Intrinsics";
     private const string SdslType = "Csl.Sdsl";
 
     private static readonly Dictionary<string, string> LoopMarkers = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -1259,7 +1259,7 @@ public sealed class ShaderTranslator
                 return name;
             case IPropertySymbol { Name: "streams" }:
                 return "streams";
-            case IPropertySymbol property when property.ContainingType?.ContainingNamespace?.ToDisplayString() == HlslNamespace:
+            case IPropertySymbol property when property.ContainingType?.ContainingNamespace?.ToDisplayString() == TypesNamespace:
                 return name;
             case INamedTypeSymbol type when IsShaderClass(type):
                 return ShaderNameOf(type);
@@ -1338,7 +1338,7 @@ public sealed class ShaderTranslator
                 return name;
             if (IsShaderClass(type))
                 return ShaderNameOf(type) + "." + name;
-            if (type.ContainingNamespace?.ToDisplayString() == HlslNamespace && type.IsValueType)
+            if (type.ContainingNamespace?.ToDisplayString() == TypesNamespace && type.IsValueType)
                 return SdslTypeName(type, memberAccess.Expression) + "." + name;
             Report(Diagnostics.UnsupportedCall, memberAccess.GetLocation(), type.ToDisplayString() + "." + name);
             return name;
@@ -1346,7 +1346,7 @@ public sealed class ShaderTranslator
 
         switch (symbol)
         {
-            case IPropertySymbol property when property.ContainingType?.ContainingNamespace?.ToDisplayString() == HlslNamespace:
+            case IPropertySymbol property when property.ContainingType?.ContainingNamespace?.ToDisplayString() == TypesNamespace:
                 // A swizzle, a matrix element, a resource member.
                 return Operand(memberAccess.Expression) + "." + name;
             case IFieldSymbol field when field.ContainingType?.TypeKind == TypeKind.Struct:
@@ -1446,7 +1446,7 @@ public sealed class ShaderTranslator
             }
             return symbol.Name + "(" + argumentText + ")";
         }
-        if (owner.ContainingNamespace?.ToDisplayString() == HlslNamespace)
+        if (owner.ContainingNamespace?.ToDisplayString() == TypesNamespace)
         {
             // Texture.Load(...), Buffer.GetDimensions(...): a member of a resource.
             var target = invocation.Expression is MemberAccessExpressionSyntax access ? Operand(access.Expression) + "." : string.Empty;
@@ -1502,12 +1502,12 @@ public sealed class ShaderTranslator
         }
         if (type is INamedTypeSymbol named)
         {
-            if (named.ContainingNamespace?.ToDisplayString() == HlslNamespace)
+            if (named.ContainingNamespace?.ToDisplayString() == TypesNamespace)
             {
                 if (named.IsGenericType)
                 {
                     // Texture2DMS<float4, Samples4> is Texture2DMS<float4, 4>.
-                    var arguments = named.TypeArguments.Select(t => t.Name.StartsWith("Samples", StringComparison.Ordinal) && t.ContainingNamespace?.ToDisplayString() == HlslNamespace
+                    var arguments = named.TypeArguments.Select(t => t.Name.StartsWith("Samples", StringComparison.Ordinal) && t.ContainingNamespace?.ToDisplayString() == TypesNamespace
                         ? t.Name.Substring("Samples".Length)
                         : SdslTypeName(t, at));
                     return named.Name + "<" + string.Join(", ", arguments) + ">";
