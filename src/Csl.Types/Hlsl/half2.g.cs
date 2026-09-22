@@ -16,7 +16,10 @@ public struct half2 : IEquatable<half2>
     public half2(half x, half y) { this.x = x; this.y = y; }
     public half2(half v) { x = v; y = v; }
     public half2(double v) { x = (half)(float)v; y = (half)(float)v; }
+    public half2(half2 v) { x = v.x; y = v.y; }
     public half2(double p0, double p1) { x = (half)(float)p0; y = (half)(float)p1; }
+    public half2(float2 p0) { x = (half)(float)p0.x; y = (half)(float)p0.y; }
+    public half2(double2 p0) { x = (half)(float)p0.x; y = (half)(float)p0.y; }
     public static implicit operator half2(half v) => new half2(v);
     public static implicit operator half2(bool2 v) => new half2((v.x ? (half)1f : default(half)), (v.y ? (half)1f : default(half)));
     public static explicit operator half2(bool3 v) => new half2((v.x ? (half)1f : default(half)), (v.y ? (half)1f : default(half)));

@@ -22,6 +22,7 @@ public struct bool4 : IEquatable<bool4>
     public bool4(bool2 p0, bool2 p1) { x = p0.x; y = p0.y; z = p1.x; w = p1.y; }
     public bool4(bool3 p0, bool p1) { x = p0.x; y = p0.y; z = p0.z; w = p1; }
     public bool4(double v) { x = (v != 0); y = (v != 0); z = (v != 0); w = (v != 0); }
+    public bool4(bool4 v) { x = v.x; y = v.y; z = v.z; w = v.w; }
     public bool4(double p0, double p1, double p2, double p3) { x = (p0 != 0); y = (p1 != 0); z = (p2 != 0); w = (p3 != 0); }
     public bool4(double p0, double p1, int2 p2) { x = (p0 != 0); y = (p1 != 0); z = (p2.x != 0); w = (p2.y != 0); }
     public bool4(double p0, double p1, uint2 p2) { x = (p0 != 0); y = (p1 != 0); z = (p2.x != 0); w = (p2.y != 0); }
@@ -73,6 +74,11 @@ public struct bool4 : IEquatable<bool4>
     public bool4(half3 p0, double p1) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); z = ((float)p0.z != 0f); w = (p1 != 0); }
     public bool4(float3 p0, double p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p1 != 0); }
     public bool4(double3 p0, double p1) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p1 != 0); }
+    public bool4(int4 p0) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p0.w != 0); }
+    public bool4(uint4 p0) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p0.w != 0); }
+    public bool4(half4 p0) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); z = ((float)p0.z != 0f); w = ((float)p0.w != 0f); }
+    public bool4(float4 p0) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p0.w != 0); }
+    public bool4(double4 p0) { x = (p0.x != 0); y = (p0.y != 0); z = (p0.z != 0); w = (p0.w != 0); }
     public static implicit operator bool4(bool v) => new bool4(v);
     public static explicit operator bool4(int4 v) => new bool4((v.x != 0), (v.y != 0), (v.z != 0), (v.w != 0));
     public static explicit operator bool4(uint4 v) => new bool4((v.x != 0), (v.y != 0), (v.z != 0), (v.w != 0));

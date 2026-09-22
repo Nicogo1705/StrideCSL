@@ -15,6 +15,7 @@ public struct double2 : IEquatable<double2>
     public double x, y;
     public double2(double x, double y) { this.x = x; this.y = y; }
     public double2(double v) { x = v; y = v; }
+    public double2(double2 v) { x = v.x; y = v.y; }
     public static implicit operator double2(double v) => new double2(v);
     public static implicit operator double2(bool2 v) => new double2((v.x ? 1d : 0d), (v.y ? 1d : 0d));
     public static explicit operator double2(bool3 v) => new double2((v.x ? 1d : 0d), (v.y ? 1d : 0d));

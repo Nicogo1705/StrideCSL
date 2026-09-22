@@ -22,6 +22,7 @@ public struct float4 : IEquatable<float4>
     public float4(float2 p0, float2 p1) { x = p0.x; y = p0.y; z = p1.x; w = p1.y; }
     public float4(float3 p0, float p1) { x = p0.x; y = p0.y; z = p0.z; w = p1; }
     public float4(double v) { x = (float)v; y = (float)v; z = (float)v; w = (float)v; }
+    public float4(float4 v) { x = v.x; y = v.y; z = v.z; w = v.w; }
     public float4(double p0, double p1, double p2, double p3) { x = (float)p0; y = (float)p1; z = (float)p2; w = (float)p3; }
     public float4(double p0, double p1, double2 p2) { x = (float)p0; y = (float)p1; z = (float)p2.x; w = (float)p2.y; }
     public float4(double p0, double2 p1, double p2) { x = (float)p0; y = (float)p1.x; z = (float)p1.y; w = (float)p2; }
@@ -29,6 +30,7 @@ public struct float4 : IEquatable<float4>
     public float4(double2 p0, double p1, double p2) { x = (float)p0.x; y = (float)p0.y; z = (float)p1; w = (float)p2; }
     public float4(double2 p0, double2 p1) { x = (float)p0.x; y = (float)p0.y; z = (float)p1.x; w = (float)p1.y; }
     public float4(double3 p0, double p1) { x = (float)p0.x; y = (float)p0.y; z = (float)p0.z; w = (float)p1; }
+    public float4(double4 p0) { x = (float)p0.x; y = (float)p0.y; z = (float)p0.z; w = (float)p0.w; }
     public static implicit operator float4(float v) => new float4(v);
     public static implicit operator float4(bool4 v) => new float4((v.x ? 1f : 0f), (v.y ? 1f : 0f), (v.z ? 1f : 0f), (v.w ? 1f : 0f));
     public static implicit operator float4(int4 v) => new float4((float)v.x, (float)v.y, (float)v.z, (float)v.w);

@@ -52,4 +52,10 @@ public static class Sdsl
 
     /// <summary>An explicit conversion C# does not have (a bool to a number): <c>Sdsl.Cast&lt;float&gt;(b)</c> is <c>(float)b</c>.</summary>
     public static T Cast<T>(object value) => throw Gpu.Only;
+
+    /// <summary>
+    /// A conversion HLSL makes on its own and C# wants spelled out: a float4 narrowed to a float3,
+    /// an int used as a condition. Nothing in the SDSL: <c>Sdsl.Implicit&lt;float3&gt;(v)</c> is <c>v</c>.
+    /// </summary>
+    public static T Implicit<T>(object value) => throw Gpu.Only;
 }

@@ -106,6 +106,12 @@ public static class ShaderConverter
                     result.ConversionErrors.AddRange(unit.Diagnostics.Select(d => d.ToString()));
                     continue;
                 }
+                if (shader.Conditions.Count > 0)
+                {
+                    // #if A shader X : B #else shader X : C #endif: one C# class cannot be both.
+                    result.ConversionErrors.Add(shader.Position + ": the shader is declared under #if " + string.Join(" && ", shader.Conditions) + "; not converted");
+                    continue;
+                }
                 var diagnostics = new List<SdslDiagnostic>();
                 result.CSharp = SdslToCSharp.Convert(shader, index, options.CSharp, diagnostics, fileComments);
                 result.ConversionErrors.AddRange(diagnostics.Select(d => d.ToString()));

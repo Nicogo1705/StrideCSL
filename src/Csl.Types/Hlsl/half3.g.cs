@@ -18,11 +18,14 @@ public struct half3 : IEquatable<half3>
     public half3(half p0, half2 p1) { x = p0; y = p1.x; z = p1.y; }
     public half3(half2 p0, half p1) { x = p0.x; y = p0.y; z = p1; }
     public half3(double v) { x = (half)(float)v; y = (half)(float)v; z = (half)(float)v; }
+    public half3(half3 v) { x = v.x; y = v.y; z = v.z; }
     public half3(double p0, double p1, double p2) { x = (half)(float)p0; y = (half)(float)p1; z = (half)(float)p2; }
     public half3(double p0, float2 p1) { x = (half)(float)p0; y = (half)(float)p1.x; z = (half)(float)p1.y; }
     public half3(double p0, double2 p1) { x = (half)(float)p0; y = (half)(float)p1.x; z = (half)(float)p1.y; }
     public half3(float2 p0, double p1) { x = (half)(float)p0.x; y = (half)(float)p0.y; z = (half)(float)p1; }
     public half3(double2 p0, double p1) { x = (half)(float)p0.x; y = (half)(float)p0.y; z = (half)(float)p1; }
+    public half3(float3 p0) { x = (half)(float)p0.x; y = (half)(float)p0.y; z = (half)(float)p0.z; }
+    public half3(double3 p0) { x = (half)(float)p0.x; y = (half)(float)p0.y; z = (half)(float)p0.z; }
     public static implicit operator half3(half v) => new half3(v);
     public static implicit operator half3(bool3 v) => new half3((v.x ? (half)1f : default(half)), (v.y ? (half)1f : default(half)), (v.z ? (half)1f : default(half)));
     public static explicit operator half3(bool4 v) => new half3((v.x ? (half)1f : default(half)), (v.y ? (half)1f : default(half)), (v.z ? (half)1f : default(half)));

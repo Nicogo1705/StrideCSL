@@ -22,6 +22,7 @@ public struct half4 : IEquatable<half4>
     public half4(half2 p0, half2 p1) { x = p0.x; y = p0.y; z = p1.x; w = p1.y; }
     public half4(half3 p0, half p1) { x = p0.x; y = p0.y; z = p0.z; w = p1; }
     public half4(double v) { x = (half)(float)v; y = (half)(float)v; z = (half)(float)v; w = (half)(float)v; }
+    public half4(half4 v) { x = v.x; y = v.y; z = v.z; w = v.w; }
     public half4(double p0, double p1, double p2, double p3) { x = (half)(float)p0; y = (half)(float)p1; z = (half)(float)p2; w = (half)(float)p3; }
     public half4(double p0, double p1, float2 p2) { x = (half)(float)p0; y = (half)(float)p1; z = (half)(float)p2.x; w = (half)(float)p2.y; }
     public half4(double p0, double p1, double2 p2) { x = (half)(float)p0; y = (half)(float)p1; z = (half)(float)p2.x; w = (half)(float)p2.y; }
@@ -37,6 +38,8 @@ public struct half4 : IEquatable<half4>
     public half4(double2 p0, double2 p1) { x = (half)(float)p0.x; y = (half)(float)p0.y; z = (half)(float)p1.x; w = (half)(float)p1.y; }
     public half4(float3 p0, double p1) { x = (half)(float)p0.x; y = (half)(float)p0.y; z = (half)(float)p0.z; w = (half)(float)p1; }
     public half4(double3 p0, double p1) { x = (half)(float)p0.x; y = (half)(float)p0.y; z = (half)(float)p0.z; w = (half)(float)p1; }
+    public half4(float4 p0) { x = (half)(float)p0.x; y = (half)(float)p0.y; z = (half)(float)p0.z; w = (half)(float)p0.w; }
+    public half4(double4 p0) { x = (half)(float)p0.x; y = (half)(float)p0.y; z = (half)(float)p0.z; w = (half)(float)p0.w; }
     public static implicit operator half4(half v) => new half4(v);
     public static implicit operator half4(bool4 v) => new half4((v.x ? (half)1f : default(half)), (v.y ? (half)1f : default(half)), (v.z ? (half)1f : default(half)), (v.w ? (half)1f : default(half)));
     public static implicit operator half4(int4 v) => new half4((half)(float)v.x, (half)(float)v.y, (half)(float)v.z, (half)(float)v.w);

@@ -16,7 +16,9 @@ public struct float2 : IEquatable<float2>
     public float2(float x, float y) { this.x = x; this.y = y; }
     public float2(float v) { x = v; y = v; }
     public float2(double v) { x = (float)v; y = (float)v; }
+    public float2(float2 v) { x = v.x; y = v.y; }
     public float2(double p0, double p1) { x = (float)p0; y = (float)p1; }
+    public float2(double2 p0) { x = (float)p0.x; y = (float)p0.y; }
     public static implicit operator float2(float v) => new float2(v);
     public static implicit operator float2(bool2 v) => new float2((v.x ? 1f : 0f), (v.y ? 1f : 0f));
     public static explicit operator float2(bool3 v) => new float2((v.x ? 1f : 0f), (v.y ? 1f : 0f));

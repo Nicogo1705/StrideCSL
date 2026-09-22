@@ -16,7 +16,11 @@ public struct uint2 : IEquatable<uint2>
     public uint2(uint x, uint y) { this.x = x; this.y = y; }
     public uint2(uint v) { x = v; y = v; }
     public uint2(double v) { x = (uint)v; y = (uint)v; }
+    public uint2(uint2 v) { x = v.x; y = v.y; }
     public uint2(double p0, double p1) { x = (uint)p0; y = (uint)p1; }
+    public uint2(half2 p0) { x = (uint)(float)p0.x; y = (uint)(float)p0.y; }
+    public uint2(float2 p0) { x = (uint)p0.x; y = (uint)p0.y; }
+    public uint2(double2 p0) { x = (uint)p0.x; y = (uint)p0.y; }
     public static implicit operator uint2(uint v) => new uint2(v);
     public static implicit operator uint2(bool2 v) => new uint2((v.x ? 1u : 0u), (v.y ? 1u : 0u));
     public static explicit operator uint2(bool3 v) => new uint2((v.x ? 1u : 0u), (v.y ? 1u : 0u));

@@ -173,6 +173,7 @@ public sealed class SdslToCSharp
             {
                 case SdslVariable variable:
                     EmitVariable(variable);
+                    previousGroup = variable.Group;
                     break;
                 case SdslMethod method:
                     EmitMethod(method);
@@ -249,7 +250,7 @@ public sealed class SdslToCSharp
         if (variable.Conditions.Count > 0)
             attributes.Add("If(" + Quote(JoinConditions(variable.Conditions)) + ")");
         if (variable.Group != null)
-            attributes.Add(GroupAttribute(variable.Group));
+            attributes.Add(GroupAttributeOf(variable));
 
         bool isStatic = variable.Has("static");
         bool isConst = variable.Has("const");
@@ -306,6 +307,18 @@ public sealed class SdslToCSharp
             line.Append(" = default!");
         line.Append(';');
         Line(line.ToString());
+    }
+
+    /// <summary>The group of the member before the one being written: two blocks of one name stay two.</summary>
+    private SdslGroup? previousGroup;
+
+    private string GroupAttributeOf(SdslMember member)
+    {
+        var group = member.Group!;
+        var text = GroupAttribute(group);
+        if (previousGroup != null && previousGroup != group && previousGroup.Kind == group.Kind && previousGroup.Name == group.Name)
+            text = text.Substring(0, text.Length - 1) + ", NewBlock = true)";
+        return text;
     }
 
     private static string JoinConditions(List<string> conditions) =>
@@ -401,7 +414,7 @@ public sealed class SdslToCSharp
         if (method.Conditions.Count > 0)
             attributes.Add("If(" + Quote(JoinConditions(method.Conditions)) + ")");
         if (method.Group != null)
-            attributes.Add(GroupAttribute(method.Group));
+            attributes.Add(GroupAttributeOf(method));
 
         bool isOverride = method.Has("override");
         bool isAbstract = method.Has("abstract");
@@ -413,11 +426,12 @@ public sealed class SdslToCSharp
             if (!csharpOverride)
                 attributes.Add("Override");
         }
+        bool stageAfterOverride = method.Modifiers.IndexOf("override") >= 0 && method.Modifiers.IndexOf("stage") > method.Modifiers.IndexOf("override");
         foreach (var modifier in method.Modifiers)
         {
             switch (modifier)
             {
-                case "stage": attributes.Add("Stage"); break;
+                case "stage": attributes.Add(stageAfterOverride ? "Stage(AfterOverride = true)" : "Stage"); break;
                 case "clone": attributes.Add("Clone"); break;
                 case "override":
                 case "abstract":
@@ -491,7 +505,7 @@ public sealed class SdslToCSharp
             {
                 case "out": prefix = "out "; break;
                 case "inout": prefix = "ref "; break;
-                case "in": break;
+                case "in": prefix = "in "; break;
                 default: attributes.Add("Modifiers(" + Quote(modifier) + ")"); break;
             }
         }
@@ -1113,11 +1127,11 @@ public sealed class SdslToCSharp
         if (call.Target is SdslIdentifier identifier && !identifier.Parenthesized && !IsLocal(identifier.Name))
         {
             var name = identifier.Name;
-            if (IsBuiltinValueType(name) && call.Arguments.Count == 1)
+            if (IsBuiltinValueType(name) && call.Arguments.Count == 1 && !VectorOrMatrix.IsMatch(TypeName(name)))
             {
-                // float3(x) converts or splats: a cast says the same, whatever x is.
+                // float(x): C# has no constructor for its scalars; the cast means the same.
                 var operand = Expression(call.Arguments[0]);
-                return "(" + TypeName(name) + ")" + (NeedsParentheses(call.Arguments[0]) ? "(" + operand + ")" : operand);
+                return "((" + TypeName(name) + ")" + (NeedsParentheses(call.Arguments[0]) ? "(" + operand + ")" : operand) + ")";
             }
             if (IsBuiltinValueType(name) || (IsStructName(name) && !memberNames.Contains(name)))
                 return "new " + TypeName(name) + "(" + arguments + ")";

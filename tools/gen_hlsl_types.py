@@ -145,9 +145,9 @@ def emit_vector(scalar, n):
     if scalar != 'double':
         splat = convert("v", "double", scalar) if scalar != "half" else "(half)(float)v"
         out.append(f'    public {name}(double v) {{ {" ".join(f"{c} = {splat};" for c in comps)} }}')
+    # float3(v) with v a float3: HLSL writes it, C# needs the constructor.
+    out.append(f'    public {name}({name} v) {{ {" ".join(f"{c} = v.{c};" for c in comps)} }}')
     for parts in partitions(n):
-        if len(parts) == 1:
-            continue
         choices = [higher if p > 1 else ['double'] for p in parts]
         for combo in itertools.product(*choices):
             if scalar == 'double' and all(p == 1 for p in parts):

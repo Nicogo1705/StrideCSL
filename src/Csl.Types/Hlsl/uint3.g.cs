@@ -18,6 +18,7 @@ public struct uint3 : IEquatable<uint3>
     public uint3(uint p0, uint2 p1) { x = p0; y = p1.x; z = p1.y; }
     public uint3(uint2 p0, uint p1) { x = p0.x; y = p0.y; z = p1; }
     public uint3(double v) { x = (uint)v; y = (uint)v; z = (uint)v; }
+    public uint3(uint3 v) { x = v.x; y = v.y; z = v.z; }
     public uint3(double p0, double p1, double p2) { x = (uint)p0; y = (uint)p1; z = (uint)p2; }
     public uint3(double p0, half2 p1) { x = (uint)p0; y = (uint)(float)p1.x; z = (uint)(float)p1.y; }
     public uint3(double p0, float2 p1) { x = (uint)p0; y = (uint)p1.x; z = (uint)p1.y; }
@@ -25,6 +26,9 @@ public struct uint3 : IEquatable<uint3>
     public uint3(half2 p0, double p1) { x = (uint)(float)p0.x; y = (uint)(float)p0.y; z = (uint)p1; }
     public uint3(float2 p0, double p1) { x = (uint)p0.x; y = (uint)p0.y; z = (uint)p1; }
     public uint3(double2 p0, double p1) { x = (uint)p0.x; y = (uint)p0.y; z = (uint)p1; }
+    public uint3(half3 p0) { x = (uint)(float)p0.x; y = (uint)(float)p0.y; z = (uint)(float)p0.z; }
+    public uint3(float3 p0) { x = (uint)p0.x; y = (uint)p0.y; z = (uint)p0.z; }
+    public uint3(double3 p0) { x = (uint)p0.x; y = (uint)p0.y; z = (uint)p0.z; }
     public static implicit operator uint3(uint v) => new uint3(v);
     public static implicit operator uint3(bool3 v) => new uint3((v.x ? 1u : 0u), (v.y ? 1u : 0u), (v.z ? 1u : 0u));
     public static explicit operator uint3(bool4 v) => new uint3((v.x ? 1u : 0u), (v.y ? 1u : 0u), (v.z ? 1u : 0u));

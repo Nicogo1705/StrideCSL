@@ -87,6 +87,20 @@ public static class CSharpFixer
                     break;
                 }
 
+                // An in parameter written to: HLSL allows it, C#'s in is read-only. The attribute keeps the keyword.
+                case "CS8331":
+                case "CS8332":
+                {
+                    if (model.GetSymbolInfo(node, cancellation).Symbol is IParameterSymbol { RefKind: RefKind.In } written
+                        && written.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellation) is ParameterSyntax writtenSyntax)
+                    {
+                        var inKeyword = writtenSyntax.Modifiers.FirstOrDefault(m => m.IsKind(SyntaxKind.InKeyword));
+                        if (inKeyword != default)
+                            change = new TextChange(inKeyword.Span, "[Modifiers(\"in\")]");
+                    }
+                    break;
+                }
+
                 // Use of unassigned local variable 'x'
                 case "CS0165":
                     if (quoted.Count >= 1 && model.GetSymbolInfo(node, cancellation).Symbol is ILocalSymbol local
@@ -112,7 +126,7 @@ public static class CSharpFixer
                 // Operator '!' cannot be applied to operand of type 'int'
                 case "CS0023":
                     if (node is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalNotExpression } not && quoted.Count >= 2 && IsNumeric(quoted[1]))
-                        change = new TextChange(not.Span, "(" + Parenthesize(not.Operand) + " == 0)");
+                        change = new TextChange(not.Operand.Span, "Sdsl.Implicit<bool>(" + not.Operand + ")");
                     break;
 
                 // Operator 'op' cannot be applied to operands of type 'A' and 'B'
@@ -126,10 +140,10 @@ public static class CSharpFixer
                     if (node is ConditionalExpressionSyntax conditional && quoted.Count >= 2)
                     {
                         var wider = Wider(quoted[0], quoted[1]);
-                        if (wider == quoted[0])
-                            change = new TextChange(conditional.WhenFalse.Span, "(" + TypeName(wider) + ")" + Parenthesize(conditional.WhenFalse));
-                        else if (wider == quoted[1])
-                            change = new TextChange(conditional.WhenTrue.Span, "(" + TypeName(wider) + ")" + Parenthesize(conditional.WhenTrue));
+                        if (wider == TypeName(quoted[0]))
+                            change = new TextChange(conditional.WhenFalse.Span, "Sdsl.Implicit<" + wider + ">(" + conditional.WhenFalse + ")");
+                        else if (wider == TypeName(quoted[1]))
+                            change = new TextChange(conditional.WhenTrue.Span, "Sdsl.Implicit<" + wider + ">(" + conditional.WhenTrue + ")");
                     }
                     break;
 
@@ -221,21 +235,16 @@ public static class CSharpFixer
         return node as ExpressionSyntax ?? (node as ArgumentSyntax)?.Expression;
     }
 
+    /// <summary>
+    /// The conversion HLSL does implicitly, marked so C# accepts it and the SDSL stays as written:
+    /// <c>Sdsl.Implicit&lt;float3&gt;(v)</c> translates back to <c>v</c>.
+    /// </summary>
     private static TextChange? Convert(ExpressionSyntax expression, string from, string to, SemanticModel model, CancellationToken cancellation)
     {
-        from = TypeName(from);
         to = TypeName(to);
-        if (to == "bool" && (IsNumeric(from)))
-            return new TextChange(expression.Span, Parenthesize(expression) + " != 0");
-        if (from == "bool" && IsNumeric(to))
-            return new TextChange(expression.Span, "Sdsl.Cast<" + to + ">(" + expression + ")");
-        if (expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.NumericLiteralExpression) && (to == "float" || to == "half"))
-        {
-            // 1.0 written for a float: the literal itself.
-            var digits = literal.Token.Text.TrimEnd('d', 'D', 'm', 'M');
-            return new TextChange(expression.Span, to == "half" ? "(half)" + digits + "f" : digits + "f");
-        }
-        return new TextChange(expression.Span, "(" + to + ")" + Parenthesize(expression));
+        if (expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.NumericLiteralExpression) && to == "float" && literal.Token.Value is double)
+            return new TextChange(expression.Span, literal.Token.Text.TrimEnd('d', 'D', 'm', 'M') + "f");
+        return new TextChange(expression.Span, "Sdsl.Implicit<" + to + ">(" + expression + ")");
     }
 
     private static TextChange? FixBinary(BinaryExpressionSyntax binary, string left, string right)
@@ -246,16 +255,16 @@ public static class CSharpFixer
         {
             // int && int: conditions.
             if (IsNumeric(left))
-                return new TextChange(binary.Left.Span, Parenthesize(binary.Left) + " != 0");
+                return new TextChange(binary.Left.Span, "Sdsl.Implicit<bool>(" + binary.Left + ")");
             if (IsNumeric(right))
-                return new TextChange(binary.Right.Span, Parenthesize(binary.Right) + " != 0");
+                return new TextChange(binary.Right.Span, "Sdsl.Implicit<bool>(" + binary.Right + ")");
             return null;
         }
         var wider = Wider(left, right);
         if (wider == left)
-            return new TextChange(binary.Right.Span, "(" + wider + ")" + Parenthesize(binary.Right));
+            return new TextChange(binary.Right.Span, "Sdsl.Implicit<" + wider + ">(" + binary.Right + ")");
         if (wider == right)
-            return new TextChange(binary.Left.Span, "(" + wider + ")" + Parenthesize(binary.Left));
+            return new TextChange(binary.Left.Span, "Sdsl.Implicit<" + wider + ">(" + binary.Left + ")");
         return null;
     }
 

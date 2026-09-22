@@ -17,6 +17,7 @@ public struct double3 : IEquatable<double3>
     public double3(double v) { x = v; y = v; z = v; }
     public double3(double p0, double2 p1) { x = p0; y = p1.x; z = p1.y; }
     public double3(double2 p0, double p1) { x = p0.x; y = p0.y; z = p1; }
+    public double3(double3 v) { x = v.x; y = v.y; z = v.z; }
     public static implicit operator double3(double v) => new double3(v);
     public static implicit operator double3(bool3 v) => new double3((v.x ? 1d : 0d), (v.y ? 1d : 0d), (v.z ? 1d : 0d));
     public static explicit operator double3(bool4 v) => new double3((v.x ? 1d : 0d), (v.y ? 1d : 0d), (v.z ? 1d : 0d));

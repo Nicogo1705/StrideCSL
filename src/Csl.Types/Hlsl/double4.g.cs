@@ -21,6 +21,7 @@ public struct double4 : IEquatable<double4>
     public double4(double2 p0, double p1, double p2) { x = p0.x; y = p0.y; z = p1; w = p2; }
     public double4(double2 p0, double2 p1) { x = p0.x; y = p0.y; z = p1.x; w = p1.y; }
     public double4(double3 p0, double p1) { x = p0.x; y = p0.y; z = p0.z; w = p1; }
+    public double4(double4 v) { x = v.x; y = v.y; z = v.z; w = v.w; }
     public static implicit operator double4(double v) => new double4(v);
     public static implicit operator double4(bool4 v) => new double4((v.x ? 1d : 0d), (v.y ? 1d : 0d), (v.z ? 1d : 0d), (v.w ? 1d : 0d));
     public static implicit operator double4(int4 v) => new double4((double)v.x, (double)v.y, (double)v.z, (double)v.w);

@@ -25,6 +25,9 @@ public sealed class CBufferAttribute : Attribute
     public CBufferAttribute(string? name = null) => Name = name;
 
     public string? Name { get; }
+
+    /// <summary>The member opens another block of the same name: <c>cbuffer A { x } cbuffer A { y }</c> are two buffers.</summary>
+    public bool NewBlock { get; set; }
 }
 
 /// <summary>The member is in a resource group: <c>rgroup PerView.Lighting { ... }</c>.</summary>
@@ -34,6 +37,9 @@ public sealed class RGroupAttribute : Attribute
     public RGroupAttribute(string? name = null) => Name = name;
 
     public string? Name { get; }
+
+    /// <summary>The member opens another group of the same name.</summary>
+    public bool NewBlock { get; set; }
 }
 
 /// <summary>The member is in a texture buffer: <c>tbuffer Name { ... }</c>.</summary>
@@ -43,6 +49,9 @@ public sealed class TBufferAttribute : Attribute
     public TBufferAttribute(string? name = null) => Name = name;
 
     public string? Name { get; }
+
+    /// <summary>The member opens another buffer of the same name.</summary>
+    public bool NewBlock { get; set; }
 }
 
 /// <summary>The sizes of an array, as SDSL writes them: <c>float4 Values[TCount];</c> is <c>[Size("TCount")] float4[] Values</c>.</summary>

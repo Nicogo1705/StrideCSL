@@ -16,7 +16,13 @@ public struct bool2 : IEquatable<bool2>
     public bool2(bool x, bool y) { this.x = x; this.y = y; }
     public bool2(bool v) { x = v; y = v; }
     public bool2(double v) { x = (v != 0); y = (v != 0); }
+    public bool2(bool2 v) { x = v.x; y = v.y; }
     public bool2(double p0, double p1) { x = (p0 != 0); y = (p1 != 0); }
+    public bool2(int2 p0) { x = (p0.x != 0); y = (p0.y != 0); }
+    public bool2(uint2 p0) { x = (p0.x != 0); y = (p0.y != 0); }
+    public bool2(half2 p0) { x = ((float)p0.x != 0f); y = ((float)p0.y != 0f); }
+    public bool2(float2 p0) { x = (p0.x != 0); y = (p0.y != 0); }
+    public bool2(double2 p0) { x = (p0.x != 0); y = (p0.y != 0); }
     public static implicit operator bool2(bool v) => new bool2(v);
     public static explicit operator bool2(bool3 v) => new bool2(v.x, v.y);
     public static explicit operator bool2(bool4 v) => new bool2(v.x, v.y);

@@ -44,7 +44,11 @@ public sealed class ComposeAttribute : Attribute { }
 
 /// <summary>A stage member, shared by every mixin of the stage (a shader parameter when it is a variable).</summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Method)]
-public sealed class StageAttribute : Attribute { }
+public sealed class StageAttribute : Attribute
+{
+    /// <summary>The SDSL says <c>override stage</c>, not <c>stage override</c>: the engine's compiler reads the two differently.</summary>
+    public bool AfterOverride { get; set; }
+}
 
 /// <summary>A stream: a value that flows between shader stages, read as <c>streams.Name</c> in SDSL.</summary>
 [AttributeUsage(AttributeTargets.Field)]

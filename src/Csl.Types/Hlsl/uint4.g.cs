@@ -22,6 +22,7 @@ public struct uint4 : IEquatable<uint4>
     public uint4(uint2 p0, uint2 p1) { x = p0.x; y = p0.y; z = p1.x; w = p1.y; }
     public uint4(uint3 p0, uint p1) { x = p0.x; y = p0.y; z = p0.z; w = p1; }
     public uint4(double v) { x = (uint)v; y = (uint)v; z = (uint)v; w = (uint)v; }
+    public uint4(uint4 v) { x = v.x; y = v.y; z = v.z; w = v.w; }
     public uint4(double p0, double p1, double p2, double p3) { x = (uint)p0; y = (uint)p1; z = (uint)p2; w = (uint)p3; }
     public uint4(double p0, double p1, half2 p2) { x = (uint)p0; y = (uint)p1; z = (uint)(float)p2.x; w = (uint)(float)p2.y; }
     public uint4(double p0, double p1, float2 p2) { x = (uint)p0; y = (uint)p1; z = (uint)p2.x; w = (uint)p2.y; }
@@ -47,6 +48,9 @@ public struct uint4 : IEquatable<uint4>
     public uint4(half3 p0, double p1) { x = (uint)(float)p0.x; y = (uint)(float)p0.y; z = (uint)(float)p0.z; w = (uint)p1; }
     public uint4(float3 p0, double p1) { x = (uint)p0.x; y = (uint)p0.y; z = (uint)p0.z; w = (uint)p1; }
     public uint4(double3 p0, double p1) { x = (uint)p0.x; y = (uint)p0.y; z = (uint)p0.z; w = (uint)p1; }
+    public uint4(half4 p0) { x = (uint)(float)p0.x; y = (uint)(float)p0.y; z = (uint)(float)p0.z; w = (uint)(float)p0.w; }
+    public uint4(float4 p0) { x = (uint)p0.x; y = (uint)p0.y; z = (uint)p0.z; w = (uint)p0.w; }
+    public uint4(double4 p0) { x = (uint)p0.x; y = (uint)p0.y; z = (uint)p0.z; w = (uint)p0.w; }
     public static implicit operator uint4(uint v) => new uint4(v);
     public static implicit operator uint4(bool4 v) => new uint4((v.x ? 1u : 0u), (v.y ? 1u : 0u), (v.z ? 1u : 0u), (v.w ? 1u : 0u));
     public static implicit operator uint4(int4 v) => new uint4((uint)v.x, (uint)v.y, (uint)v.z, (uint)v.w);
