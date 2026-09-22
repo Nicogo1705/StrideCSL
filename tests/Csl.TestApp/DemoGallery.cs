@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
 using Stride.Input;
@@ -31,6 +32,7 @@ internal sealed class DemoGallery : IDisposable
     private readonly List<Tile> tiles = new();
     private readonly RenderContext renderContext;
     private readonly Texture checker;
+    private readonly DemoBlurPass blur;
     private readonly DemoCompiler? compiler;
     private readonly FileSystemWatcher? watcher;
     private readonly object changeLock = new();
@@ -39,17 +41,22 @@ internal sealed class DemoGallery : IDisposable
     private bool hadErrors;
     private int solo = -1;
 
-    public DemoGallery(GraphicsDevice device, RenderContext renderContext)
+    public DemoGallery(IServiceRegistry services, GraphicsDevice device, RenderContext renderContext)
     {
         this.renderContext = renderContext;
+        blur = new DemoBlurPass(services);
         // The demos are the C# shaders of this app that live in a Demos folder: their SDSL was
         // registered at start-up by the build, so they draw before anything is compiled here.
         var demos = ShaderSourceRegistry.Sources
             .Where(s => string.Equals(Path.GetFileName(Path.GetDirectoryName(s.Value.Path)), "Demos", StringComparison.OrdinalIgnoreCase))
             .OrderBy(s => s.Key, StringComparer.Ordinal)
             .ToList();
+        // The image shaders are tiles; the compute one, DemoBlur, runs over all of them.
         foreach (var (name, (source, _)) in demos)
-            tiles.Add(new Tile(name, source, NewEffect(name)));
+        {
+            if (!IsComputeShader(name))
+                tiles.Add(new Tile(name, source, NewEffect(name)));
+        }
 
         checker = MakeChecker(device);
 
@@ -79,7 +86,8 @@ internal sealed class DemoGallery : IDisposable
         {
             var names = string.Join("  ", tiles.Select((t, i) => $"{i + 1} {t.Label}"));
             var shown = solo >= 0 ? $"{tiles[solo].Label} (0: all)" : names;
-            return $"StrideCSL gpu - {shown} - edit Demos/*.cs, it redraws";
+            var post = blur.Enabled ? $"B blur r{blur.Radius} (+/-)" : "B blur off";
+            return $"StrideCSL gpu - {shown} - {post} - edit Demos/*.cs, it redraws";
         }
     }
 
@@ -99,6 +107,12 @@ internal sealed class DemoGallery : IDisposable
         }
         if (input.IsKeyPressed(Keys.D0) || input.IsKeyPressed(Keys.NumPad0) || input.IsKeyPressed(Keys.Space))
             solo = -1;
+        if (input.IsKeyPressed(Keys.B))
+            blur.Enabled = !blur.Enabled;
+        if (input.IsKeyPressed(Keys.Add) || input.IsKeyPressed(Keys.OemPlus))
+            blur.Radius = Math.Min(blur.Radius + 1, 16);
+        if (input.IsKeyPressed(Keys.Subtract) || input.IsKeyPressed(Keys.OemMinus))
+            blur.Radius = Math.Max(blur.Radius - 1, 0);
 
         if (compiler == null)
             return;
@@ -149,8 +163,16 @@ internal sealed class DemoGallery : IDisposable
             Console.WriteLine("Demos/ compiles again.");
         hadErrors = false;
 
-        foreach (var (name, sdsl, path) in result.Shaders)
+        foreach (var (name, sdsl, path, isCompute) in result.Shaders)
         {
+            if (isCompute)
+            {
+                if (name == Demos.DemoBlur.ShaderName)
+                    blur.Offer(sdsl, path, force);
+                else if (force)
+                    Console.WriteLine($"{name}: a compute shader; only DemoBlur has a place in the gallery");
+                continue;
+            }
             var tile = tiles.FirstOrDefault(t => t.Name == name);
             if (tile == null)
             {
@@ -171,7 +193,16 @@ internal sealed class DemoGallery : IDisposable
         return true;
     }
 
-    public void Draw(RenderDrawContext context, Texture target, float time)
+    public void Draw(RenderDrawContext context, Texture backBuffer, float time)
+    {
+        // With the blur on, the tiles draw into its input and it draws the back buffer.
+        var target = blur.Enabled ? blur.SceneFor(backBuffer) : backBuffer;
+        DrawTiles(context, target, time);
+        if (blur.Enabled)
+            blur.Apply(context, backBuffer);
+    }
+
+    private void DrawTiles(RenderDrawContext context, Texture target, float time)
     {
         context.CommandList.Clear(target, new Color4(0.08f, 0.08f, 0.09f, 1.0f));
         if (tiles.Count == 0)
@@ -220,6 +251,9 @@ internal sealed class DemoGallery : IDisposable
             tile.Effect = null;
         }
     }
+
+    private static bool IsComputeShader(string name)
+        => Type.GetType($"{typeof(Demos.DemoBlur).Namespace}.{name}")?.IsSubclassOf(typeof(Csl.Engine.ComputeShaderBase)) == true;
 
     private ImageEffectShader NewEffect(string shaderName)
     {
@@ -272,5 +306,6 @@ internal sealed class DemoGallery : IDisposable
             tile.Candidate?.Effect.Dispose();
         }
         checker.Dispose();
+        blur.Dispose();
     }
 }

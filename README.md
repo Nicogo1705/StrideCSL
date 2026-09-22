@@ -194,11 +194,18 @@ from `Shading`), `DemoMandelbrot` (a loop with a break), `DemoWobble` (samples `
 checkerboard the app makes) and `DemoLuma` (calls the engine's `LuminanceUtils.Luma`, which this app
 replaces). `gpu` draws them side by side; keys 1-9 show one alone, 0 or space all of them.
 
+`DemoBlur` is a compute shader over the whole window: the tiles draw into a texture, it blurs it (a
+gaussian, one thread per pixel) and the result goes to the back buffer. It runs through its
+generated `DemoBlurEffect`, which sets `Size` and `Radius`; B turns it on and off, + and - change the
+radius.
+
 Saving a file of `Demos/` while it runs recompiles the folder the way the build does (Roslyn, the Csl
 generator, the translator: `DemoCompiler`) and each shader whose SDSL changed is drawn again under a
 new name (`DemoRings_2`), so the effect compiler has nothing cached for it. C# errors are printed as
 the build prints them and the tiles stay as they were; an SDSL the effect compiler refuses leaves the
-previous shader on screen. A new `[Shader]` class in the folder gets a new tile.
+previous shader on screen. A new `[Shader]` class in the folder gets a new tile. DemoBlur reloads the same way: the
+keys of each new name (`DemoBlur_2.Radius`) are registered as aliases of `DemoBlurKeys`, so the
+wrapper keeps setting them; a parameter added while the app runs needs a rebuild.
 
 Results on Stride 4.4.0-beta7 (479 shaders in the packages):
 

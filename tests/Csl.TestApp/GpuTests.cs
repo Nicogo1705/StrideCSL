@@ -103,7 +103,7 @@ internal sealed class GpuTests : Game
                 Exit();
                 return;
             }
-            gallery = new DemoGallery(GraphicsDevice, Csl.ShaderContext.Get(Services).RenderContext);
+            gallery = new DemoGallery(Services, GraphicsDevice, Csl.ShaderContext.Get(Services).RenderContext);
         }
         if (gallery == null)
             return;

@@ -22,7 +22,7 @@ internal sealed class DemoCompiler
 
     public string Directory { get; }
 
-    public sealed record Result(IReadOnlyList<(string ShaderName, string Sdsl, string Path)> Shaders, IReadOnlyList<string> Errors);
+    public sealed record Result(IReadOnlyList<(string ShaderName, string Sdsl, string Path, bool IsCompute)> Shaders, IReadOnlyList<string> Errors);
 
     public Result Compile(CancellationToken cancellation = default)
     {
@@ -35,7 +35,7 @@ internal sealed class DemoCompiler
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var generated, out _, cancellation);
 
         var errors = generated.GetDiagnostics(cancellation).Where(d => d.Severity == DiagnosticSeverity.Error).Select(Format).ToList();
-        var shaders = new List<(string, string, string)>();
+        var shaders = new List<(string, string, string, bool)>();
         foreach (var tree in trees)
         {
             var model = generated.GetSemanticModel(tree);
@@ -47,10 +47,18 @@ internal sealed class DemoCompiler
                 var translated = ShaderTranslator.Translate(type, generated, cancellation);
                 errors.AddRange(translated.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(Format));
                 if (!translated.IsExternal && translated.Sdsl != null)
-                    shaders.Add((translated.ShaderName, translated.Sdsl, tree.FilePath));
+                    shaders.Add((translated.ShaderName, translated.Sdsl, tree.FilePath, IsCompute(type)));
             }
         }
         return new Result(shaders, errors.Distinct().ToList());
+    }
+
+    private static bool IsCompute(INamedTypeSymbol type)
+    {
+        for (var b = type.BaseType; b != null; b = b.BaseType)
+            if (b.ToDisplayString() == "Csl.Engine.ComputeShaderBase")
+                return true;
+        return false;
     }
 
     private static string Format(Diagnostic diagnostic)
