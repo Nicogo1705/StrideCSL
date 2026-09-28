@@ -14,12 +14,14 @@ using Csl.Cpu;
 /// Shader resources: handles, as on the GPU, where they are accessed. Given CPU data (a CpuTexture, an
 /// array), their members also run on the CPU (Csl.Cpu.ResourceOps), for shader code run there.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 internal static class GpuOnly
 {
     public static Exception Exception() => new NotSupportedException("Shader resources are only accessed on the GPU");
 }
 
 /// <summary>A sampler: on the CPU, its description (Stride's defaults when it has none).</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct SamplerState
 {
     private readonly SamplerDescription? description;
@@ -28,6 +30,7 @@ public readonly struct SamplerState
     public bool HasDescription => description != null;
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct SamplerComparisonState
 {
     private readonly SamplerDescription? description;
@@ -37,13 +40,20 @@ public readonly struct SamplerComparisonState
 }
 
 /// <summary>Sample counts of a multisampled texture: Texture2DMS&lt;float4, Samples4&gt; is SDSL's Texture2DMS&lt;float4, 4&gt;.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Samples1 { }
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Samples2 { }
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Samples4 { }
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Samples8 { }
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Samples16 { }
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Samples32 { }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture1D<T> where T : struct
 {
     private readonly object? cpu;
@@ -76,6 +86,7 @@ public readonly struct Texture1D<T> where T : struct
 }
 
 /// <summary>Texture1D of float4, as SDSL writes it without an element type.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture1D
 {
     private readonly object? cpu;
@@ -107,6 +118,7 @@ public readonly struct Texture1D
     public void GetDimensions(uint mipLevel, out float width, out float levels) { ResourceOps.Dimensions(cpu, 1, false, mipLevel, out var w, out var h, out var d, out var l); width = w; levels = l; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture1DArray<T> where T : struct
 {
     private readonly object? cpu;
@@ -139,6 +151,7 @@ public readonly struct Texture1DArray<T> where T : struct
 }
 
 /// <summary>Texture1DArray of float4, as SDSL writes it without an element type.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture1DArray
 {
     private readonly object? cpu;
@@ -170,6 +183,7 @@ public readonly struct Texture1DArray
     public void GetDimensions(uint mipLevel, out float width, out float elements, out float levels) { ResourceOps.Dimensions(cpu, 1, true, mipLevel, out var w, out var h, out var d, out var l); width = w; elements = d; levels = l; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2D<T> where T : struct
 {
     private readonly object? cpu;
@@ -218,6 +232,7 @@ public readonly struct Texture2D<T> where T : struct
 }
 
 /// <summary>Texture2D of float4, as SDSL writes it without an element type.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2D
 {
     private readonly object? cpu;
@@ -265,6 +280,7 @@ public readonly struct Texture2D
     public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) { ResourceOps.Dimensions(cpu, 2, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; levels = l; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2DArray<T> where T : struct
 {
     private readonly object? cpu;
@@ -313,6 +329,7 @@ public readonly struct Texture2DArray<T> where T : struct
 }
 
 /// <summary>Texture2DArray of float4, as SDSL writes it without an element type.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2DArray
 {
     private readonly object? cpu;
@@ -360,6 +377,7 @@ public readonly struct Texture2DArray
     public void GetDimensions(uint mipLevel, out float width, out float height, out float elements, out float levels) { ResourceOps.Dimensions(cpu, 2, true, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; elements = d; levels = l; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture3D<T> where T : struct
 {
     private readonly object? cpu;
@@ -392,6 +410,7 @@ public readonly struct Texture3D<T> where T : struct
 }
 
 /// <summary>Texture3D of float4, as SDSL writes it without an element type.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture3D
 {
     private readonly object? cpu;
@@ -423,6 +442,7 @@ public readonly struct Texture3D
     public void GetDimensions(uint mipLevel, out float width, out float height, out float depth, out float levels) { ResourceOps.Dimensions(cpu, 3, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; depth = d; levels = l; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct TextureCube<T> where T : struct
 {
     private readonly object? cpu;
@@ -450,6 +470,7 @@ public readonly struct TextureCube<T> where T : struct
 }
 
 /// <summary>TextureCube of float4, as SDSL writes it without an element type.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct TextureCube
 {
     private readonly object? cpu;
@@ -476,6 +497,7 @@ public readonly struct TextureCube
     public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct TextureCubeArray<T> where T : struct
 {
     private readonly object? cpu;
@@ -503,6 +525,7 @@ public readonly struct TextureCubeArray<T> where T : struct
 }
 
 /// <summary>TextureCubeArray of float4, as SDSL writes it without an element type.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct TextureCubeArray
 {
     private readonly object? cpu;
@@ -529,6 +552,7 @@ public readonly struct TextureCubeArray
     public void GetDimensions(uint mipLevel, out float width, out float height, out float elements, out float levels) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture1D<T> where T : struct
 {
     private readonly object? cpu;
@@ -543,6 +567,7 @@ public readonly struct RWTexture1D<T> where T : struct
     public void GetDimensions(out float width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture1D
 {
     private readonly object? cpu;
@@ -557,6 +582,7 @@ public readonly struct RWTexture1D
     public void GetDimensions(out float width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture1DArray<T> where T : struct
 {
     private readonly object? cpu;
@@ -571,6 +597,7 @@ public readonly struct RWTexture1DArray<T> where T : struct
     public void GetDimensions(out float width, out float elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture1DArray
 {
     private readonly object? cpu;
@@ -585,6 +612,7 @@ public readonly struct RWTexture1DArray
     public void GetDimensions(out float width, out float elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture2D<T> where T : struct
 {
     private readonly object? cpu;
@@ -599,6 +627,7 @@ public readonly struct RWTexture2D<T> where T : struct
     public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture2D
 {
     private readonly object? cpu;
@@ -613,6 +642,7 @@ public readonly struct RWTexture2D
     public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture2DArray<T> where T : struct
 {
     private readonly object? cpu;
@@ -627,6 +657,7 @@ public readonly struct RWTexture2DArray<T> where T : struct
     public void GetDimensions(out float width, out float height, out float elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture2DArray
 {
     private readonly object? cpu;
@@ -641,6 +672,7 @@ public readonly struct RWTexture2DArray
     public void GetDimensions(out float width, out float height, out float elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture3D<T> where T : struct
 {
     private readonly object? cpu;
@@ -655,6 +687,7 @@ public readonly struct RWTexture3D<T> where T : struct
     public void GetDimensions(out float width, out float height, out float depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWTexture3D
 {
     private readonly object? cpu;
@@ -669,6 +702,7 @@ public readonly struct RWTexture3D
     public void GetDimensions(out float width, out float height, out float depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RasterizerOrderedTexture2D<T> where T : struct
 {
     private readonly object? cpu;
@@ -683,6 +717,7 @@ public readonly struct RasterizerOrderedTexture2D<T> where T : struct
     public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RasterizerOrderedTexture2D
 {
     private readonly object? cpu;
@@ -697,6 +732,7 @@ public readonly struct RasterizerOrderedTexture2D
     public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2DMS<T> where T : struct
 {
     public T Load(int2 location, int sample) => throw GpuOnly.Exception();
@@ -708,6 +744,7 @@ public readonly struct Texture2DMS<T> where T : struct
     public float2 GetSamplePosition(int sample) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2DMS<T, TSamples> where T : struct where TSamples : struct
 {
     public T Load(int2 location, int sample) => throw GpuOnly.Exception();
@@ -719,6 +756,7 @@ public readonly struct Texture2DMS<T, TSamples> where T : struct where TSamples 
     public float2 GetSamplePosition(int sample) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2DMS
 {
     public float4 Load(int2 location, int sample) => throw GpuOnly.Exception();
@@ -727,6 +765,7 @@ public readonly struct Texture2DMS
     public void GetDimensions(out float width, out float height, out float samples) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2DMSArray<T> where T : struct
 {
     public T Load(int3 location, int sample) => throw GpuOnly.Exception();
@@ -738,6 +777,7 @@ public readonly struct Texture2DMSArray<T> where T : struct
     public float2 GetSamplePosition(int sample) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2DMSArray<T, TSamples> where T : struct where TSamples : struct
 {
     public T Load(int3 location, int sample) => throw GpuOnly.Exception();
@@ -749,6 +789,7 @@ public readonly struct Texture2DMSArray<T, TSamples> where T : struct where TSam
     public float2 GetSamplePosition(int sample) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Texture2DMSArray
 {
     public float4 Load(int3 location, int sample) => throw GpuOnly.Exception();
@@ -757,6 +798,7 @@ public readonly struct Texture2DMSArray
     public void GetDimensions(out float width, out float height, out float elements, out float samples) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Buffer<T> where T : struct
 {
     private readonly object? cpu;
@@ -770,6 +812,7 @@ public readonly struct Buffer<T> where T : struct
     public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<T>(cpu);
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Buffer
 {
     private readonly object? cpu;
@@ -783,6 +826,7 @@ public readonly struct Buffer
     public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<float4>(cpu);
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWBuffer<T> where T : struct
 {
     private readonly object? cpu;
@@ -796,6 +840,7 @@ public readonly struct RWBuffer<T> where T : struct
     public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<T>(cpu);
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWBuffer
 {
     private readonly object? cpu;
@@ -809,6 +854,7 @@ public readonly struct RWBuffer
     public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<float4>(cpu);
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct StructuredBuffer<T> where T : struct
 {
     private readonly object? cpu;
@@ -822,6 +868,7 @@ public readonly struct StructuredBuffer<T> where T : struct
     public void GetDimensions(out uint count, out uint stride) { count = ResourceOps.BufferCount<T>(cpu); stride = ResourceOps.BufferStride<T>(); }
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWStructuredBuffer<T> where T : struct
 {
     private readonly object? cpu;
@@ -837,6 +884,7 @@ public readonly struct RWStructuredBuffer<T> where T : struct
     public uint DecrementCounter() => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RasterizerOrderedBuffer<T> where T : struct
 {
     private readonly object? cpu;
@@ -850,6 +898,7 @@ public readonly struct RasterizerOrderedBuffer<T> where T : struct
     public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<T>(cpu);
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RasterizerOrderedBuffer
 {
     private readonly object? cpu;
@@ -863,6 +912,7 @@ public readonly struct RasterizerOrderedBuffer
     public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<float4>(cpu);
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RasterizerOrderedStructuredBuffer<T> where T : struct
 {
     private readonly object? cpu;
@@ -878,18 +928,21 @@ public readonly struct RasterizerOrderedStructuredBuffer<T> where T : struct
     public uint DecrementCounter() => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct AppendStructuredBuffer<T> where T : struct
 {
     public void Append(T value) => throw GpuOnly.Exception();
     public void GetDimensions(out uint count, out uint stride) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct ConsumeStructuredBuffer<T> where T : struct
 {
     public T Consume() => throw GpuOnly.Exception();
     public void GetDimensions(out uint count, out uint stride) => throw GpuOnly.Exception();
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct ByteAddressBuffer
 {
     private readonly object? cpu;
@@ -907,6 +960,7 @@ public readonly struct ByteAddressBuffer
     public void GetDimensions(out uint bytes) => bytes = ResourceOps.BufferCount<uint>(cpu) * 4;
 }
 
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct RWByteAddressBuffer
 {
     private readonly object? cpu;

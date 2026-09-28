@@ -14,6 +14,7 @@ public enum CompareFunction { Never, Less, Equal, LessEqual, Greater, NotEqual, 
 /// A sampler state for shader code run on the CPU, with Stride's defaults (linear, clamp, border
 /// (0, 0, 0, 0)): what a SamplerState no one described gets, as the engine's Texturing.Sampler.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public sealed class SamplerDescription
 {
     public FilterMode MinFilter = FilterMode.Linear;
@@ -112,6 +113,7 @@ public sealed class SamplerDescription
 /// taps at u · size - 0.5 weighted with <see cref="SubtexelBits"/> bits of fraction, the level from the
 /// longest derivative, mip levels blended with the same precision.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class Sampling
 {
     /// <summary>Bits of the linear weights: 8 on the hardware D3D11 describes (and on the GPUs measured).</summary>

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs subsurface scattering using shadow maps.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(IMaterialSurfaceShading), typeof(MaterialPixelShadingStream), typeof(ShadowStream), typeof(Math))]
 public abstract partial class MaterialSurfaceSubsurfaceScatteringShading : IMaterialSubsurfaceScatteringScatteringProfile
 {

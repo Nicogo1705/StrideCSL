@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines streams for object space position when the corresponding attribute is a float2. Sets its value in a float4.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class PositionStream2 : ShaderBase
 {
     // The position attribute

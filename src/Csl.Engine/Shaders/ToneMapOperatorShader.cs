@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A generic interface for computing a tonemap operator.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapOperatorShader : ColorTransformShader
 {
 }

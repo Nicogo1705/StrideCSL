@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2012/09/an-efficient-and-user-friendly-tone-mapping-operator.pdf
 /// </remarks>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapMikeDayOperatorShader : ToneMapOperatorShader
 {
     public float4 ToeCoeffs;

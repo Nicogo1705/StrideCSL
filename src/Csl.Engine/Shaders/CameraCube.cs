@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Renders the geometry in the correct view for a cube map.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShaderBase))]
 public abstract partial class CameraCube : PositionStream4
 {

@@ -18,6 +18,7 @@ namespace Csl.Engine;
 ///  - Texture1: the corresponding depth buffer
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class McIntoshOptimizedShader : ImageEffectShader
 {
     [Compose] public ComputeColor directionalBlurA;

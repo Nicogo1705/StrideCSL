@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Calculates the diffuse lighting for hair.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream), typeof(Math), typeof(LightStream), typeof(MaterialHairShared), typeof(Transformation), typeof(NormalStream))]
 public abstract partial class MaterialSurfaceShadingDiffuseHair : IMaterialSurfaceShading
 {

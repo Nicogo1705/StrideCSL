@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL float4: 4 components of float.</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct float4 : IEquatable<float4>
 {
     public float x, y, z, w;

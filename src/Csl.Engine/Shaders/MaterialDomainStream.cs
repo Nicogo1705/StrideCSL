@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Contains all the default streams of the domain shader stage.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialDisplacementStream), typeof(MaterialTessellationStream), typeof(NormalStream), typeof(PositionStream), typeof(Texturing))]
 public abstract partial class MaterialDomainStream : MaterialStream
 {

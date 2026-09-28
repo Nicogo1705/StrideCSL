@@ -13,6 +13,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(TransformationBase), typeof(ScreenPositionBase), typeof(VelocityStream))]
 public abstract partial class MeshVelocity : PositionStream4
 {

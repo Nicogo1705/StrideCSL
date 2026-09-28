@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Material normal map
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialSurfaceNormalMap : IMaterialSurfacePixel
 {
     [Generic] public static bool TIsNormalXY1;

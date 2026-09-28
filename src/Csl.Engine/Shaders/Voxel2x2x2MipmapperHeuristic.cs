@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class Voxel2x2x2MipmapperHeuristic : Voxel2x2x2Mipmapper
 {
     public override float4 Mipmap(float4 s000, float4 s100, float4 s110, float4 s101, float4 s011, float4 s010, float4 s001, float4 s111)

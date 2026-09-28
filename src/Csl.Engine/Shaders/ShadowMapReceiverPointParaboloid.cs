@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Selects the shadow map and computes the shadow factor.
 /// </summary>
 [Shader(External = true, Internal = true, BaseGenerics = "PerDraw.Lighting")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShadowMapFilterBase), Generics = "PerDraw.Lighting")]
 [Mixin(typeof(PositionStream4), typeof(ShaderBaseStream))]
 public abstract partial class ShadowMapReceiverPointParaboloid : ShadowMapGroup

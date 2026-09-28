@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Packs and stores the normals into the GBuffer. Expected texture output format: float3.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class NormalPack
 {
     // Compact Normal Storage for Small G-Buffers

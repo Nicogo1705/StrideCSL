@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Base shader to compute a color (float3).
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColor3
 {
     public virtual float3 Compute()

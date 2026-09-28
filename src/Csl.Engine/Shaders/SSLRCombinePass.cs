@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Screen Space Local Reflections shader for Combine Pass
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(SSLRCommon), typeof(Utilities))]
 [Define("SSR_MIX_BLUR", "1")]
 public abstract partial class SSLRCombinePass : ImageEffectShader

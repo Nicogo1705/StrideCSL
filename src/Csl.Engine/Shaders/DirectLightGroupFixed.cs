@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Overrides the default behaviour of DirectLightGroup to only return a fixed number of lights
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class DirectLightGroupFixed : DirectLightGroup
 {
     [Generic] public static int TLightCount;

@@ -12,6 +12,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class HighlightShader : ShaderBase
 {
     [CBuffer("PerDraw"), Stage] public float4 HighlightColor;

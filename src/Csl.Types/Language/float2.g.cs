@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL float2: 2 components of float.</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct float2 : IEquatable<float2>
 {
     public float x, y;

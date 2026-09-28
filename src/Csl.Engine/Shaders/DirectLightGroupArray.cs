@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// An array of light groups
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class DirectLightGroupArray
 {
     [Stage, Compose] public DirectLightGroup[] directLightGroups;

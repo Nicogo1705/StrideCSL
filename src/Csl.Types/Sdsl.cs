@@ -3,12 +3,15 @@ using System;
 namespace Csl;
 
 /// <summary>The type of a <c>LinkType</c> generic parameter: the name of a parameter key.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct LinkType { }
 
 /// <summary>The type of a <c>Semantic</c> generic parameter: a semantic name.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct Semantic { }
 
 /// <summary>The type of a <c>MemberName</c> generic parameter: the name of a member, used as <c>value.TName</c>, written <c>Sdsl.Member(value, TName)</c>.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct MemberName
 {
     /// <summary>A value for the parameter, for shader code run on the CPU: <c>new MemberName("rgba")</c>.</summary>
@@ -18,6 +21,7 @@ public readonly struct MemberName
 }
 
 /// <summary>What the body of an external shader's method runs: nothing, the shader is compiled from its own source.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class Gpu
 {
     public static Exception Only => new NotSupportedException("Shader code runs on the GPU");
@@ -27,6 +31,7 @@ public static class Gpu
 /// SDSL constructs C# has no syntax for, as calls the translator turns back into them. On the CPU
 /// (Csl.Cpu) they do what the SDSL does, with the macros of the run.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class Sdsl
 {
     /// <summary>A preprocessor condition: <c>if (Sdsl.If("A")) { } else if (Sdsl.If("B")) { } else { }</c> is <c>#if A / #elif B / #else / #endif</c>.</summary>

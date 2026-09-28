@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A gaussian blur shader
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class GaussianBlurShader : ImageEffectShader
 {
     [Generic] public static int BlurCount;

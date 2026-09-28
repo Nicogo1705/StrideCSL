@@ -37,10 +37,13 @@ public static class ShaderPartialEmitter
         var self = shader.ToDisplayString(TypeFormat);
         bool baseIsShader = shader.BaseType != null && ShaderTranslator.IsShaderClass(shader.BaseType);
         sb.Append(indent).AppendLine("    /// <summary>The streams of the shader, as in SDSL: <c>streams.Position</c>.</summary>");
+        sb.Append(indent).AppendLine("    [global::System.Diagnostics.DebuggerNonUserCode]");
         sb.Append(indent).Append("    protected ").Append(baseIsShader ? "new " : string.Empty).Append(self).AppendLine(" streams { get => this; set { } }");
         sb.Append(indent).AppendLine("    /// <summary>A member named by a MemberName generic parameter: <c>streams[TName]</c> is SDSL's <c>streams.TName</c>.</summary>");
+        sb.Append(indent).AppendLine("    [global::System.Diagnostics.DebuggerNonUserCode]");
         sb.Append(indent).Append("    public ").Append(baseIsShader ? "new " : string.Empty).AppendLine("dynamic this[global::Csl.MemberName name] { get => global::Csl.Cpu.Members.Get(this, name.Name!); set => global::Csl.Cpu.Members.Set(this, name.Name!, value); }");
         sb.Append(indent).AppendLine("    /// <summary>A stream the shader does not declare, that the effect mixes in: <c>streams[\"PositionWS\"]</c>.</summary>");
+        sb.Append(indent).AppendLine("    [global::System.Diagnostics.DebuggerNonUserCode]");
         sb.Append(indent).Append("    public ").Append(baseIsShader ? "new " : string.Empty).AppendLine("dynamic this[string name] { get => global::Csl.Cpu.Members.Get(this, name); set => global::Csl.Cpu.Members.Set(this, name, value); }");
 
         // Names the class already has: its own, its C# bases', and what the stubs of its C# bases bring.
@@ -106,6 +109,8 @@ public static class ShaderPartialEmitter
                           .Append(" = ").Append(Literal(constant.ConstantValue)).AppendLine(";");
                         break;
                     case IMethodSymbol { MethodKind: MethodKind.Ordinary } method:
+                        // A stub: the debugger steps through it, into the mixin's method.
+                        sb.Append(indent).AppendLine("    [global::System.Diagnostics.DebuggerNonUserCode]");
                         sb.Append(indent).Append("    public ").Append(method.IsStatic ? "static " : string.Empty)
                           .Append(method.ReturnType.ToDisplayString(TypeFormat)).Append(' ').Append(Escape(method.Name)).Append('(');
                         for (int i = 0; i < method.Parameters.Length; i++)

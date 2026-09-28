@@ -19,6 +19,7 @@ namespace Csl.Engine;
 /// TScale: generic float2 - the scaling factor of the texture coordinates.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorTextureScaled : ComputeColor
 {
     [Generic] public static Texture2D TTexture;

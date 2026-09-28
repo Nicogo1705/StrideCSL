@@ -8,6 +8,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Transformation), typeof(Texturing), typeof(PositionStream4))]
 public abstract partial class SinglePassWireframeShader : ShaderBase
 {

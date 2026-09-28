@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// https://twitter.com/jimhejl/status/633777619998130176
 /// </remarks>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapHejl2OperatorShader : ToneMapOperatorShader
 {
     public float WhitePoint = 5.0f;

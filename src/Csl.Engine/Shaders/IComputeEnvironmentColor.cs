@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Base shader to sample an environment
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class IComputeEnvironmentColor
 {
     public virtual float4 Compute(float3 direction)

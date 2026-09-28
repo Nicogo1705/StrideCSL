@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a group of similar lights (directional, spot...etc.)
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class DirectLightGroupPerView : DirectLightGroup
 {
     [CBuffer("PerView.Lighting")] public int LightCount;

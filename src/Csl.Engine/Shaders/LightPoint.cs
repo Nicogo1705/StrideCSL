@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a point light
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(LightStream), typeof(PositionStream4))]
 public abstract partial class LightPoint : LightUtil
 {

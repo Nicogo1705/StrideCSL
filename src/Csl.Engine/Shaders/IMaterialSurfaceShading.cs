@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Base interface for a material layer shading.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(LightStream))]
 public abstract partial class IMaterialSurfaceShading : MaterialPixelStream
 {

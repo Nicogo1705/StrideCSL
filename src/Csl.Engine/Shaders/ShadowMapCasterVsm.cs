@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Creates shadow map for variance shadow mapping.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ShadowMapCasterVsm : ShaderBase
 {
     /// --------------------------------------------------------------------------------

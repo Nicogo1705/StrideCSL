@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL float2x2: 2 rows of float2, indexed m[row][column].</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct float2x2
 {
     public float2 r0, r1;

@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class VoxelFragmentPackFloat32 : VoxelFragmentPacker
 {
     public override void Skip(ref uint address, float unpacked)

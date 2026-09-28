@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// SkinningMaxBones: Macro - number of threads on the X axis.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(PositionStream4), typeof(Transformation))]
 [Define("SkinningMaxBones", "4", If = "!defined(SkinningMaxBones)")]
 public abstract partial class TransformationSkinning : TransformationBase

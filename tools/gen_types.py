@@ -8,7 +8,7 @@ The C# types exist so shader code written in C# type-checks the way HLSL would: 
 same swizzles, the same conversions (widening ones implicit, as HLSL's promotion bool < int < uint <
 half < float < double; narrowing and truncation explicit, which is where HLSL only warns). The
 members also run on the CPU, so shader helpers can be unit tested one thread at a time."""
-import itertools, os
+import itertools, os, re
 
 OUT = os.path.join(os.path.dirname(__file__), '..', 'src', 'Csl.Types', 'Language')
 
@@ -743,7 +743,12 @@ os.makedirs(OUT, exist_ok=True)
 for old in os.listdir(OUT):
     if old.endswith('.g.cs'):
         os.remove(os.path.join(OUT, old))
+# Not the partial Intrinsics: its handwritten half carries the attribute once for the type.
+NON_USER = re.compile(r'^(public|internal)( readonly)?( static)? (struct|class) ', re.M)
+
 def write(file, text):
+    # Library code: the debugger's Just My Code steps over it, into the shader that calls it.
+    text = NON_USER.sub(lambda m: '[System.Diagnostics.DebuggerNonUserCode]\n' + m.group(0), text)
     with open(os.path.join(OUT, file), 'w', newline='\n') as f:
         f.write(text)
 write('half.g.cs', emit_half())

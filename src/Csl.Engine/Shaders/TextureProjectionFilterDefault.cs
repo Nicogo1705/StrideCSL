@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// PerLightGroup: Parameter used to uniquely identify this group of lights.
 /// </remarks>
 [Shader(External = true, Internal = true, BaseGenerics = "PerLightGroup")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing))]
 public abstract partial class TextureProjectionFilterDefault : TextureProjectionCommon
 {

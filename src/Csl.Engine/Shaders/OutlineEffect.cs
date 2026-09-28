@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Simple fog
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class OutlineEffect : ImageEffectShader
 {
     [Stage] public float2 ScreenDiffs;

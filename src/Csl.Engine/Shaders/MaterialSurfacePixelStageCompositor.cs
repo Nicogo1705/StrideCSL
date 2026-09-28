@@ -12,6 +12,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Transformation), typeof(PositionStream), typeof(MaterialPixelShadingStream), typeof(DirectLightGroupArray), typeof(EnvironmentLightArray))]
 public abstract partial class MaterialSurfacePixelStageCompositor : ShadingBase
 {

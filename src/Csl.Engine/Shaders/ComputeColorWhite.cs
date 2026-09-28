@@ -8,6 +8,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorWhite : ComputeColor
 {
     public override float4 Compute()

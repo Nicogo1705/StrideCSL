@@ -23,6 +23,7 @@ namespace Csl.Engine;
 ///
 /// <typeparam name="TLevelCount">Total number of layers used, including the original non-blurred image.</typeparam>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Define("DEBUG_COC_LEVEL_COLOR", "0")]
 public abstract partial class CombineLevelsFromCoCShader : ImageEffectShader
 {

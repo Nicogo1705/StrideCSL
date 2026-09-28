@@ -9,6 +9,7 @@ namespace Csl.Cpu;
 /// as they always did: the resource lives on the GPU. <c>dimensions</c> is 1 to 3,
 /// <c>array</c> tells whether the coordinate carries an element index after them.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class ResourceOps
 {
     private static CpuTexture Texture(object? cpu) => cpu as CpuTexture

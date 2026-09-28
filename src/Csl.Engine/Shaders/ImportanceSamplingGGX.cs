@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Importance sampling for the GGX function.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ImportanceSamplingGGX : Math
 {
     public virtual float3 GetSample(float2 xi, float roughness, float3 N)

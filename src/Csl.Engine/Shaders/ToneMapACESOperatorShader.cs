@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// The ACES tonemap operator.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapACESOperatorShader : ToneMapCommonOperatorShader
 {
     // ACES filmic tonemapper with highlight desaturation ("crosstalk").

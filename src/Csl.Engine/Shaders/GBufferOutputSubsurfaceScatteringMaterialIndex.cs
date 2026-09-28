@@ -13,6 +13,7 @@ namespace Csl.Engine;
 /// <summary>
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class GBufferOutputSubsurfaceScatteringMaterialIndex : ComputeColor
 {
     // TODO: How to initialize this to 0 at all times for every material?

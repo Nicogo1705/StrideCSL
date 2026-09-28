@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a spot light
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(PositionStream4), typeof(SpotLightDataInternalShader), typeof(LightSpotAttenuationDefault))]
 public abstract partial class LightSpot : LightStream
 {

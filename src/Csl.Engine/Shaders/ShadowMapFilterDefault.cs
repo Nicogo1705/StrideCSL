@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs default filtering: no filtering.
 /// </summary>
 [Shader(External = true, BaseGenerics = "PerLighting")]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ShadowMapFilterDefault : ShadowMapFilterBase
 {
     [Generic] public static MemberName PerLighting;

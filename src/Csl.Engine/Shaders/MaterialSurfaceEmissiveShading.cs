@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Emissive shading
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream))]
 public abstract partial class MaterialSurfaceEmissiveShading : IMaterialSurfacePixel
 {

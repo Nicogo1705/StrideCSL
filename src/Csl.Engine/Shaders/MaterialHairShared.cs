@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialHairShared
 {
     public const int HAIR_SHADING_SCHEUERMANN_APPROXIMATION = 0;

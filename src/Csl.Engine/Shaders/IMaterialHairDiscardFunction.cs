@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Common interface for discarding pixels for the hair shading model.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class IMaterialHairDiscardFunction
 {
     // TODO: Can't we move the cbuffer with the HairAlphaThreshold here?

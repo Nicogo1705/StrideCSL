@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Computes shading for all the groups of lights.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ColorTransformGroupShader : ImageEffectShader
 {
     [Compose] public ColorTransformShader[] Transforms;

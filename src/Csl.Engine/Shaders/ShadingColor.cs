@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Class outputing color from a single ComputeColor and overriding any previous color computations.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ShadingColor : ShaderBase
 {
     [Compose] public ComputeColor Color;

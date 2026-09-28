@@ -18,6 +18,7 @@ namespace Csl.Engine;
 ///  - Texture2: a color buffer with the bottom rhombi blur
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class TripleRhombiCombineShader : ImageEffectShader
 {
     // Offset to apply when reading a texture coordinate (for each of the 3 rhombis)

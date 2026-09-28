@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Material displacement map
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialSurfaceVertexDisplacement : IMaterialSurfaceVertex
 {
     [Generic] public static bool TScaleAndBias;

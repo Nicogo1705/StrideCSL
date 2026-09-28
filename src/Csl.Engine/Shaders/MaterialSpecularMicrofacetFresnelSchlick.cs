@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Interface for a microfacet Fresnel function
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialSpecularMicrofacetFresnelSchlick : IMaterialSpecularMicrofacetFresnelFunction
 {
     public override float3 Compute(float3 f0)

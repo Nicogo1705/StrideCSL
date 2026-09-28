@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a simple environment light
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream))]
 public abstract partial class LightSimpleAmbient : EnvironmentLight
 {

@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL uint3: 3 components of uint.</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct uint3 : IEquatable<uint3>
 {
     public uint x, y, z;

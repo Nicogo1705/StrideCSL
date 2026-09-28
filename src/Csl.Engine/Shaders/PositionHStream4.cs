@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a world space position stream.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class PositionHStream4
 {
     [Stream("POSITIONH")] public float4 PositionH;

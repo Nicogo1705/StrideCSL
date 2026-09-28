@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Blend a stream linearly
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialStreamLinearBlend : IMaterialStreamBlend
 {
     [Generic] public static MemberName TMember;

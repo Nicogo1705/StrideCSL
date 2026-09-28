@@ -15,6 +15,7 @@ namespace Csl.Engine;
 /// and a helper function to extract the color of it.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class OpaqueBase : Texturing
 {
     // -------------------------------------

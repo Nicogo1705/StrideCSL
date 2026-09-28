@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialSubsurfaceScatteringScatteringProfileCustomUniform : IMaterialSubsurfaceScatteringScatteringProfile
 {
     [CBuffer("PerMaterial"), Stage, Size("6")] public float4[] ScatteringProfile;

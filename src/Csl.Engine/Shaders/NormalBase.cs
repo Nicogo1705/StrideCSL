@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines the methods to get the normal in view space and inserts them in the pipeline.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShaderBase))]
 public abstract partial class NormalBase : NormalUpdate
 {

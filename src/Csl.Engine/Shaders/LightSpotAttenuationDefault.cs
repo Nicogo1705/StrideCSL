@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Code for attenuating a group of spotlights using angular attenuation.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class LightSpotAttenuationDefault : LightUtil
 {
     //override float ComputeAttenuation(SpotLightDataInternal light, float3 position, inout float3 lightVectorNorm)

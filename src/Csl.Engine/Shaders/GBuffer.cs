@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// An array of light groups
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelStream))]
 public abstract partial class GBuffer : ShaderBase
 {

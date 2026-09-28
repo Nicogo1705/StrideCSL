@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Base interface for initializing streams
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class IStreamInitializer
 {
     public virtual void ResetStream()

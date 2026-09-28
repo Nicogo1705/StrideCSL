@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines shadow filtering method.
 /// </summary>
 [Shader(External = true, BaseGenerics = "PerLighting")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing), typeof(Math))]
 public abstract partial class ShadowMapFilterBase : ShadowMapCommon
 {

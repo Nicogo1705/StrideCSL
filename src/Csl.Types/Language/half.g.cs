@@ -13,6 +13,7 @@ namespace Csl.Types;
 /// and explicitly back, so a half expression type-checks where HLSL would take it.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct half : IEquatable<half>
 {
     private readonly float value;

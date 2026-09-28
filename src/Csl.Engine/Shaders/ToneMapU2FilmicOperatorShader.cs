@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// The U2Filmic tonemap operator.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapU2FilmicOperatorShader : ToneMapOperatorShader
 {
     public float ShoulderStrength = 0.22f;

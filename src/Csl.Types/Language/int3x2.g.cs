@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL int3x2: 3 rows of int2, indexed m[row][column].</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct int3x2
 {
     public int2 r0, r1, r2;

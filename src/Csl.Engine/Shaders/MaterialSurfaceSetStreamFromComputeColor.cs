@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(IMaterialSurfaceVertex), typeof(IMaterialSurfaceDomain))]
 public abstract partial class MaterialSurfaceSetStreamFromComputeColor : IMaterialSurfacePixel
 {

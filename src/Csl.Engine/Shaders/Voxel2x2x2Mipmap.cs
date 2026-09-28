@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing), typeof(ComputeShaderBase))]
 public abstract partial class Voxel2x2x2Mipmap : Math
 {

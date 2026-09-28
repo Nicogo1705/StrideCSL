@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Combines the different blur levels depending on the pixel's CoC. (Front area only.)
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class CombineFrontCoCShader : ImageEffectShader
 {
     [Generic] public static int TLevelCount;

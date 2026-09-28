@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Interface for a microfacet Normal Distribution function
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialSpecularMicrofacetNormalDistributionGGX : IMaterialSpecularMicrofacetNormalDistributionFunction
 {
     public override float Compute()

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Compute the color from a stream
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorFromStream : ComputeColor
 {
     [Generic] public static Semantic TStream;

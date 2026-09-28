@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class VoxelBufferWriteAssign : VoxelBufferWriter
 {
     public override void Write_Internal(RWBuffer<uint> fragmentsBuffer, ref uint address, uint data)

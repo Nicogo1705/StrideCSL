@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines light streams variable.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class LightStream
 {
     [Stage, Stream] public float3 lightPositionWS;

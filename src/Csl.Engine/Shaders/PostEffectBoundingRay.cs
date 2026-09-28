@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// TSampleCount: generic int - number of iterations.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(DepthBase), typeof(Transformation), typeof(PositionStream4))]
 public abstract partial class PostEffectBoundingRay : ImageEffectShader
 {

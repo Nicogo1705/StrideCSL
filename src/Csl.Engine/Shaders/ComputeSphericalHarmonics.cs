@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Base shader to sample an environment
 /// </summary>
 [Shader(External = true, BaseGenerics = "TOrder")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ComputeColor), typeof(NormalStream))]
 public abstract partial class ComputeSphericalHarmonics : SphericalHarmonicsUtils
 {

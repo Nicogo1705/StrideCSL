@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs variance filtering.
 /// </summary>
 [Shader(External = true, BaseGenerics = "PerLighting")]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ShadowMapFilterVsm : ShadowMapFilterBase
 {
     [Generic] public static MemberName PerLighting;

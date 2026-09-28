@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a group of spot lights in clustered shading.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(LightClustered), typeof(LightSpot), typeof(SpotLightDataInternalShader))]
 public abstract partial class LightClusteredSpotGroup : DirectLightGroup
 {

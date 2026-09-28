@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Hammersley sampling on a Plane, Sphere, etc...
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class Hammersley : Math
 {
     public virtual float2 GetSamplePlane(int k, int samplesCount)

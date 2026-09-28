@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class VoxelIsotropicWriter_Float4 : VoxelLayout_Float4
 {
     [Stream] public float4 center;

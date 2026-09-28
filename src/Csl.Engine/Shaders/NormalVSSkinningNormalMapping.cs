@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Computes the transformation matrix from tangent to view space when skinning occured.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class NormalVSSkinningNormalMapping : NormalFromNormalMapping
 {
     public override float3x3 GetTangentWorldTransform()

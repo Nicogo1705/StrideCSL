@@ -16,6 +16,7 @@ namespace Csl.Engine;
 /// so the resulting PS has no SV_Target output (depth-only).
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShadingBase), typeof(PositionStream), typeof(MaterialPixelStream), typeof(MaterialPixelShadingStream), typeof(NormalUpdate))]
 public abstract partial class ShadowMapCasterAlphaDiscard : Transformation
 {

@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing))]
 [Define("MapCount", "20")]
 public abstract partial class VoxelStorageTextureClipmapShader : VoxelStorageTextureShader

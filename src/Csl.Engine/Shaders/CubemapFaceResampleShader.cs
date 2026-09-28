@@ -16,6 +16,7 @@ namespace Csl.Engine;
 /// of clamping inside its own face.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ImageEffectShader))]
 public abstract partial class CubemapFaceResampleShader : Math
 {

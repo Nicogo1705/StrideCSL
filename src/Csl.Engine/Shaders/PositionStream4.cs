@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines streams for object space and world space position.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class PositionStream4
 {
     // The position attribute

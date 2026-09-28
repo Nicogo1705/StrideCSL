@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Contains all the default streams of the vertex shader stage.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialDisplacementStream), typeof(NormalStream), typeof(PositionStream))]
 public abstract partial class MaterialVertexStream : MaterialStream
 {

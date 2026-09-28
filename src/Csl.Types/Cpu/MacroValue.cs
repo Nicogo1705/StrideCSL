@@ -7,6 +7,7 @@ namespace Csl.Cpu;
 /// code: it converts to whatever HLSL would convert it to (a uint stream, a float), and computes as
 /// an int with ints, as a float as soon as a float is involved.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public readonly struct MacroValue
 {
     private readonly double value;

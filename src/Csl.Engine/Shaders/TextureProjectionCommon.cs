@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines the texture that is projected onto geometry.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class TextureProjectionCommon
 {
     [Generic] public static MemberName PerLightGroup;

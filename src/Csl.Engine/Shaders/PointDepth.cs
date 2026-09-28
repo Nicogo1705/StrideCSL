@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Constantlty outputs the depth of a given point in the image.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class PointDepth : ImageEffectShader
 {
     public float2 Coordinate;

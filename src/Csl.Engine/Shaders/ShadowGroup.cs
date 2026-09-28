@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines the methods to compute shadowing and the sampler used on the shadow map.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ShadowGroup : ShadowStream
 {
     // Computes the shadow for a given world position and light index

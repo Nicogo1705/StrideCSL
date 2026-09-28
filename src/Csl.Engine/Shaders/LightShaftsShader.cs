@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(PostEffectBoundingRay), Generics = "SampleCount")]
 [Mixin(typeof(LightStream), typeof(NormalStream))]
 public abstract partial class LightShaftsShader : ImageEffectShader

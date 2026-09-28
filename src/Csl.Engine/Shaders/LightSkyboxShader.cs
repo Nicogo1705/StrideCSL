@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a skybox environment light
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream), typeof(NormalStream), typeof(Transformation))]
 public abstract partial class LightSkyboxShader : EnvironmentLight
 {

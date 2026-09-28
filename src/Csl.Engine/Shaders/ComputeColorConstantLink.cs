@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// LinkName: generic LinkType - the name of the key used to set the float4.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorConstantLink : ComputeColor
 {
     [Generic] public static LinkType LinkName;

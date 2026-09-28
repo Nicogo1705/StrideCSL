@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Converts diffuse color (for metal flakes layer)
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Transformation), typeof(PositionStream4))]
 public abstract partial class MaterialSurfaceDiffuseMetalFlakes : MaterialSurfaceDiffuse
 {

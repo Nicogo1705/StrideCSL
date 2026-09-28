@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// NAME: generic Semantic - the name of the texcoord (e.g. TEXCOORD0).
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class DynamicTextureStream
 {
     [Generic] public static Semantic NAME;

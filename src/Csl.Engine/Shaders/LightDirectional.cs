@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a directional light
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class LightDirectional
 {
     public struct DirectionalLightData

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Returns the color attribute of the mesh.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ColorBase))]
 public abstract partial class ComputeColorStream : ComputeColor
 {

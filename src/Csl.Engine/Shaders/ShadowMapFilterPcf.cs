@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs percentage closer filtering.
 /// </summary>
 [Shader(External = true, BaseGenerics = "PerLighting")]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ShadowMapFilterPcf : ShadowMapFilterBase
 {
     [Generic] public static MemberName PerLighting;

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines the methods to get the normal in world space.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class NormalUpdate : NormalStream
 {
     [Stage]

@@ -18,6 +18,7 @@ namespace Csl.Engine;
 /// TCascadeDebug: Flag to enable debug mode (1 color per cascade).
 /// </remarks>
 [Shader(External = true, Internal = true, BaseGenerics = "PerDraw.Lighting, 1, TLightCount")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Transformation))]
 public abstract partial class ShadowMapReceiverSpot : ShadowMapReceiverBase
 {

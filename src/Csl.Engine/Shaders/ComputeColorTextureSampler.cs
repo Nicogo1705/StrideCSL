@@ -19,6 +19,7 @@ namespace Csl.Engine;
 /// TSampler: generic SamplerState - the sampler.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(DynamicTexture), Generics = "TTextureName, PerMaterial")]
 [Mixin(typeof(DynamicSampler), Generics = "TSampler, PerMaterial")]
 [Mixin(typeof(DynamicTextureStream), Generics = "TStream")]

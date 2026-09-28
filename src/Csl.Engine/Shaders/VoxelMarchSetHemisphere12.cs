@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class VoxelMarchSetHemisphere12 : VoxelMarchSet
 {
     [CBuffer("PerView.Lighting")] public float offset;

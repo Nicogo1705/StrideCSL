@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// TRANSFORMATION_MATRIX: generic float4x4 - The transformation matrix.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(PositionStream4), typeof(PositionHStream4))]
 public abstract partial class TransformationMatrix : TransformationBase
 {

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Material glossiness map
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialSurfaceGlossinessMap : IMaterialSurfacePixel
 {
     [Generic] public static bool TInvert;

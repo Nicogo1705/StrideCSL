@@ -18,6 +18,7 @@ namespace Csl.Engine;
 ///
 /// <typeparam name="TBlurCount">Number of weights. (And number of taps along one direction from the center.)</typeparam>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class CoCMapBlurShader : ImageEffectShader
 {
     [Generic] public static int TBlurCount;

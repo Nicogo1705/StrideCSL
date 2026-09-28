@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Interface for a microfacet Geometric Shadowing function
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialSpecularMicrofacetVisibilityNeumann : IMaterialSpecularMicrofacetVisibilityFunction
 {
     public override float Compute()

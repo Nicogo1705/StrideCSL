@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream), typeof(ShaderBaseStream))]
 public abstract partial class MaterialSurfaceTransparentAlphaDiscard : IMaterialSurface
 {

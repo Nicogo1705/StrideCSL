@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// STRIDE_RENDER_TARGET_COUNT: Macro - Number of render targets.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Define("STRIDE_RENDER_TARGET_COUNT", "1", If = "!defined(STRIDE_RENDER_TARGET_COUNT)")]
 public abstract partial class ShadingBase : ShaderBase
 {

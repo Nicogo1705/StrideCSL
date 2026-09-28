@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(PositionStream4), typeof(ShaderBaseStream))]
 public abstract partial class VoxelStorageShader : VoxelPositionStream
 {

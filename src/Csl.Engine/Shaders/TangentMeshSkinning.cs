@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs skinning on the tangent.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(NormalStream))]
 public abstract partial class TangentMeshSkinning : TransformationSkinning
 {

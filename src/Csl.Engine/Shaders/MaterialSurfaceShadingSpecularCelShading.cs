@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs a Microfacet shading
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream), typeof(Math), typeof(BRDFMicrofacet), typeof(LightStream))]
 public abstract partial class MaterialSurfaceShadingSpecularCelShading : IMaterialSurfaceShading
 {

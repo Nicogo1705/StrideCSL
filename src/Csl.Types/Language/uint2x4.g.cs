@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL uint2x4: 2 rows of uint4, indexed m[row][column].</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct uint2x4
 {
     public uint4 r0, r1;

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Lens flare artifact shader.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class FlareArtifactShader : ImageEffectShader
 {
     [Generic] public static int TapCount;

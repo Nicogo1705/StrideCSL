@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Base interface for a material layer (vertex stage)
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialVertexStream))]
 public abstract partial class IMaterialSurfaceVertex : IMaterialSurface
 {

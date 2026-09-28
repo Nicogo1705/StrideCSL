@@ -18,6 +18,7 @@ namespace Csl.Engine;
 /// TLightCount: The number of lights inside of this light group.
 /// </remarks>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(TextureProjectionReceiverBase), Generics = "PerLightGroup, 1, TLightCount, TFlipMode")]
 public abstract partial class TextureProjectionReceiverSpot : TextureProjectionGroup
 {

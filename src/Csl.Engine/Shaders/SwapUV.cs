@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// TStream: generic Semantic - Texcoord semantic.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing))]
 public abstract partial class SwapUV : ShaderBase
 {

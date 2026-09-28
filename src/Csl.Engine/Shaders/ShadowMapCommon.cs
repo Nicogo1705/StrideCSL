@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines the textures used for shadow mapping.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ShadowMapCommon
 {
     [Generic] public static MemberName PerLighting;

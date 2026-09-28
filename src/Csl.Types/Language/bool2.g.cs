@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL bool2: 2 components of bool.</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct bool2 : IEquatable<bool2>
 {
     public bool x, y;

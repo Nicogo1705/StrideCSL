@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Makes back-objects transparent for the front out-of-focus area.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ThresholdAlphaCoCFront : ImageEffectShader
 {
 

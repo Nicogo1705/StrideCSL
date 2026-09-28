@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Base shader to perform post effects. Draws the input mesh without transformation.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ImageEffectShader : SpriteBase
 {
 }

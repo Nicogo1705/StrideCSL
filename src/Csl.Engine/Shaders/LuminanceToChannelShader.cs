@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A color transform for to output the luminance to the specified channel.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class LuminanceToChannelShader : ColorTransformShader
 {
     [Generic] public static MemberName TChannel;

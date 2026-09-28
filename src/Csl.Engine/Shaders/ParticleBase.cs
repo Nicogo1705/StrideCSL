@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShaderBase), typeof(Texturing), typeof(ParticleUtilities))]
 [Define("UsesSoftEdge", "0", If = "!defined(UsesSoftEdge)")]
 public abstract partial class ParticleBase : DepthBase

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Various helper functions.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class Utilities
 {
     // Converts a Half2 to a float2

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines the normal, view space normal and tangent streams.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class NormalStream
 {
     // The normal attribute from the mesh

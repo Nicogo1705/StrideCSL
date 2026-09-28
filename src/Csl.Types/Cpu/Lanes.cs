@@ -10,6 +10,7 @@ namespace Csl.Cpu;
 /// derivatives or group memory with. Shader code reaches it through the intrinsics (ddx, discard,
 /// GroupMemoryBarrierWithGroupSync), Sample (its level from the quad) and the Sdsl markers (the macros).
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public sealed class Lane
 {
     [ThreadStatic] private static Lane? current;
@@ -109,6 +110,7 @@ public sealed class Lane
 /// Thrown in a lane run straight on its thread when it needs its neighbours (a derivative, a barrier):
 /// the run starts that quad or group again with a <see cref="LaneTeam"/>, and keeps one from then on.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public sealed class NeedsLockstep : Exception
 {
     public NeedsLockstep() : base("This lane needs its quad or its group in lockstep") { }
@@ -119,6 +121,7 @@ public sealed class NeedsLockstep : Exception
 /// is a thread of its own so that one can wait for the others at a derivative or a barrier, as the GPU
 /// does; a lane that returns early leaves the team, the others go on without it.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public sealed class LaneTeam : IDisposable
 {
     private readonly Thread[] threads;

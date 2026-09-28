@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(DataPacking))]
 public abstract partial class VoxelFragmentPackFloatR11G11B10 : VoxelFragmentPacker
 {

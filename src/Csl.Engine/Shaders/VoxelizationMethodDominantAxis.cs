@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Voxelization, projects to axis of largest area and writes fragments to buffer
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Math), typeof(Transformation), typeof(ShaderBase), typeof(NormalStream), typeof(PositionStream4), typeof(VoxelPositionStream))]
 public abstract partial class VoxelizationMethodDominantAxis : VoxelizationMethod
 {

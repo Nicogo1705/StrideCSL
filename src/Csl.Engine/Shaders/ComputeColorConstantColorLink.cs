@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// LinkName: generic LinkType - the name of the key used to set the color.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorConstantColorLink : ComputeColor
 {
     [Generic] public static LinkType LinkName;

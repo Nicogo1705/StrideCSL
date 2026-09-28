@@ -16,6 +16,7 @@ namespace Csl.Engine;
 /// - Texture0: the raw depth-buffer used to render the original scene
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Camera), typeof(CircleOfConfusion))]
 public abstract partial class CoCLinearDepthShader : ImageEffectShader
 {

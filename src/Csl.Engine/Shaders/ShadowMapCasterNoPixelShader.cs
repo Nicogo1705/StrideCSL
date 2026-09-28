@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Shadow map caster without pixel shader color outputs (only depth).
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShaderBase), typeof(PositionStream))]
 public abstract partial class ShadowMapCasterNoPixelShader : Transformation
 {

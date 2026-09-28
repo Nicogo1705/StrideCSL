@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Converts Metalness to specular color
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialSurfaceMetalness : IMaterialSurfacePixel
 {
     [Compose] public ComputeColor metalnessMap;

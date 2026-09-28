@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class VoxelModifierApplierAnisotropicPaired
 {
     public virtual void Apply(ref float4 X, ref float4 Y, ref float4 Z)

@@ -16,6 +16,7 @@ namespace Csl.Engine;
 /// http://devlog-martinsh.blogspot.ca/2013/05/image-imperfections-and-film-grain-post.html
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing))]
 public abstract partial class FilmGrainShader : ColorTransformShader
 {

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Helpers for values that end up in half-float render targets.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class HalfPrecisionUtils
 {
     /// <summary>

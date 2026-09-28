@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a white environment light
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(LightStream))]
 public abstract partial class LightConstantWhite : EnvironmentLight
 {

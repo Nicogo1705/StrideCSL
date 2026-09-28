@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Simple fog
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class FogEffect : ImageEffectShader
 {
     [Stage] public float FogStart = 0.0f;

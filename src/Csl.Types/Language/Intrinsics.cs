@@ -7,6 +7,7 @@ namespace Csl.Types;
 /// The intrinsics that are not plain maths: group synchronisation, atomics, and the loop attribute
 /// markers. The maths is in Intrinsics.g.cs.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static partial class Intrinsics
 {
     // -- transcendentals as the GPU computes them ------------------------------------------------------

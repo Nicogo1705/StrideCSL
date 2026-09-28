@@ -15,6 +15,7 @@ namespace Csl.Engine;
 /// Based on whether or not the light has texture projection enabled, this function will be overridden by one that computes the projection.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class TextureProjectionGroup
 {
     // Computes the color of the projected texture for a given world position and light index

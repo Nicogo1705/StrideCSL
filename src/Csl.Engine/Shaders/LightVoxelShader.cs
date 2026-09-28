@@ -11,6 +11,7 @@ namespace Csl.Engine;
 /// Defines a Voxel environment light
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing), typeof(EnvironmentLight), typeof(MaterialPixelShadingStream), typeof(NormalStream), typeof(PositionStream4), typeof(Transformation))]
 public abstract partial class LightVoxelShader : Camera
 {

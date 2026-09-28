@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Transformation))]
 [Define("ModelTransformUsage", "0", If = "!defined(ModelTransformUsage)")]
 public abstract partial class TransformationInstancing : TransformationBase

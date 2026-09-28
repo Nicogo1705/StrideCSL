@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Transforms the position of the vertex in world space first then in projection space
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(TransformationInstancing), typeof(PositionStream4), typeof(PositionHStream4))]
 public abstract partial class TransformationWAndVPInstanced : TransformationWAndVP
 {

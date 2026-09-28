@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs a Cel shading
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Math), typeof(MaterialPixelShadingStream), typeof(LightStream), typeof(ShadowGroup))]
 public abstract partial class MaterialSurfaceShadingDiffuseCelShading : IMaterialSurfaceShading
 {

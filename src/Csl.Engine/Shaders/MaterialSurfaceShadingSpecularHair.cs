@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs hair shading.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream), typeof(MaterialHairShared), typeof(NormalStream), typeof(Transformation), typeof(MaterialPixelStream))]
 public abstract partial class MaterialSurfaceShadingSpecularHair : IMaterialSurfaceShading
 {

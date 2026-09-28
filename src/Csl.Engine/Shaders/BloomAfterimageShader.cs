@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Simulates retina persistence / afterimage with bright ghost slowly fading out.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class BloomAfterimageShader : ImageEffectShader
 {
     // Fade-out speed of the persistence image

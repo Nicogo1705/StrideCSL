@@ -11,6 +11,7 @@ namespace Csl.Cpu;
 /// splatted, a vector or a matrix truncated, each component converted (a float to an int toward zero,
 /// saturated, NaN to 0; a number to a bool by comparing with zero).
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class HlslConvert
 {
     private static readonly Regex TypeName = new Regex(@"^(bool|int|uint|half|float|double)([1-4])?(x([1-4]))?$", RegexOptions.Compiled);

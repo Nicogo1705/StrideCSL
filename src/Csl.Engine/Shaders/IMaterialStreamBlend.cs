@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// An interface to blend a stream
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialVertexStream), typeof(MaterialPixelStream))]
 public abstract partial class IMaterialStreamBlend : MaterialStream
 {

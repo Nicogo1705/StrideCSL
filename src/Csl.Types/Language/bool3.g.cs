@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL bool3: 3 components of bool.</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct bool3 : IEquatable<bool3>
 {
     public bool x, y, z;

@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL double2: 2 components of double.</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct double2 : IEquatable<double2>
 {
     public double x, y;

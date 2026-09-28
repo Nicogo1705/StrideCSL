@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Outputs material world space normal vectors (packed from [-1;-1] to [0;1] to fit smaller render targets)
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream), typeof(NormalPack))]
 public abstract partial class GBufferOutputNormals : ComputeColor
 {

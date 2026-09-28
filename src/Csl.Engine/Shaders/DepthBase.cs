@@ -15,6 +15,7 @@ namespace Csl.Engine;
 /// Various helper functions to extract information from a depth buffer.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing))]
 public abstract partial class DepthBase : Camera
 {

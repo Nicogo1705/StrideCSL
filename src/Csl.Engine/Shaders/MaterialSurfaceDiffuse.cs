@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Converts diffuse color
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialSurfaceDiffuse : IMaterialSurfacePixel
 {
     [Compose] public ComputeColor diffuseMap;

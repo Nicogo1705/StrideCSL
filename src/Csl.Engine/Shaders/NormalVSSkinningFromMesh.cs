@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Computes skinned normals in view space.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class NormalVSSkinningFromMesh : NormalFromMesh
 {
     [Stage(AfterOverride = true)]

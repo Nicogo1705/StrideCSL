@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Interface for a microfacet Normal Distribution function
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(BRDFMicrofacet))]
 public abstract partial class IMaterialSpecularMicrofacetNormalDistributionFunction : MaterialPixelShadingStream
 {

@@ -15,6 +15,7 @@ namespace Csl.Engine;
 /// (Fresnel, NDF and Visibility) involved in a Microfacet shading model.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class BRDFMicrofacet : Math
 {
     // References:

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Screen Space Local Reflections shader for Depth Pass
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class SSLRDepthPass : ImageEffectShader
 {
     [Stage(AfterOverride = true)]

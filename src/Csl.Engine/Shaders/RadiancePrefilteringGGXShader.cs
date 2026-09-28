@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Shader performing radiance GGX pre-filtering
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ComputeShaderBase))]
 public abstract partial class RadiancePrefilteringGGXShader : Math
 {

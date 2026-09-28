@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Replicates lens flare artifacts around.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class FlareReplicate : ImageEffectShader
 {
 

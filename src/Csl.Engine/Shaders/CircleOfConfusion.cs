@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Computes the Circle of Confusion map.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class CircleOfConfusion
 {
     // TODO Might want to replace this with a real formula from camera lens parameters,

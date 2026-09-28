@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Screen Space Local Reflections shader with common variables and functions
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Utilities), typeof(NormalPack))]
 public abstract partial class SSLRCommon : ImageEffectShader
 {

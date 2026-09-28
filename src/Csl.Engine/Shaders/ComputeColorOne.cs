@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Returns the white opaque color.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorOne : ComputeColor
 {
     public override float4 Compute()

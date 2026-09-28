@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// TEXTURE_KEY: generic LinkType - the name of the ParameterKey that will link to this texture.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class DynamicTexture
 {
     [Generic] public static LinkType TTexture;

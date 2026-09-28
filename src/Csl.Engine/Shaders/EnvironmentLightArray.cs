@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// An array of environment lights
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class EnvironmentLightArray
 {
     [Stage, Compose] public EnvironmentLight[] environmentLights;

@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// InputControlPointCount: Macro - number of input control points.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Define("InputControlPointCount", "3", If = "!defined(InputControlPointCount)")]
 public abstract partial class TessellationFlat : TessellationBase
 {

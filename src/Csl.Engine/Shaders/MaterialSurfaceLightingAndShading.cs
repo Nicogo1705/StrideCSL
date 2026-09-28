@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs the shading of a material according to the lights
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(DirectLightGroupArray), typeof(EnvironmentLightArray), typeof(MaterialPixelShadingStream), typeof(Math), typeof(Transformation), typeof(ShaderBaseStream), typeof(NormalUpdate))]
 public abstract partial class MaterialSurfaceLightingAndShading : IMaterialSurfacePixel
 {

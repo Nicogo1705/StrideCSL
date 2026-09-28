@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// TVALUE: generic float4 - the color (as a float4).
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorFixed : ComputeColor
 {
     [Generic] public static float4 TVALUE;

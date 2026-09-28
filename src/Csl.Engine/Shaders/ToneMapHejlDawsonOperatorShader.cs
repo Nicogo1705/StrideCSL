@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// http://filmicgames.com/archives/75
 /// </remarks>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapHejlDawsonOperatorShader : ToneMapOperatorShader
 {
     public override float4 Compute(float4 color)

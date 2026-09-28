@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Blend a stream using RNM
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialStreamNormalBlend : IMaterialStreamBlend
 {
     public override void Compute([Type("Streams")] dynamic fromStream)

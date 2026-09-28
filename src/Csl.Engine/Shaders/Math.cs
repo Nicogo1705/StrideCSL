@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Various math functions.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class Math
 {
     // -------------------------------------

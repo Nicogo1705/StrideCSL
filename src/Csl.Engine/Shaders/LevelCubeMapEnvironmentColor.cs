@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Sample a cubemap using the MaterialPixelShadingStream roughness parameter.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing))]
 public abstract partial class LevelCubeMapEnvironmentColor : IComputeEnvironmentColor
 {

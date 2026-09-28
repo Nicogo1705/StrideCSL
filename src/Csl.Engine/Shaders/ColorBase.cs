@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a color stream.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ColorBase
 {
     // A color attribute

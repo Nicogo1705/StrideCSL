@@ -18,6 +18,7 @@ namespace Csl.Engine;
 /// TStream: generic Semantic - the texcoord index semantic used to sample the texture.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorTextureDynamicScaledOffset : ComputeColor
 {
     [Generic] public static Texture2D TTexture;

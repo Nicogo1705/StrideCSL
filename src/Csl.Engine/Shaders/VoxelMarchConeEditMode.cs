@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(VoxelRadiusMarchMethod), typeof(MarchAttributes))]
 [Define("AttributeID", "0", If = "!defined(AttributeID)")]
 public abstract partial class VoxelMarchConeEditMode : VoxelMarchMethod

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Resets the position to the origin.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(PositionStream4))]
 public abstract partial class TransformationZero : TransformationBase
 {

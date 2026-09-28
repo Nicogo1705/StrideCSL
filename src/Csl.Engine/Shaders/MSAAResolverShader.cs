@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A MSAA textures resolver shader
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Math))]
 [PreprocessorError("Unsupported amount of MSAA texture samples.", If = "!!defined(INPUT_MSAA_SAMPLES) && !(INPUT_MSAA_SAMPLES == 1) && !(INPUT_MSAA_SAMPLES == 2) && !(INPUT_MSAA_SAMPLES == 4) && !(INPUT_MSAA_SAMPLES == 8)")]
 public abstract partial class MSAAResolverShader : ImageEffectShader

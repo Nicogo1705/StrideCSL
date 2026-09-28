@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A shader performing Lambertian pre-filtering.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class SphericalHarmonicsBase : Math
 {
     [Generic] public static int TOrder;

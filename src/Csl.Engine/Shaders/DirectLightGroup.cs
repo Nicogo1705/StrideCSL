@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a group of similar lights (directional, spot...etc.)
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShadowGroup), typeof(TextureProjectionGroup), typeof(NormalStream), typeof(PositionStream4), typeof(MaterialPixelStream))]
 public abstract partial class DirectLightGroup : LightStream
 {

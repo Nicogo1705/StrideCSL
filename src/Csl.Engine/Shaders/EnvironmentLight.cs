@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines an environment light (ambient, IBL... etc.)
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShadowGroup), typeof(NormalStream))]
 public abstract partial class EnvironmentLight : LightStream
 {

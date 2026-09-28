@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Computes normals in view space.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Transformation))]
 public abstract partial class NormalFromMesh : NormalBase
 {

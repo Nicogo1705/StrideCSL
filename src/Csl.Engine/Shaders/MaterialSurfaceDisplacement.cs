@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Material displacement map
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialDisplacementStream), typeof(PositionStream), typeof(NormalStream), typeof(Transformation))]
 public abstract partial class MaterialSurfaceDisplacement : IMaterialSurface
 {

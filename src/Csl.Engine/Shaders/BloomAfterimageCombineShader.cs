@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// - Texture1: persistence brightness
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class BloomAfterimageCombineShader : ImageEffectShader
 {
     [Stage]

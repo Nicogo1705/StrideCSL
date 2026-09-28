@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Screen Space Local Reflections shader for Ray Trace Pass
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(SSLRCommon), typeof(NormalPack), typeof(Math))]
 public abstract partial class SSLRRayTracePass : ImageEffectShader
 {

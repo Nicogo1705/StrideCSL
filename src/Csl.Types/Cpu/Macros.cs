@@ -9,6 +9,7 @@ namespace Csl.Cpu;
 /// tests and <c>Sdsl.Macro("ThreadNumberX")</c> reads. The defaults are those the engine gives every
 /// Direct3D 11 effect.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public sealed class Macros
 {
     private readonly Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.Ordinal);

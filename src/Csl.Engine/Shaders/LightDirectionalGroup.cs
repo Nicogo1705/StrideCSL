@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a group of directional lights
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(LightDirectional))]
 public abstract partial class LightDirectionalGroup : DirectLightGroupPerView
 {

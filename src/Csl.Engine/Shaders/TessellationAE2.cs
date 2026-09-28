@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs Adjacent Edge tessellation on float3 stream.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialDomainStream))]
 public abstract partial class TessellationAE2 : TessellationBase
 {

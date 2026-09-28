@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Renders only the transparent parts for the transparent hair pass.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelStream))]
 public abstract partial class MaterialHairDiscardFunctionTransparentPass : IMaterialHairDiscardFunction
 {

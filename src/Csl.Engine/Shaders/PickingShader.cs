@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A shader used to output the id of the model component, mesh and material for a particular RenderMesh
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class PickingShader : ShaderBase
 {
     [CBuffer("PerDraw"), Stage] public float4 PickingData;

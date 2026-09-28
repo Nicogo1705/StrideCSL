@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Screen Space Local Reflections shader for Temporal Pass
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing))]
 public abstract partial class SSLRTemporalPass : ImageEffectShader
 {

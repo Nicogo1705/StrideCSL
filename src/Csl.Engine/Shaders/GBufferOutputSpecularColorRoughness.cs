@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Outputs material specular color (RGB) and roughness (A)
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream), typeof(Utilities))]
 public abstract partial class GBufferOutputSpecularColorRoughness : ComputeColor
 {

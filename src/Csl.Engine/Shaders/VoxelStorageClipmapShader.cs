@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing), typeof(ShaderBaseStream), typeof(Transformation))]
 [Define("clipScaleIn", "clipScale", If = "defined(singleClip)")]
 [Define("clipOffsetIn", "clipOffset", If = "defined(singleClip)")]

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Modify the alpha color based on the matDiffuseSpecularAlphaBlend alpha
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialPixelShadingStream), typeof(MaterialTransmittanceReflectanceStream))]
 public abstract partial class MaterialSurfaceTransmittanceShading : IMaterialSurfacePixel
 {

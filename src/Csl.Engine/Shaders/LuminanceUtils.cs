@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A utility shader for luminance.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class LuminanceUtils
 {
     /// <summary>

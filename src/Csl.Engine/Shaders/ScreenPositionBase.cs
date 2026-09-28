@@ -15,6 +15,7 @@ namespace Csl.Engine;
 /// Be careful when to include this shader because ShadingPosition should be correct at this point. Include this shader at the end of the mixin list.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ScreenPositionBase : ShaderBase
 {
     // The position in screen space

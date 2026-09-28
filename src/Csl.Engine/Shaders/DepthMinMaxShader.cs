@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A reduction shader
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class DepthMinMaxShader : ImageEffectShader
 {
     [Generic] public static bool TFirstPass;

@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// The third is performed at the end of the geometry pipeline.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class TransformationBase : ShaderBase
 {
     // End of the VS (usually skinning)

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Base shader to sample an environment
 /// </summary>
 [Shader(External = true, BaseGenerics = "TOrder")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(IComputeEnvironmentColor))]
 public abstract partial class SphericalHarmonicsEnvironmentColor : SphericalHarmonicsUtils
 {

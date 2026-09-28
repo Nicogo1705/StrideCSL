@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Material glossiness map (for a metal flakes layer)
 /// </summary>
 [Shader(External = true, BaseGenerics = "TInvert")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Transformation), typeof(PositionStream4))]
 public abstract partial class MaterialSurfaceGlossinessMapMetalFlakes : MaterialSurfaceGlossinessMap
 {

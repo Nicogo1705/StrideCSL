@@ -19,6 +19,7 @@ namespace Csl.Engine;
 /// <typeparam name="TWeightCount">The number of weights along a direction.</typeparam>
 /// <typeparam name="TTotalNumber">Total number of tpas. The value is always 2 * TWeightCount - 1.</typeparam>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ComputeColor))]
 public abstract partial class DepthAwareDirectionalBlurUtil : Texturing
 {

@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ComputeShaderBase), typeof(VoxelPositionStream), typeof(DataPacking))]
 [Define("IndirectStoreMacro", If = "!defined(IndirectStoreMacro)")]
 [Define("IndirectReadAndStoreMacro", If = "!defined(IndirectStoreMacro)")]

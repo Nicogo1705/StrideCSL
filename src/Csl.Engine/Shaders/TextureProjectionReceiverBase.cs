@@ -19,6 +19,7 @@ namespace Csl.Engine;
 /// TLightCountBase: The number of lights inside of this light group.
 /// </remarks>
 [Shader(External = true, Internal = true, BaseGenerics = "PerLightGroup")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(TextureProjectionFilterDefault), Generics = "PerLightGroup")]
 [Mixin(typeof(Texturing))]
 public abstract partial class TextureProjectionReceiverBase : TextureProjectionCommon

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Various helper functions to convert color between RGB and HSV.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class HSVUtils
 {
     public virtual float GetSaturation(float3 tex)

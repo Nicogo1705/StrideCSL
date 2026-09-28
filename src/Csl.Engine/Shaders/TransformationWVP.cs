@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Transforms the local position of the vertex into the projection space.
 /// </summary>
 [Shader(External = true, BaseGenerics = "Transformation.WorldViewProjection")]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class TransformationWVP : TransformationMatrix
 {
 }

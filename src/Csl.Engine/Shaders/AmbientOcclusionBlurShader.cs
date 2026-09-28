@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A gaussian blur shader
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Camera))]
 public abstract partial class AmbientOcclusionBlurShader : ImageEffectShader
 {

@@ -17,6 +17,7 @@ namespace Csl.Engine;
 ///  - Texture1: a color buffer with diagonal blur
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class McIntoshCombineShader : ImageEffectShader
 {
     [Stage]

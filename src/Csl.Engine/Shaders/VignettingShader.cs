@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Vignetting shader.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing))]
 public abstract partial class VignettingShader : ColorTransformShader
 {

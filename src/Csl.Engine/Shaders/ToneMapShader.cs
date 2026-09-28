@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A tonemap shader
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Texturing))]
 public abstract partial class ToneMapShader : ColorTransformShader
 {

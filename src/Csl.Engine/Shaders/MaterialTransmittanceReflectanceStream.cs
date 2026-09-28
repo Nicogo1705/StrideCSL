@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Modify the alpha color based on the matDiffuseSpecularAlphaBlend alpha
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class MaterialTransmittanceReflectanceStream : MaterialPixelStream
 {
     [CBuffer("PerMaterial"), Stage] public float RefractiveIndex;

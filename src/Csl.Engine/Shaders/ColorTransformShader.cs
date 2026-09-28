@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A generic interface for processing/filtering a color.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ColorTransformShader
 {
     public virtual float4 Compute(float4 color)

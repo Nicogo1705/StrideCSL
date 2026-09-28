@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A blur with uniform weights applied along one direction. (depth-aware blur to avoid artifacts)
 /// </summary>
 [Shader(External = true, BaseGenerics = "TWeightNumber, TTapNumber")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ImageEffectShader))]
 public abstract partial class DepthAwareDirectionalBlurShader : DepthAwareDirectionalBlurUtil
 {

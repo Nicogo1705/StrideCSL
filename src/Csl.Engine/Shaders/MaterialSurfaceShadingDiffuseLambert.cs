@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs a Lambert shading
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Math))]
 public abstract partial class MaterialSurfaceShadingDiffuseLambert : IMaterialSurfaceShading
 {

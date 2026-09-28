@@ -18,6 +18,7 @@ namespace Csl.Engine;
 /// TCascadeDebug: Flag to enable debug mode (1 color per cascade).
 /// </remarks>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShadowMapGroup), Generics = "PerLighting")]
 [Mixin(typeof(ShadowMapFilterBase), Generics = "PerLighting")]
 [Mixin(typeof(PositionStream4))]

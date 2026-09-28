@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class Voxel2x2x2Mipmapper_AnisoXP : Voxel2x2x2Mipmapper
 {
     public virtual float4 blend(float4 s0, float4 s1)

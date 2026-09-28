@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Calculates the normal  the normals from a normal map.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class NormalFromNormalMappingTessellation : NormalFromNormalMapping
 {
     [Override, Stage(AfterOverride = true)]

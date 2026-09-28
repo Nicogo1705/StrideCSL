@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Outputs the result of a compute color (useful to perform offline texture creation).
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(PositionStream4))]
 public abstract partial class FlattenLayers : ShaderBase
 {

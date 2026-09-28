@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Microfacet fresnel function for Glass materials.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialTransmittanceReflectanceStream))]
 public abstract partial class MaterialSpecularMicrofacetFresnelThinGlass : IMaterialSpecularMicrofacetFresnelFunction
 {

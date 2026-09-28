@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Performs skinning on the normals.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(NormalStream))]
 public abstract partial class NormalMeshSkinning : TransformationSkinning
 {

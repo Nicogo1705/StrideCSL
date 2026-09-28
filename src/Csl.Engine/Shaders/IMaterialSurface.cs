@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Base interface for a material layer
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class IMaterialSurface : MaterialStream
 {
     public virtual void Compute()

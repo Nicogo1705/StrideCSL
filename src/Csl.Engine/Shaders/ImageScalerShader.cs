@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A copier shader
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ImageScalerShader : ImageEffectShader
 {
     // TODO: Color and IsOnlyChannelRed could be part of a color filter that we can pre-prend automatically

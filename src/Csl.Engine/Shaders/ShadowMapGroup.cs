@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines the structures for shadow mapping.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ShadowMapCommon), Generics = "PerLighting")]
 public abstract partial class ShadowMapGroup : ShadowGroup
 {

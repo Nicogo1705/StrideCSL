@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A shader performing Lambertian pre-filtering.
 /// </summary>
 [Shader(External = true, Internal = true, BaseGenerics = "THarmonicsOrder")]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(ImageEffectShader), typeof(Texturing))]
 public abstract partial class SphericalHarmonicsRenderer : SphericalHarmonicsBase
 {

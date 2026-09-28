@@ -24,6 +24,7 @@ public enum TexelFormat
 /// formats) per mip level, one slice after the other for a 3D texture or an array. What is written
 /// through a RW view is rounded to the format as the GPU stores it: a UNorm8 texture holds n / 255.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public sealed class CpuTexture
 {
     private readonly float4[][] texels;

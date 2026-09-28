@@ -20,6 +20,7 @@ namespace Csl.Engine;
 /// TOffset: generic float2 - the texture coordinates offset.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorTextureScaledOffset : ComputeColor
 {
     [Generic] public static Texture2D TTexture;

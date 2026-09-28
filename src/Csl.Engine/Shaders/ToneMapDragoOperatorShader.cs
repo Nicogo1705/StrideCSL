@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// The Drago tonemap operator.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapDragoOperatorShader : ToneMapCommonOperatorShader
 {
     public float DragoBias = 0.5f;

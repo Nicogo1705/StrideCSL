@@ -11,6 +11,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class VoxelRadiusMarchMethod
 {
     public virtual float4 MarchRadius(float3 rayPos, float3 rayDir, float radiusScale)

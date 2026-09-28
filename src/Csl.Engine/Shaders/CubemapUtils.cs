@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Utilities functions for cubemap sampling.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class CubemapUtils
 {
     // The standard cubemap face layout, shared by Direct3D, OpenGL and Vulkan

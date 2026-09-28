@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines shadow stream variables.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ShadowStream
 {
     [Stage, Stream] public float3 shadowColor;

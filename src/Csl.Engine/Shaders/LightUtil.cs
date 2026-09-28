@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines common function for direct lights
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class LightUtil
 {
     // Code from "Moving Frostbite to Physically Based Rendering"  Rousiers, Charles De Lagarde, Sébastien p32

@@ -15,6 +15,7 @@ namespace Csl.Engine;
 /// factor along the way.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class LightStreakShader : ImageEffectShader
 {
     [Generic] public static int TapCount;

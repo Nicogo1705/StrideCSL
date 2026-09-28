@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a group of spot lights
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(LightSpot), typeof(LightSpotAttenuationDefault))]
 public abstract partial class LightSpotGroup : DirectLightGroupPerDraw
 {

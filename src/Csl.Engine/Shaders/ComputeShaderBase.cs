@@ -19,6 +19,7 @@ namespace Csl.Engine;
 /// ThreadNumberZ: Macro - number of threads on the Z axis.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Define("ThreadNumberX", "1", If = "!defined(ThreadNumberX)")]
 [Define("ThreadNumberY", "1", If = "!defined(ThreadNumberY)")]
 [Define("ThreadNumberZ", "1", If = "!defined(ThreadNumberZ)")]

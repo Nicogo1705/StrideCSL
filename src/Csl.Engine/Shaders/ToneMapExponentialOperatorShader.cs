@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// The logarithmic tonemap operator.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapExponentialOperatorShader : ToneMapCommonOperatorShader
 {
     public override float4 Compute(float4 color)

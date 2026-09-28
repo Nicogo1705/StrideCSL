@@ -225,6 +225,9 @@ public sealed class SdslToCSharp
         if (shader.Bases.Count > 0 && shader.Bases[0].GenericArguments.Count > 0)
             shaderArguments.Add("BaseGenerics = " + Quote(string.Join(", ", shader.Bases[0].GenericArguments)));
         Line(shaderArguments.Count == 0 ? "[Shader]" : "[Shader(" + string.Join(", ", shaderArguments) + ")]");
+        // The engine's code, run on the CPU: the debugger steps over it into the shader that uses it.
+        if (options.External && !options.DeclarationsOnly)
+            Line("[System.Diagnostics.DebuggerNonUserCode]");
 
         var plain = new List<string>();
         void FlushPlain()

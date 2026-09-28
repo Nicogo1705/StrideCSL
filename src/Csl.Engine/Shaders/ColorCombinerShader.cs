@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A shader combiner
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ColorCombinerShader : ImageEffectShader
 {
     [Generic] public static int count;

@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a group of point lights
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(LightPoint))]
 public abstract partial class LightPointGroup : DirectLightGroupPerDraw
 {

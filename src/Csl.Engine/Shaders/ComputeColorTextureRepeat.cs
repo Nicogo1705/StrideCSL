@@ -19,6 +19,7 @@ namespace Csl.Engine;
 /// TFactor: generic float - the repeat factor.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorTextureRepeat : ComputeColor
 {
     [Generic] public static Texture2D TTexture;

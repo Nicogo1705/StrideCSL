@@ -14,6 +14,7 @@ namespace Csl.Cpu;
 /// abstract methods throw (nothing in the run implements them); the samplers get the description of
 /// their [Sampler] attribute; the members the [Mixin] stubs declare get the mixin's initial values.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class ShaderInstances
 {
     private static readonly ConcurrentDictionary<Type, Type> Concrete = new ConcurrentDictionary<Type, Type>();
@@ -143,6 +144,7 @@ public static class ShaderInstances
 /// on an instance of the mixin kept for the shader object: before, its members take the values of the
 /// shader's members of the same name (parameters, streams); after, the shader takes back what it wrote.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class Mixins
 {
     private static readonly ConditionalWeakTable<object, Dictionary<Type, object>> Instances = new ConditionalWeakTable<object, Dictionary<Type, object>>();
@@ -182,6 +184,7 @@ public static class Mixins
 }
 
 /// <summary>Members by name, as SDSL merges them: fields of the same name are one member.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class Members
 {
     private static readonly ConcurrentDictionary<Type, Dictionary<string, FieldInfo>> Fields = new ConcurrentDictionary<Type, Dictionary<string, FieldInfo>>();

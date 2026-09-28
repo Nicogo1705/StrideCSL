@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Provides a stream with the view space position (vertex or fragment) from the vertex attributes.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(Transformation), typeof(PositionStream))]
 public abstract partial class PositionVertexTransform : ShaderBase
 {

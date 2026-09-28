@@ -13,6 +13,7 @@ using static Csl.Types.Intrinsics;
 namespace Csl.Engine;
 
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ShaderBaseStream
 {
     // Default SV_POSITION output for VS/GS shaders

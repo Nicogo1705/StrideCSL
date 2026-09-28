@@ -18,6 +18,7 @@ namespace Csl.Engine;
 /// OutputControlPointCount: Macro - Output control points count.
 /// </remarks>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(TransformationBase), typeof(MaterialDomainStream), typeof(Camera), typeof(Transformation), typeof(NormalBase))]
 [Define("InputControlPointCount", "3", If = "!defined(InputControlPointCount)")]
 [Define("OutputControlPointCount", "3", If = "!defined(OutputControlPointCount)")]

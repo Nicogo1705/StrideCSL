@@ -17,6 +17,7 @@ namespace Csl.Engine;
 /// frustum edges) for use with textured spotlights.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class LightSpotAttenuationRectangular : LightSpotAttenuationDefault
 {
     //override float ComputeAttenuation(SpotLightDataInternal light, float3 position, inout float3 lightVectorNorm)

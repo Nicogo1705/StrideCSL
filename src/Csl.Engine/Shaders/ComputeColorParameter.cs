@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Returns the color from a parameter.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ComputeColorParameter : ComputeColor
 {
     [Stage, Color] public float4 ColorParameter;

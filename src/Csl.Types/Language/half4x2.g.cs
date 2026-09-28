@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL half4x2: 4 rows of half2, indexed m[row][column].</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct half4x2
 {
     public half2 r0, r1, r2, r3;

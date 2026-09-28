@@ -18,6 +18,7 @@ namespace Csl.Engine;
 ///   `BrightPassSteepness` makes the filter more selective by requiring stronger luminance to reach full contribution.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class BrightFilterShader : ImageEffectShader
 {
     [Stage, Color] public float3 ColorModulator;

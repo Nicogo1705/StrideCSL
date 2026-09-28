@@ -10,6 +10,7 @@ namespace Csl.Types;
 
 /// <summary>HLSL bool3x4: 3 rows of bool4, indexed m[row][column].</summary>
 [StructLayout(LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerNonUserCode]
 public struct bool3x4
 {
     public bool4 r0, r1, r2;

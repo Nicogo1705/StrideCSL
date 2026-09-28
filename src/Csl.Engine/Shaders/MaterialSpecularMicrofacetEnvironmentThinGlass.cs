@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Interface for a microfacet Fresnel function
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(MaterialTransmittanceReflectanceStream))]
 public abstract partial class MaterialSpecularMicrofacetEnvironmentThinGlass : IMaterialSpecularMicrofacetEnvironmentFunction
 {

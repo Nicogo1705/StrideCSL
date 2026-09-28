@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// The common tonemap operator used by Reinhard, Drago, Exponential, Logarithmic. Just define common variables
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapCommonOperatorShader : ToneMapOperatorShader
 {
     public float LuminanceSaturation = 1.0f;

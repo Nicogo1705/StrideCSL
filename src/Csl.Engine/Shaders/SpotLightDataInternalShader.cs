@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Defines a structure that is used only within the spotlight shaders.
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class SpotLightDataInternalShader
 {
     public struct SpotLightDataInternal

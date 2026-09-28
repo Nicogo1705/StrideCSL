@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// A log luminance shader (by default using luma/Perceptive luminance Y'601)
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class LuminanceLogShader : ImageEffectShader
 {
     public virtual float GetLuminance(float3 color)

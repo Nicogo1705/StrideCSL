@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 namespace Csl.Types;
 
 /// <summary>Swizzles of scalars: <c>f.xxx</c>, <c>f.r</c>, as HLSL allows.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class ScalarSwizzles
 {
     extension(bool v)

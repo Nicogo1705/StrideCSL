@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// The Reinhard tonemap operator.
 /// </summary>
 [Shader(External = true, Internal = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class ToneMapReinhardOperatorShader : ToneMapCommonOperatorShader
 {
     public override float4 Compute(float4 color)

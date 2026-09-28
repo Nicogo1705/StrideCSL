@@ -15,6 +15,7 @@ namespace Csl.Cpu;
 /// the parameters and resources, <see cref="Macros"/>), then run it; <see cref="Break"/> stops in the
 /// debugger right before the lane you want, so its C# can be stepped through.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract class Run
 {
     [ThreadStatic] private static object? currentShader;
@@ -76,9 +77,7 @@ public abstract class Run
         currentShader = lane;
         try
         {
-            if (breakHere && Debugger.IsAttached)
-                Debugger.Break(); // Step into (F11) the next line: the shader's entry point for the lane asked for.
-            Entry(lane);
+            ShaderEntry.Call(Entry, lane, breakHere);
         }
         finally
         {
@@ -100,6 +99,7 @@ public abstract class Run
 /// level of a Sample that needs one) runs it again with its four lanes in lockstep, and every quad
 /// after it too.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public sealed class CpuImageEffect : Run
 {
     private readonly Action<object, float2>? setTexCoord;
@@ -279,6 +279,7 @@ public sealed class CpuImageEffect : Run
 /// group after it. Groups run in parallel, unless the shader has [GroupShared] statics: then one after
 /// the other, the statics being the group's memory.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public sealed class CpuComputeShader : Run
 {
     private readonly Action<object, uint3>? setGroupId, setGroupThreadId, setDispatchThreadId;
@@ -505,5 +506,19 @@ public sealed class CpuComputeShader : Run
                 }
             }
         }
+    }
+}
+
+/// <summary>
+/// Where the debugger stops for the pixel or the thread asked for: the only line of Csl.Cpu it shows,
+/// everything else being marked non-user code. Step into (F11): the next stop is the shader's own code.
+/// </summary>
+public static class ShaderEntry
+{
+    public static void Call(Action<object> entry, object shader, bool breakHere)
+    {
+        if (breakHere && Debugger.IsAttached)
+            Debugger.Break();
+        entry(shader); // F11 here: into the shader.
     }
 }

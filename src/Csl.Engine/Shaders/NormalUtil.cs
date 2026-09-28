@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Various methods for manipulating normals
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 public abstract partial class NormalUtil
 {
     // Blending Normal methods: http://blog.selfshadow.com/publications/blending-in-detail/

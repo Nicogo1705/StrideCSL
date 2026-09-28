@@ -14,6 +14,7 @@ namespace Csl.Engine;
 /// Screen Space Local Reflections shader for Resolve Pass
 /// </summary>
 [Shader(External = true)]
+[System.Diagnostics.DebuggerNonUserCode]
 [Mixin(typeof(SSLRCommon), typeof(NormalPack), typeof(Math), typeof(BRDFMicrofacet))]
 public abstract partial class SSLRResolvePass : ImageEffectShader
 {
