@@ -4,12 +4,13 @@
 live. The engine's own SDSL shaders are available as C# classes to inherit, call and modify, and any
 `.sdsl` converts to C# and back.
 
-![The demo: seven shaders written in C#, redrawn when their file is saved](docs/demo.png)
+![The demo: nine shaders written in C#, redrawn when their file is saved](docs/demo.png)
 
 > [!NOTE]
 > **Experimental.** This project was written by Claude (Anthropic's AI) under my direction; I could
 > not have built it on my own, so take it as an experiment rather than a finished tool. It is tested
-> though: 442 of the engine's shaders go SDSL → C# → SDSL and compile to identical SPIR-V.
+> though: 469 of the engine's shaders go SDSL → C# → SDSL and compile to identical SPIR-V, and the
+> CPU run of the demo is compared with the GPU's pixel by pixel.
 
 ```csharp
 [Shader, Mixin(typeof(Global))]
@@ -59,6 +60,9 @@ shader DemoRings : ImageEffectShader, Global
 - **Checked on the whole engine.** Every engine shader is converted SDSL → C# → SDSL and both
   versions are compiled by the engine; the SPIR-V is compared instruction for instruction.
 - **Live reload** in the demo: save a shader, see it redrawn.
+- **Run and debug on the CPU.** The same C# runs on the CPU (`Csl.Cpu`), engine code included,
+  with the GPU's arithmetic as measured: Ctrl+click a pixel in the demo and step through its
+  shader in the debugger.
 
 ## Requirements
 
@@ -95,7 +99,8 @@ previous version stays on screen until the file compiles again.
 | `DemoCommon` | shared, called | Static functions any shader calls by name: `Hash`, `Noise`, `Fbm`, `Palette`. |
 
 Keys: 1-9 one shader alone, 0 or space all of them, B the blur on and off, + and - its radius;
-Ctrl+click a tile to run that pixel on the CPU (see [Running shaders on the CPU](#running-shaders-on-the-cpu)).
+Ctrl+click a tile to run that pixel on the CPU, stopping in the debugger when one is attached (see
+[Running shaders on the CPU](#running-shaders-on-the-cpu)).
 
 The demo's launch profiles (Visual Studio's start button list, or `dotnet run --project demo/Csl.Demo --launch-profile "..."`):
 
@@ -103,6 +108,7 @@ The demo's launch profiles (Visual Studio's start button list, or `dotnet run --
 |---------|------|
 | Gallery (GPU) | The window above. |
 | Gallery computed on the CPU | The same gallery, every shader run by the CPU, animated at what the CPU manages (fps in the title). |
+| Benchmark the CPU frames | 10 CPU frames one after the other, their cost and the median rate, window hidden. |
 | Debug a pixel on the CPU | One pixel of DemoClouds on the CPU, no GPU: under the debugger it stops before it, F11 steps into the shader. |
 | Compare CPU and GPU | Every demo drawn by both, compared; images and report in `cpu-check/`. |
 | Screenshot, GPU / CPU | One frame saved as `shot-gpu.png` / `shot-cpu.png`, window hidden. |
@@ -161,13 +167,13 @@ image and exits, the window hidden.
 | Project | Target | Role |
 |---------|--------|------|
 | `src/Csl.Generators` | netstandard2.0 | The code generation, both ways. As a Roslyn generator: C# `[Shader]` classes → SDSL, `*Keys` classes and compute wrappers; the stubs every shader class gets. As a library: the SDSL parser (whole files, bodies, preprocessor structure), the SDSL → C# converter and its compiler-guided fixes. |
-| `src/Csl.Types` | net10.0 | What shader code is written with: `Csl.Types` (every HLSL scalar, vector and matrix type with HLSL's conversions and swizzles, the resources, the intrinsics), the attributes for what SDSL declares and C# has no keyword for, the `Sdsl` markers. No Stride dependency. |
-| `src/Csl.Engine` | net10.0 | The engine's shaders (476 of 479) as `[Shader(External = true)]` classes, declarations only: what C# shaders inherit and call. Written by `csl engine`. |
+| `src/Csl.Types` | net10.0 | What shader code is written with: `Csl.Types` (every HLSL scalar, vector and matrix type with HLSL's conversions and swizzles, the resources, the intrinsics), the attributes for what SDSL declares and C# has no keyword for, the `Sdsl` markers; and `Csl.Cpu`, which runs that code on the CPU. No Stride dependency. |
+| `src/Csl.Engine` | net10.0 | The engine's shaders (476 of 479) as `[Shader(External = true)]` classes: what C# shaders inherit and call. 474 carry their bodies, for the CPU; the GPU compiles the engine's `.sdsl`. Written by `csl engine`. |
 | `src/Csl.Runtime` | net10.0 | Running C# compute shaders: `ComputeEffect` wrappers, `ShaderContext`, allocation helpers, `ShaderSourceRegistry` (hands the generated SDSL to the effect compiler). |
 | `src/Csl.Tool` | net10.0, exe `csl` | `csl convert`: `.sdsl` files, or engine shaders by name, to C#. `csl engine`: regenerates `Csl.Engine`. |
-| `demo/Csl.Demo` | net10.0, exe | The demo: C# shaders in a window, reloaded on save. |
-| `tests/Csl.TestApp` | net10.0, exe | The test bench, for working on StrideCSL itself: the whole-engine round trip checked by the engine compiler, and C# shaders run on the GPU and checked. |
-| `tests/Csl.Tests` | net10.0, xunit | Unit tests of the generator, the wrappers, the analyzer and the runtime, without a GPU. |
+| `demo/Csl.Demo` | net10.0, exe | The demo: C# shaders in a window, reloaded on save; also run on the CPU, pixel by pixel under the debugger, and compared with the GPU. |
+| `tests/Csl.TestApp` | net10.0, exe | The test bench, for working on StrideCSL itself: the whole-engine round trip checked by the engine compiler, C# shaders run on the GPU and checked, the GPU's arithmetic measured, the reserved names probed. |
+| `tests/Csl.Tests` | net10.0, xunit | Unit tests of the generator, the wrappers, the analyzer, the runtime and the CPU run, without a GPU. |
 
 A project that writes shaders in C# references:
 
@@ -335,9 +341,9 @@ blur.Set("Input", new Texture2D<float4>(input)).Set("Output", new RWTexture2D<fl
 blur.Dispatch(40, 23);
 ```
 
-- **Pixels** run in 2x2 quads, each lane a thread in lockstep with the others: `ddx`/`ddy` (coarse,
-  as fxc compiles them), `fwidth` and `Sample`'s mip level come from the neighbours; `discard`
-  keeps the lane running for them. **Compute** groups run their threads in lockstep at
+- **Pixels** run in 2x2 quads: `ddx`/`ddy` (coarse, as fxc compiles them), `fwidth` and `Sample`'s
+  mip level come from the neighbours, each lane then a thread in lockstep with the others;
+  `discard` keeps the lane running for them. **Compute** groups run their threads in lockstep at
   `GroupMemoryBarrierWithGroupSync`, one group after the other for `[GroupShared]` statics.
 - **Resources** given CPU data (`new Texture2D(cpuTexture)`, `new RWStructuredBuffer<T>(array)`) are
   read and written; filtering follows Direct3D 11 (address modes on texel indices, 8-bit linear
@@ -358,8 +364,9 @@ needs it. Groups without group-shared memory, and rows of quads, run in parallel
 In the demo: `Csl.Demo --cpu` computes the gallery on the CPU in the background and draws each frame
 as it comes, animated, the rate in the title (1280x720 on 28 threads: about 1.4 frames per second,
 tiles 270 ms, blur 460 ms: the shaders' own maths, DemoClouds' 40 `sin` a pixel and the blur's 81
-`exp`); `--cpu-bench N` measures it; Ctrl+click on a tile runs that pixel on the CPU from the C# just saved and prints both
-colours, stopping in the debugger when one is attached; `--debug-pixel NAME X Y` does it without a
+`exp`); `--cpu-bench N` measures it. In the GPU gallery, Ctrl+click on a tile runs that pixel on the
+CPU from the C# just saved and prints both colours, stopping in the debugger when one is attached
+(then F11 into the shader, whose file opens editable); `--debug-pixel NAME X Y` does it without a
 GPU; `--cpu-check DIR` draws every demo on both and compares them. On Direct3D 11, 7 of the 10 demos
 match to one 8-bit step; over the whole frame, 96 % of the pixels.
 
@@ -400,10 +407,12 @@ Results on Stride 4.4.0-beta8 (479 shaders in the packages):
   local declared under `#if`), in `Csl.Engine` as declarations.
 
 On the GPU (`gpu`, Direct3D 11, feature level 11_0): the five C# shaders compute what the CPU expects, the modified
-`LuminanceUtils` replacing the engine's in the effect that calls it.
+`LuminanceUtils` replacing the engine's in the effect that calls it; `CslPrecision` gives what
+[Running shaders on the CPU](#running-shaders-on-the-cpu) says of the GPU's arithmetic.
 
 `tests/Csl.Tests` (`dotnet test`) checks the generator on sample shaders, the wrappers against the
-engine, and compiles the generated SDSL with the engine compiler.
+engine, compiles the generated SDSL with the engine compiler, and runs shaders on the CPU
+(derivatives, discard, an engine mixin, group-shared memory across a barrier).
 
 ## Compute wrappers
 

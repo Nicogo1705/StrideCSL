@@ -2,7 +2,8 @@
 
   <!-- The engine's shaders as C# [Shader(External = true)] classes: their members, typed, so shaders
        written in C# can inherit them, mix them in and call them. Nothing is generated from them but the
-       stubs every shader class gets. Shaders/ is written by "csl engine" from the Stride packages. -->
+       stubs every shader class gets; the GPU compiles the engine's .sdsl. Their bodies (474 of them) run
+       only on the CPU (Csl.Cpu). Shaders/ is written by "csl engine" from the Stride packages. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latest</LangVersion>

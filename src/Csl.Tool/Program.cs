@@ -5,7 +5,8 @@ using Csl.Generators.Sdsl.Syntax;
 using Microsoft.CodeAnalysis;
 
 // csl engine [--out DIR]
-//   The C# of every engine shader, declarations only ([Shader(External = true)]), for Csl.Engine.
+//   The C# of every engine shader ([Shader(External = true)]), for Csl.Engine: bodies included where they
+//   convert, for the CPU to run (the GPU keeps the engine's .sdsl), declarations otherwise.
 // csl convert FILE.sdsl... [--engine NAME,...] [--out DIR] [--namespace NS] [--declarations]
 //   Shaders to C# [Shader] classes, bodies included, typed against Csl.Engine for the engine's.
 //   --declarations writes [Shader(External = true)] classes instead: a project's .sdsl shaders
@@ -23,7 +24,7 @@ return command switch
 
 static int Usage()
 {
-    Console.WriteLine("csl engine [--out DIR]                      C# declarations of the engine's shaders (Csl.Engine)");
+    Console.WriteLine("csl engine [--out DIR]                      the engine's shaders as C# (Csl.Engine), bodies included for the CPU");
     Console.WriteLine("csl convert FILE.sdsl... [--engine NAME,...] [--out DIR] [--namespace NS] [--declarations]");
     Console.WriteLine("                                            shaders to C# [Shader] classes, bodies included");
     Console.WriteLine("                                            (--declarations: external classes, to extend .sdsl shaders from C#)");
