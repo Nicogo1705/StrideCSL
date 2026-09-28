@@ -40,6 +40,13 @@ internal sealed class Gallery : IDisposable
     private Task<LiveCompiler.Result>? compiling;
     private bool hadErrors;
     private int solo = -1;
+    /// <summary>The classes of the last compilation of Shaders/, which the CPU runs: what was saved last.</summary>
+    private System.Reflection.Assembly? liveAssembly;
+    /// <summary>Where each tile was drawn last, for a click to find its pixel.</summary>
+    private readonly List<(Tile Tile, Viewport Viewport)> layout = new();
+    /// <summary>A Ctrl+click waiting for the next draw: where, as a fraction of the window.</summary>
+    private Vector2? pixelRequest;
+    private Csl.Cpu.CpuTexture? cpuChecker;
 
     public Gallery(IServiceRegistry services, GraphicsDevice device, RenderContext renderContext)
     {
@@ -118,6 +125,8 @@ internal sealed class Gallery : IDisposable
             solo = -1;
         if (input.IsKeyPressed(Keys.B))
             blur.Enabled = !blur.Enabled;
+        if (input.IsMouseButtonPressed(MouseButton.Left) && (input.IsKeyDown(Keys.LeftCtrl) || input.IsKeyDown(Keys.RightCtrl)))
+            pixelRequest = input.MousePosition;
         if (input.IsKeyPressed(Keys.Add) || input.IsKeyPressed(Keys.OemPlus))
             blur.Radius = Math.Min(blur.Radius + 1, 16);
         if (input.IsKeyPressed(Keys.Subtract) || input.IsKeyPressed(Keys.OemMinus))
@@ -171,6 +180,7 @@ internal sealed class Gallery : IDisposable
         if (hadErrors)
             Console.WriteLine("Shaders/ compiles again.");
         hadErrors = false;
+        liveAssembly = result.Assembly ?? liveAssembly;
 
         var compiled = result.Shaders.ToDictionary(r => r.ShaderName, StringComparer.Ordinal);
         var changed = compiled.Values
@@ -246,31 +256,48 @@ internal sealed class Gallery : IDisposable
         // With the blur on, the tiles draw into its input and it draws the back buffer.
         var target = blur.Enabled ? blur.SceneFor(backBuffer) : backBuffer;
         DrawTiles(context, target, time);
+        if (pixelRequest is { } request)
+        {
+            pixelRequest = null;
+            DebugPixel(context, target, request, time);
+        }
         if (blur.Enabled)
             blur.Apply(context, backBuffer);
     }
 
     private void DrawTiles(RenderDrawContext context, Texture target, float time)
     {
-        context.CommandList.Clear(target, new Color4(0.08f, 0.08f, 0.09f, 1.0f));
+        context.CommandList.Clear(target, Background);
+        layout.Clear();
+        foreach (var (tile, viewport) in Layout(target.Width, target.Height))
+        {
+            DrawTile(context, tile, target, viewport, time);
+            layout.Add((tile, viewport));
+        }
+    }
+
+    private static readonly Color4 Background = new Color4(0.08f, 0.08f, 0.09f, 1.0f);
+
+    /// <summary>Where each tile goes in a target of this size: a grid, or the one shown alone.</summary>
+    private List<(Tile Tile, Viewport Viewport)> Layout(int targetWidth, int targetHeight)
+    {
+        var result = new List<(Tile, Viewport)>();
         if (tiles.Count == 0)
-            return;
+            return result;
         if (solo >= tiles.Count)
             solo = -1;
-
         const int gap = 4;
         int count = solo >= 0 ? 1 : tiles.Count;
         int columns = (int)Math.Ceiling(Math.Sqrt(count));
         int rows = (count + columns - 1) / columns;
-        float width = (target.Width - gap * (columns + 1)) / (float)columns;
-        float height = (target.Height - gap * (rows + 1)) / (float)rows;
+        float width = (targetWidth - gap * (columns + 1)) / (float)columns;
+        float height = (targetHeight - gap * (rows + 1)) / (float)rows;
         for (int slot = 0; slot < count; slot++)
         {
-            var tile = tiles[solo >= 0 ? solo : slot];
             int column = slot % columns, row = slot / columns;
-            var viewport = new Viewport(gap + column * (width + gap), gap + row * (height + gap), width, height);
-            DrawTile(context, tile, target, viewport, time);
+            result.Add((tiles[solo >= 0 ? solo : slot], new Viewport(gap + column * (width + gap), gap + row * (height + gap), width, height)));
         }
+        return result;
     }
 
     private void DrawTile(RenderDrawContext context, Tile tile, Texture target, Viewport viewport, float time)
@@ -296,6 +323,135 @@ internal sealed class Gallery : IDisposable
             tile.Effect.Dispose();
             tile.Effect = null;
         }
+    }
+
+    /// <summary>
+    /// Ctrl+click: the pixel under the mouse run again on the CPU (Csl.Cpu), from the C# last saved, with
+    /// the tile's viewport, time and inputs; its colour printed next to the GPU's. With a debugger
+    /// attached, it stops right before that pixel's lane: step into (F11) to walk the shader's C#.
+    /// </summary>
+    private void DebugPixel(RenderDrawContext context, Texture target, Vector2 at, float time)
+    {
+        int px = (int)(at.X * target.Width), py = (int)(at.Y * target.Height);
+        var (tile, viewport) = layout.FirstOrDefault(l => px >= l.Viewport.X && px < l.Viewport.X + l.Viewport.Width && py >= l.Viewport.Y && py < l.Viewport.Y + l.Viewport.Height);
+        if (tile == null)
+            return;
+        var type = CpuType(tile);
+        if (type == null)
+            return;
+        var gpu = target.GetData<Color>(context.CommandList)[py * target.Width + px];
+        try
+        {
+            var run = CpuTile(type, viewport, time, out int left, out int top);
+            run.Break = System.Diagnostics.Debugger.IsAttached;
+            var cpu = run.DrawPixel(px - left, py - top);
+            var cpuColor = new Color(cpu.x, cpu.y, cpu.z, cpu.w);
+            Console.WriteLine($"{tile.Name} pixel ({px}, {py}) at t = {time:F3}: GPU {gpu.R} {gpu.G} {gpu.B} {gpu.A}, CPU {cpuColor.R} {cpuColor.G} {cpuColor.B} {cpuColor.A}"
+                + (liveAssembly == null ? " (CPU: the build's C#)" : string.Empty));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"{tile.Name} pixel ({px}, {py}): the CPU run failed: {e.GetBaseException().Message}");
+        }
+    }
+
+    /// <summary>The C# class of a tile the CPU runs: the one last saved, else the build's.</summary>
+    private Type? CpuType(Tile tile)
+        => liveAssembly?.GetType($"{typeof(Shaders.DemoTile).Namespace}.{tile.Name}") ?? Type.GetType($"{typeof(Shaders.DemoTile).Namespace}.{tile.Name}");
+
+    /// <summary>
+    /// A tile as the CPU runs it: over the pixels its viewport covers (from <paramref name="left"/>,
+    /// <paramref name="top"/>), TexCoord across the viewport, SV_Position in the window, the GPU draw's inputs.
+    /// </summary>
+    private Csl.Cpu.CpuImageEffect CpuTile(Type type, Viewport viewport, float time, out int left, out int top)
+    {
+        cpuChecker ??= new Csl.Cpu.CpuTexture(256, 256, format: Csl.Cpu.TexelFormat.Rgba8UNorm).FillRgba8(System.Runtime.InteropServices.MemoryMarshal.AsBytes(CheckerPixels(out _).AsSpan()));
+        int x0 = (int)MathF.Floor(viewport.X), y0 = (int)MathF.Floor(viewport.Y);
+        int width = (int)MathF.Ceiling(viewport.X + viewport.Width) - x0, height = (int)MathF.Ceiling(viewport.Y + viewport.Height) - y0;
+        var run = new Csl.Cpu.CpuImageEffect(type, width, height)
+        {
+            PixelInputs = (shader, x, y) =>
+            {
+                Csl.Cpu.Members.Set(shader, "TexCoord", new Csl.Types.float2((x0 + x + 0.5f - viewport.X) / viewport.Width, (y0 + y + 0.5f - viewport.Y) / viewport.Height));
+                Csl.Cpu.Members.Set(shader, "ShadingPosition", new Csl.Types.float4(x0 + x + 0.5f, y0 + y + 0.5f, 0f, 1f));
+            },
+        };
+        run.Set("Time", time);
+        if (Csl.Cpu.Members.InstanceFields(type).ContainsKey("Aspect"))
+            run.Set("Aspect", viewport.Width / viewport.Height);
+        run.Set("Texture0", new Csl.Types.Texture2D(cpuChecker));
+        left = x0;
+        top = y0;
+        return run;
+    }
+
+    /// <summary>
+    /// The whole frame computed by the CPU (Csl.Cpu), no shader on the GPU: every tile run over the pixels
+    /// its viewport covers, the blur dispatched over them, the result uploaded and drawn. Computed once,
+    /// then drawn as it is until the layout, the blur or the C# changes.
+    /// </summary>
+    public void DrawOnCpu(RenderDrawContext context, Texture backBuffer, float time)
+    {
+        if (cpuFrame == null || cpuFrame.Width != backBuffer.Width || cpuFrame.Height != backBuffer.Height)
+        {
+            cpuFrame?.Dispose();
+            cpuFrame = Texture.New2D(context.GraphicsDevice, backBuffer.Width, backBuffer.Height, PixelFormat.R8G8B8A8_UNorm, ComputeCpuFrame(backBuffer.Width, backBuffer.Height, time));
+        }
+        context.CommandList.SetRenderTargetAndViewport(null, backBuffer);
+        context.GraphicsContext.DrawTexture(cpuFrame);
+    }
+
+    private Texture? cpuFrame;
+    private object? cpuFrameSignature;
+
+    private Color[] ComputeCpuFrame(int width, int height, float time)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var frame = new Csl.Cpu.CpuTexture(width, height, format: Csl.Cpu.TexelFormat.Rgba8UNorm);
+        var clear = new Csl.Types.float4(Background.R, Background.G, Background.B, Background.A);
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                frame.Write(0, x, y, 0, clear);
+        foreach (var (tile, viewport) in Layout(width, height))
+        {
+            var type = CpuType(tile);
+            if (type == null)
+                continue;
+            try
+            {
+                var image = CpuTile(type, viewport, time, out int left, out int top).Draw();
+                // The pixels whose centre is in the viewport, as the rasterizer covers them.
+                for (int y = 0; y < image.Height; y++)
+                    for (int x = 0; x < image.Width; x++)
+                    {
+                        float cx = left + x + 0.5f, cy = top + y + 0.5f;
+                        if (cx >= viewport.X && cx < viewport.X + viewport.Width && cy >= viewport.Y && cy < viewport.Y + viewport.Height && left + x < width && top + y < height)
+                            frame.Write(0, left + x, top + y, 0, image.Read(0, x, y));
+                    }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{tile.Name}: the CPU run failed: {e.GetBaseException().Message}");
+            }
+        }
+        var tilesTime = watch.Elapsed;
+        if (blur.Enabled)
+        {
+            var output = new Csl.Cpu.CpuTexture(width, height, format: Csl.Cpu.TexelFormat.Rgba8UNorm);
+            var run = new Csl.Cpu.CpuComputeShader(typeof(Shaders.DemoBlur));
+            run.Set("Input", new Csl.Types.Texture2D<Csl.Types.float4>(frame));
+            run.Set("Output", new Csl.Types.RWTexture2D<Csl.Types.float4>(output));
+            run.Set("Size", new Csl.Types.int2(width, height));
+            run.Set("Radius", blur.Radius);
+            run.Dispatch((width + run.ThreadsX - 1) / run.ThreadsX, (height + run.ThreadsY - 1) / run.ThreadsY);
+            frame = output;
+        }
+        Console.WriteLine($"CPU frame {width}x{height} at t = {time:F3}: tiles {tilesTime.TotalSeconds:F2} s" + (blur.Enabled ? $", blur r{blur.Radius} {(watch.Elapsed - tilesTime).TotalSeconds:F2} s" : string.Empty));
+        var texels = frame.ToArray();
+        var pixels = new Color[texels.Length];
+        for (int i = 0; i < texels.Length; i++)
+            pixels[i] = new Color(texels[i].x, texels[i].y, texels[i].z, texels[i].w);
+        return pixels;
     }
 
     private static LiveCompiler.ShaderKind KindOf(string name)
@@ -329,7 +485,15 @@ internal sealed class Gallery : IDisposable
     /// <summary>Texture0 of the demos: 8 by 8 coloured cells.</summary>
     private static Texture MakeChecker(GraphicsDevice device)
     {
-        const int size = 256, cells = 8;
+        var pixels = CheckerPixels(out int size);
+        return Texture.New2D(device, size, size, PixelFormat.R8G8B8A8_UNorm, pixels);
+    }
+
+    /// <summary>The checkerboard's pixels, row by row: for the GPU texture, and for the CPU one of <see cref="CpuCheck"/>.</summary>
+    public static Color[] CheckerPixels(out int size)
+    {
+        const int cells = 8;
+        size = 256;
         var pixels = new Color[size * size];
         for (int y = 0; y < size; y++)
         {
@@ -341,7 +505,7 @@ internal sealed class Gallery : IDisposable
                 pixels[y * size + x] = dark ? new Color((byte)(hue.R / 4), (byte)(hue.G / 4), (byte)(hue.B / 4)) : hue;
             }
         }
-        return Texture.New2D(device, size, size, PixelFormat.R8G8B8A8_UNorm, pixels);
+        return pixels;
     }
 
     public void Dispose()
@@ -353,6 +517,7 @@ internal sealed class Gallery : IDisposable
             tile.Candidate?.Dispose();
         }
         checker.Dispose();
+        cpuFrame?.Dispose();
         blur.Dispose();
     }
 }

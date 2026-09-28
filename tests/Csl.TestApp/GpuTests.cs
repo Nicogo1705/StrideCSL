@@ -57,6 +57,7 @@ internal sealed class GpuTests : Game
         Test("an engine shader replaced by its modified C# (LuminanceUtils)", Luma);
         Test("an engine graphics shader extended (ImageEffectShader)", Invert);
         Test("a typed buffer with unordered access (RWBuffer<T>)", TypedBuffer);
+        Test("the CPU run's arithmetic against the GPU's (CslPrecision)", Precision);
         foreach (var (name, passed, detail) in results)
             Console.WriteLine($"{(passed ? "PASS" : "FAIL")} {name}{(detail.Length > 0 ? ": " + detail : string.Empty)}");
         if (results.Count == 0)
@@ -156,5 +157,65 @@ internal sealed class GpuTests : Game
         var actual = output.GetData<Color>(CommandList);
         return Compare(actual, i => new Color((byte)(255 - pixels[i].R), (byte)(255 - pixels[i].G), (byte)(255 - pixels[i].B), pixels[i].A),
             (a, b) => Math.Abs(a.R - b.R) <= 1 && Math.Abs(a.G - b.G) <= 1 && Math.Abs(a.B - b.B) <= 1 && Math.Abs(a.A - b.A) <= 1);
+    }
+    /// <summary>
+    /// CslPrecision on both: per operation, how many ULPs the CPU run is from the GPU, and whether the
+    /// GPU fused a*b+c. Informative: it fails only when the CPU run throws.
+    /// </summary>
+    private string? Precision()
+    {
+        const int threads = 512;
+        int count = threads * CslPrecision.Columns;
+        // From 0.01 to 10000, logarithmically, both signs.
+        var inputs = Enumerable.Range(0, threads).Select(t => (t / 256 % 2 == 0 ? 1 : -1) * MathF.Pow(10f, t % 256 / 256f * 6f - 2f)).ToArray();
+        using var input = Buffer.Structured.New(GraphicsDevice, inputs);
+        using var output = Csl.Buffers.NewStructured<float>(GraphicsDevice, count, CslPrecisionEffect.Slots.Output);
+        using var effect = new CslPrecisionEffect(Services) { Input = input, Output = output, Offset = 1.0f / 4096.0f };
+        effect.Dispatch(threads);
+        var gpu = output.GetData<float>(CommandList);
+
+        var cpu = new float[count];
+        var run = new Csl.Cpu.CpuComputeShader(typeof(CslPrecision));
+        run.Set("Output", new Csl.Types.RWStructuredBuffer<float>(cpu));
+        run.Set("Input", new Csl.Types.StructuredBuffer<float>(inputs));
+        run.Set("Offset", 1.0f / 4096.0f);
+        run.Dispatch(threads / 64);
+
+        string[] names = { "x", "sin", "cos", "exp", "log", "rsqrt", "hash", "pow", "a*a-1", "x*0.1+1/3", "dot2", "dot3", "lerp", "smoothstep", "normalize.x", "length" };
+        for (int column = 0; column < CslPrecision.Columns; column++)
+        {
+            long worst = 0;
+            int differing = 0;
+            float worstX = 0, worstGpu = 0, worstCpu = 0;
+            for (int t = 0; t < threads; t++)
+            {
+                float g = gpu[t * CslPrecision.Columns + column], c = cpu[t * CslPrecision.Columns + column];
+                long ulps = Ulps(g, c);
+                if (ulps > 0) differing++;
+                if (ulps > worst)
+                {
+                    worst = ulps;
+                    worstX = gpu[t * CslPrecision.Columns];
+                    worstGpu = g;
+                    worstCpu = c;
+                }
+            }
+            Console.WriteLine($"  {names[column],-10} {differing,4}/{threads} differ, worst {worst} ulps" + (worst > 0 ? $" at x = {worstX:R}: GPU {worstGpu:R}, CPU {worstCpu:R}" : string.Empty));
+        }
+        File.WriteAllText(Path.Combine(Path.GetTempPath(), "csl-precision.csv"), string.Join("\n", Enumerable.Range(0, threads).Select(t => string.Join(";", Enumerable.Range(0, CslPrecision.Columns).Select(k => gpu[t * CslPrecision.Columns + k].ToString("R", System.Globalization.CultureInfo.InvariantCulture))))));
+        Console.WriteLine($"  a*a-1 on the GPU: {gpu[8]:R} ({(gpu[8] == MathF.Pow(2f, -11f) ? "not fused" : "fused: mad is an FMA")}), on the CPU: {cpu[8]:R}");
+        return null;
+    }
+
+    private static long Ulps(float a, float b)
+    {
+        if (a == b || (float.IsNaN(a) && float.IsNaN(b)))
+            return 0;
+        if (float.IsNaN(a) || float.IsNaN(b))
+            return long.MaxValue;
+        int ia = BitConverter.SingleToInt32Bits(a), ib = BitConverter.SingleToInt32Bits(b);
+        if (ia < 0) ia = int.MinValue - ia;
+        if (ib < 0) ib = int.MinValue - ib;
+        return Math.Abs((long)ia - ib);
     }
 }

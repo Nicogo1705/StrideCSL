@@ -306,6 +306,59 @@ size) is implicit, narrowing and truncation are explicit, as HLSL only warns abo
 any mix of parts in their constructors (`new float4(v.xyz, 1)`), scalars have swizzles (`f.xxx`, C#
 14 extension members), matrices have `m[row]`, `m._m01`, `m._12`.
 
+## Running shaders on the CPU
+
+`Csl.Cpu` (in Csl.Types) runs a C# shader as the CPU's own code, to step through it in a debugger:
+the shader's methods, the engine's (Csl.Engine carries the bodies of the 474 engine shaders that
+convert; the GPU still compiles the engine's `.sdsl`), the intrinsics and the resources.
+
+```csharp
+var run = new CpuImageEffect(typeof(DemoClouds), 320, 180) { Break = true };
+run.Set("Time", 2f);
+run.Set("Texture0", new Texture2D(new CpuTexture(256, 256).FillRgba8(pixels)));
+CpuTexture image = run.Draw();          // every pixel
+float4 one = run.DrawPixel(120, 45);    // one, stopping in the debugger right before it
+
+var blur = new CpuComputeShader(typeof(DemoBlur));
+blur.Set("Input", new Texture2D<float4>(input)).Set("Output", new RWTexture2D<float4>(output));
+blur.Dispatch(40, 23);
+```
+
+- **Pixels** run in 2x2 quads, each lane a thread in lockstep with the others: `ddx`/`ddy` (coarse,
+  as fxc compiles them), `fwidth` and `Sample`'s mip level come from the neighbours; `discard`
+  keeps the lane running for them. **Compute** groups run their threads in lockstep at
+  `GroupMemoryBarrierWithGroupSync`, one group after the other for `[GroupShared]` statics.
+- **Resources** given CPU data (`new Texture2D(cpuTexture)`, `new RWStructuredBuffer<T>(array)`) are
+  read and written; filtering follows Direct3D 11 (address modes on texel indices, 8-bit linear
+  weights, level from the longest derivative), writes round to the format. Samplers take their
+  `[Sampler]` description, Stride's defaults otherwise.
+- **Mixins**: a call through a mixin stub runs the mixin's own method on an instance kept for the
+  shader, members of the same name shared both ways, as SDSL merges them. `Sdsl.If`/`Sdsl.Macro`
+  read the run's `Macros` (Direct3D 11's by default).
+- **The GPU's arithmetic**, measured (`Csl.TestApp gpu`, `CslPrecision`): `dot` as a chain of FMAs,
+  `lerp` and `mad` fused, `sin`/`cos` reduced in turns with the 32-bit 1/2π rounded toward zero,
+  `min`/`max`/`saturate` of a NaN as D3D. Bit-exact but for `sin`/`cos`/`exp`/`log` (~1e-7) and
+  `rsqrt`/`sqrt` (1-2 ulps), the hardware's own approximations.
+
+In the demo: `Csl.Demo --cpu` computes the whole gallery on the CPU, uploads and draws it, again on
+each save (1280x720: tiles 0.9 s, blur 1.8 s, about 0.4 frame per second: for looking, not for
+running); Ctrl+click on a tile runs that pixel on the CPU from the C# just saved and prints both
+colours, stopping in the debugger when one is attached; `--debug-pixel NAME X Y` does it without a
+GPU; `--cpu-check DIR` draws every demo on both and compares them. On Direct3D 11, 7 of the 10 demos
+match to one 8-bit step; over the whole frame, 96 % of the pixels.
+
+What the CPU cannot reproduce, because the GPU does not run the C# as written:
+
+- **Contraction**: the compiler fuses `a * b + c` anywhere into an FMA (one rounding instead of two)
+  and folds constants across expressions (`x * 127.1 + x * 0.5 * 311.7` became `x * 282.95`). A few
+  ulps, invisible, except where a result amplifies them: a hash (`frac(sin(x) * 43758.5)`), an
+  escape-time fractal's boundary (DemoClouds, DemoSphere, DemoMandelbrot).
+- The hardware's `sin`, `exp`, `rsqrt`, and the rasterizer's interpolation of `TexCoord` (1 ulp,
+  which a rounding boundary can show as a line one step off).
+- `Sdsl.Ref` and writes through `Sdsl.Member` write a copy; a mixin calling back a method the shader
+  overrides runs its own; cube and multisampled textures, append/consume buffers and atomics on
+  resource elements are GPU only (they throw).
+
 ## Validation
 
 `tests/Csl.TestApp` checks StrideCSL itself; nothing here is needed to use it. `dotnet run --project tests/Csl.TestApp -- <command>`:
@@ -316,18 +369,19 @@ any mix of parts in their constructors (`new float4(v.xyz, 1)`), scalars have sw
 | `convert [--out DIR]` | Converts every engine shader SDSL → C# → SDSL; writes both and a report of what fails. |
 | `roundtrip [--out DIR]` | Compiles each converted engine shader with the engine's SDSL compiler (`ShaderMixer`, to SPIR-V) from its original source and from its round trip (its bases round-tripped too) and compares the SPIR-V without debug instructions. A shader without an entry point is hosted after `ShaderBase` or `ComputeShaderBase`; a generic one is instantiated with sample arguments. A difference is traced to the base that causes it. |
 | `compile NAME...` | Compiles engine shaders (and this app's C# shaders), mixed in this order. |
-| `gpu` | A code-only Stride game (hidden window) that runs the C# shaders of `Shaders/` and checks what they compute against the CPU: a shader written in C#, an engine shader mixed in, an engine shader replaced by its modified C#, the engine's `ImageEffectShader` extended. Prints PASS/FAIL. |
+| `gpu` | A code-only Stride game (hidden window) that runs the C# shaders of `Shaders/` and checks what they compute against the CPU: a shader written in C#, an engine shader mixed in, an engine shader replaced by its modified C#, the engine's `ImageEffectShader` extended; and `CslPrecision`, the GPU's arithmetic against the CPU run's, in ulps per operation. Prints PASS/FAIL. |
+| `names [NAME...]` | Compiles each candidate name (keywords, types, intrinsics) as a local, parameter, method, variable and field, to SPIR-V then Direct3D 11 on the CPU (SPIRV-Cross, fxc): what CSL110 reports. |
 
-Results on Stride 4.4.0-beta7 (479 shaders in the packages):
+Results on Stride 4.4.0-beta8 (479 shaders in the packages):
 
-- **471** convert and translate back; the SPIR-V of **442** is identical to the original's, none
-  differs; the other 29 do not compile on their own in their original form either (a composition
-  left empty, an abstract method nothing implements).
-- **476** are in `Csl.Engine`.
+- **474** convert and translate back; the SPIR-V of **469** is identical to the original's, none
+  differs. The other 5 are `ComputeColorTexture*`, whose `Texture2D` generic parameter the engine's
+  new compiler does not implement (`NotImplementedException`), in their original form too.
+- **476** are in `Csl.Engine`, 474 with their bodies.
 - Not converted: `FXAAShader` and `SubsurfaceScatteringBlurShader` (function-like macros) and
   `SSLRBlurPass` (`#if` inside an initializer list), which are the three missing from `Csl.Engine`;
-  `PositionStream` (the whole shader under `#if`/`#else`, in two versions: in `Csl.Engine` for
-  typing, not round-tripped); and four shaders whose bodies do not compile as C# yet.
+  `PositionStream` (the whole shader under `#if`/`#else`) and `LightProbeShader` (a member and a
+  local declared under `#if`), in `Csl.Engine` as declarations.
 
 On the GPU (`gpu`, Direct3D 11, feature level 11_0): the five C# shaders compute what the CPU expects, the modified
 `LuminanceUtils` replacing the engine's in the effect that calls it.

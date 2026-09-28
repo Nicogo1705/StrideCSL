@@ -14,13 +14,22 @@ internal sealed class DemoGame : Game
     private readonly string? shotPath;
     private readonly float shotTime;
     private readonly int? blurRadius;
+    private readonly string? cpuCheckDirectory;
+    private readonly bool onCpu;
     private Gallery? gallery;
+
+    /// <summary>What <see cref="CpuCheck"/> found: the number of shaders whose CPU run differs from the GPU.</summary>
+    public int CpuCheckFailures { get; private set; }
 
     /// <param name="shotPath">Draw once at <paramref name="shotTime"/>, save the image there and exit, the window hidden.</param>
     /// <param name="blurRadius">The blur's radius at start; 0 turns it off.</param>
-    public DemoGame(string? shotPath = null, float shotTime = 2.0f, int? blurRadius = null)
+    /// <param name="cpuCheckDirectory">Run <see cref="CpuCheck"/> at <paramref name="shotTime"/>, write its images and report there, exit (hidden).</param>
+    /// <param name="onCpu">Every shader run by the CPU (Csl.Cpu) at <paramref name="shotTime"/>, the frame uploaded and drawn.</param>
+    public DemoGame(string? shotPath = null, float shotTime = 2.0f, int? blurRadius = null, string? cpuCheckDirectory = null, bool onCpu = false)
     {
+        this.onCpu = onCpu;
         this.shotPath = shotPath;
+        this.cpuCheckDirectory = cpuCheckDirectory;
         this.shotTime = shotTime;
         this.blurRadius = blurRadius;
         AutoLoadDefaultSettings = false;
@@ -36,7 +45,7 @@ internal sealed class DemoGame : Game
     protected override void BeginRun()
     {
         base.BeginRun();
-        Window.Visible = shotPath == null;
+        Window.Visible = shotPath == null && cpuCheckDirectory == null;
         Window.AllowUserResizing = true;
         Window.Title = "StrideCSL demo";
     }
@@ -44,10 +53,10 @@ internal sealed class DemoGame : Game
     protected override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
-        if (gallery != null && shotPath == null)
+        if (gallery != null && shotPath == null && cpuCheckDirectory == null)
         {
             gallery.Update(Input);
-            Window.Title = gallery.Title;
+            Window.Title = (onCpu ? $"[CPU frame, t = {shotTime}] " : string.Empty) + gallery.Title;
         }
     }
 
@@ -55,6 +64,12 @@ internal sealed class DemoGame : Game
     {
         base.Draw(gameTime);
         var context = ShaderContext.Get(Services);
+        if (cpuCheckDirectory != null)
+        {
+            CpuCheckFailures = CpuCheck.Run(Services, context.RenderContext, context.DrawContext, cpuCheckDirectory, shotTime);
+            Exit();
+            return;
+        }
         if (gallery == null)
         {
             gallery = new Gallery(Services, GraphicsDevice, context.RenderContext);
@@ -62,6 +77,20 @@ internal sealed class DemoGame : Game
                 gallery.SetBlur(radius);
         }
         var backBuffer = GraphicsDevice.Presenter.BackBuffer;
+        if (onCpu)
+        {
+            // The CPU's frame, at a fixed time: a frame takes it seconds.
+            if (shotPath != null)
+                gallery.ReloadAllNow();
+            gallery.DrawOnCpu(context.DrawContext, backBuffer, shotTime);
+            if (shotPath == null)
+                return;
+            using (var file = File.Create(shotPath))
+                backBuffer.Save(context.CommandList, file, ImageFileType.Png);
+            Console.WriteLine($"SHOT {shotPath} computed on the CPU at t = {shotTime}");
+            Exit();
+            return;
+        }
         if (shotPath == null)
         {
             gallery.Draw(context.DrawContext, backBuffer, (float)gameTime.Total.TotalSeconds);

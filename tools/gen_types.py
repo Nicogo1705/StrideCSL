@@ -372,14 +372,12 @@ def emit_intrinsics():
         'abs': 'MathF.Abs({0})', 'floor': 'MathF.Floor({0})', 'ceil': 'MathF.Ceiling({0})',
         'round': 'MathF.Round({0}, MidpointRounding.ToEven)', 'trunc': 'MathF.Truncate({0})',
         'frac': '({0} - MathF.Floor({0}))', 'sqrt': 'MathF.Sqrt({0})', 'rsqrt': '(1f / MathF.Sqrt({0}))',
-        'exp': 'MathF.Exp({0})', 'exp2': 'MathF.Pow(2f, {0})', 'log': 'MathF.Log({0})', 'log2': 'MathF.Log2({0})',
-        'log10': 'MathF.Log10({0})', 'sin': 'MathF.Sin({0})', 'cos': 'MathF.Cos({0})', 'tan': 'MathF.Tan({0})',
+        'exp': 'GpuExp({0})', 'exp2': 'MathF.Pow(2f, {0})', 'log': 'GpuLog({0})', 'log2': 'MathF.Log2({0})',
+        'log10': 'GpuLog10({0})', 'sin': 'GpuSin({0})', 'cos': 'GpuCos({0})', 'tan': 'GpuTan({0})',
         'asin': 'MathF.Asin({0})', 'acos': 'MathF.Acos({0})', 'atan': 'MathF.Atan({0})',
         'sinh': 'MathF.Sinh({0})', 'cosh': 'MathF.Cosh({0})', 'tanh': 'MathF.Tanh({0})',
-        'saturate': 'Math.Clamp({0}, 0f, 1f)', 'rcp': '(1f / {0})',
+        'saturate': 'Saturate({0})', 'rcp': '(1f / {0})',
         'radians': '({0} * (MathF.PI / 180f))', 'degrees': '({0} * (180f / MathF.PI))',
-        'ddx': 'GpuOnlyFloat()', 'ddy': 'GpuOnlyFloat()', 'ddx_coarse': 'GpuOnlyFloat()', 'ddy_coarse': 'GpuOnlyFloat()',
-        'ddx_fine': 'GpuOnlyFloat()', 'ddy_fine': 'GpuOnlyFloat()', 'fwidth': 'GpuOnlyFloat()',
     }
     for fn, body in unary_float.items():
         for n in (1, 2, 3, 4):
@@ -391,7 +389,7 @@ def emit_intrinsics():
         out.append(f'    public static {vec("bool", n)} isnan({vec("float", n)} v) => {comp(lambda a: f"float.IsNaN({a})", "bool", n, ["v"])};')
         out.append(f'    public static {vec("bool", n)} isinf({vec("float", n)} v) => {comp(lambda a: f"float.IsInfinity({a})", "bool", n, ["v"])};')
         out.append(f'    public static {vec("bool", n)} isfinite({vec("float", n)} v) => {comp(lambda a: f"float.IsFinite({a})", "bool", n, ["v"])};')
-        out.append(f'    public static void clip({vec("float", n)} v) {{ }}')
+        out.append(f'    public static void clip({vec("float", n)} v) {{ if ({" || ".join(f"v.{c} < 0f" for c in COMPONENTS[:n]) if n > 1 else "v < 0f"}) discard(); }}')
         out.append(f'    public static {vec("float", n)} modf({vec("float", n)} v, out {vec("float", n)} ip) {{ ip = trunc(v); return v - ip; }}')
         out.append(f'    public static {vec("float", n)} frexp({vec("float", n)} v, out {vec("float", n)} exponent) => throw new NotSupportedException();')
         out.append(f'    public static void sincos({vec("float", n)} v, out {vec("float", n)} s, out {vec("float", n)} c) {{ s = sin(v); c = cos(v); }}')
@@ -402,17 +400,20 @@ def emit_intrinsics():
     for fn, body in binary_float.items():
         for n in (1, 2, 3, 4):
             out.append(f'    public static {vec("float", n)} {fn}({vec("float", n)} a, {vec("float", n)} b) => {comp(lambda a, b: body.format(a, b), "float", n, ["a", "b"])};')
-    for scalar, mn, mx in (('float', 'MathF.Min', 'MathF.Max'), ('int', 'Math.Min', 'Math.Max'), ('uint', 'Math.Min', 'Math.Max'), ('double', 'Math.Min', 'Math.Max')):
+    # D3D's min and max return the other operand for a NaN (IEEE minNum); clamp is max then min.
+    for scalar, mn, mx in (('float', 'MinNum', 'MaxNum'), ('int', 'Math.Min', 'Math.Max'), ('uint', 'Math.Min', 'Math.Max'), ('double', 'MinNum', 'MaxNum')):
         for n in (1, 2, 3, 4):
             v = vec(scalar, n)
             out.append(f'    public static {v} min({v} a, {v} b) => {comp(lambda a, b: f"{mn}({a}, {b})", scalar, n, ["a", "b"])};')
             out.append(f'    public static {v} max({v} a, {v} b) => {comp(lambda a, b: f"{mx}({a}, {b})", scalar, n, ["a", "b"])};')
-            out.append(f'    public static {v} clamp({v} v, {v} lo, {v} hi) => {comp(lambda v, lo, hi: f"Math.Clamp({v}, {lo}, {hi})", scalar, n, ["v", "lo", "hi"])};')
+            out.append(f'    public static {v} clamp({v} v, {v} lo, {v} hi) => {comp(lambda v, lo, hi: f"{mn}({mx}({v}, {lo}), {hi})", scalar, n, ["v", "lo", "hi"])};')
     for n in (1, 2, 3, 4):
         f = vec('float', n)
-        out.append(f'    public static {f} lerp({f} a, {f} b, {f} s) => {comp(lambda a, b, s: f"({a} + ({b} - {a}) * {s})", "float", n, ["a", "b", "s"])};')
+        # As the GPU computes it (measured: CslPrecision): mad(b - a, s, a), fused.
+        out.append(f'    public static {f} lerp({f} a, {f} b, {f} s) => {comp(lambda a, b, s: f"MathF.FusedMultiplyAdd({b} - {a}, {s}, {a})", "float", n, ["a", "b", "s"])};')
         out.append(f'    public static {f} smoothstep({f} lo, {f} hi, {f} v) => {comp(lambda lo, hi, v: f"SmoothStep({lo}, {hi}, {v})", "float", n, ["lo", "hi", "v"])};')
-        out.append(f'    public static {f} mad({f} a, {f} b, {f} c) => {comp(lambda a, b, c: f"({a} * {b} + {c})", "float", n, ["a", "b", "c"])};')
+        # The GPU runs mad as a fused multiply-add (measured: CslPrecision).
+        out.append(f'    public static {f} mad({f} a, {f} b, {f} c) => {comp(lambda a, b, c: f"MathF.FusedMultiplyAdd({a}, {b}, {c})", "float", n, ["a", "b", "c"])};')
         i = vec('int', n); u = vec('uint', n)
         out.append(f'    public static {i} mad({i} a, {i} b, {i} c) => a * b + c;')
         out.append(f'    public static {u} mad({u} a, {u} b, {u} c) => a * b + c;')
@@ -439,16 +440,34 @@ def emit_intrinsics():
     out.append('    private static uint FirstBitLow(uint v) => v == 0 ? uint.MaxValue : (uint)System.Numerics.BitOperations.TrailingZeroCount(v);')
     out.append('    private static uint FirstBitHigh(uint v) => v == 0 ? uint.MaxValue : (uint)(31 - System.Numerics.BitOperations.LeadingZeroCount(v));')
     out.append('    private static uint ReverseBits(uint v) { uint r = 0; for (int i = 0; i < 32; i++) { r = (r << 1) | (v & 1); v >>= 1; } return r; }')
-    out.append('    private static float GpuOnlyFloat() => throw new NotSupportedException("Derivatives exist on the GPU only");')
+    out.append('    private static float Saturate(float v) => v > 0f ? (v < 1f ? v : 1f) : 0f;')
+    out.append('    private static float MinNum(float a, float b) => float.IsNaN(a) ? b : float.IsNaN(b) ? a : MathF.Min(a, b);')
+    out.append('    private static float MaxNum(float a, float b) => float.IsNaN(a) ? b : float.IsNaN(b) ? a : MathF.Max(a, b);')
+    out.append('    private static double MinNum(double a, double b) => double.IsNaN(a) ? b : double.IsNaN(b) ? a : Math.Min(a, b);')
+    out.append('    private static double MaxNum(double a, double b) => double.IsNaN(a) ? b : double.IsNaN(b) ? a : Math.Max(a, b);')
+    # Derivatives: the difference with the neighbour lane of the 2x2 quad (Csl.Cpu.Lane).
+    for n in (1, 2, 3, 4):
+        f = vec('float', n)
+        pack = {1: 'new float4(v, 0f, 0f, 0f)', 2: 'new float4(v.x, v.y, 0f, 0f)', 3: 'new float4(v.x, v.y, v.z, 0f)', 4: 'v'}[n]
+        unpack = {1: 'd.x', 2: 'd.xy', 3: 'd.xyz', 4: 'd'}[n]
+        for name, call, part in (('ddx', 'Derivatives', 'Ddx'), ('ddy', 'Derivatives', 'Ddy'),
+                                 ('ddx_coarse', 'Current!.DerivativesCoarse', 'Ddx'), ('ddy_coarse', 'Current!.DerivativesCoarse', 'Ddy'),
+                                 ('ddx_fine', 'Current!.DerivativesFine', 'Ddx'), ('ddy_fine', 'Current!.DerivativesFine', 'Ddy')):
+            out.append(f'    public static {f} {name}({f} v) {{ var d = Csl.Cpu.Lane.{call}({pack}).{part}; return {unpack}; }}')
+        out.append(f'    public static {f} fwidth({f} v) {{ var (x, y) = Csl.Cpu.Lane.Derivatives({pack}); var d = abs(x) + abs(y); return {unpack}; }}')
     for n in (2, 3, 4):
         comps = COMPONENTS[:n]
         f = f'float{n}'
-        out.append(f'    public static float dot({f} a, {f} b) => {" + ".join(f"a.{c} * b.{c}" for c in comps)};')
+        # dp2/dp3/dp4 as the GPU runs them (measured: CslPrecision): x*x', then fused multiply-adds in order.
+        chain = 'a.x * b.x'
+        for c in comps[1:]:
+            chain = f'MathF.FusedMultiplyAdd(a.{c}, b.{c}, {chain})'
+        out.append(f'    public static float dot({f} a, {f} b) => {chain};')
         out.append(f'    public static int dot(int{n} a, int{n} b) => {" + ".join(f"a.{c} * b.{c}" for c in comps)};')
         out.append(f'    public static uint dot(uint{n} a, uint{n} b) => {" + ".join(f"a.{c} * b.{c}" for c in comps)};')
         out.append(f'    public static float length({f} v) => MathF.Sqrt(dot(v, v));')
         out.append(f'    public static float distance({f} a, {f} b) => length(a - b);')
-        out.append(f'    public static {f} normalize({f} v) => v / length(v);')
+        out.append(f'    public static {f} normalize({f} v) => v * (1f / MathF.Sqrt(dot(v, v)));')
         out.append(f'    public static {f} reflect({f} i, {f} n) => i - 2f * dot(i, n) * n;')
         out.append(f'    public static {f} refract({f} i, {f} n, float eta) {{ var c = dot(-i, n); var k = 1f - eta * eta * (1f - c * c); return k < 0f ? new {f}(0f) : eta * i + (eta * c - MathF.Sqrt(k)) * n; }}')
         out.append(f'    public static {f} faceforward({f} n, {f} i, {f} ng) => dot(i, ng) < 0f ? n : -n;')
@@ -486,14 +505,33 @@ TEXTURES = {
 }
 
 def emit_resources():
-    out = [HEADER, '''/// <summary>Shader resources: opaque handles, as on the GPU. They exist so shader code type-checks; every member runs on the GPU only.</summary>
+    out = [HEADER, """using Csl.Cpu;
+
+/// <summary>
+/// Shader resources: handles, as on the GPU, where they are accessed. Given CPU data (a CpuTexture, an
+/// array), their members also run on the CPU (Csl.Cpu.ResourceOps), for shader code run there.
+/// </summary>
 internal static class GpuOnly
 {
     public static Exception Exception() => new NotSupportedException("Shader resources are only accessed on the GPU");
 }
 
-public readonly struct SamplerState { }
-public readonly struct SamplerComparisonState { }
+/// <summary>A sampler: on the CPU, its description (Stride's defaults when it has none).</summary>
+public readonly struct SamplerState
+{
+    private readonly SamplerDescription? description;
+    public SamplerState(SamplerDescription description) { this.description = description; }
+    public SamplerDescription Description => description ?? SamplerDescription.Default;
+    public bool HasDescription => description != null;
+}
+
+public readonly struct SamplerComparisonState
+{
+    private readonly SamplerDescription? description;
+    public SamplerComparisonState(SamplerDescription description) { this.description = description; }
+    public SamplerDescription Description => description ?? SamplerDescription.Default;
+    public bool HasDescription => description != null;
+}
 
 /// <summary>Sample counts of a multisampled texture: Texture2DMS&lt;float4, Samples4&gt; is SDSL's Texture2DMS&lt;float4, 4&gt;.</summary>
 public readonly struct Samples1 { }
@@ -502,70 +540,98 @@ public readonly struct Samples4 { }
 public readonly struct Samples8 { }
 public readonly struct Samples16 { }
 public readonly struct Samples32 { }
-''']
+"""]
     def fv(n): return vec('float', n)
     def iv(n): return vec('int', n)
     def uv(n): return vec('uint', n)
     G = 'throw GpuOnly.Exception()'
+    # spatial dimensions and array flag of each texture; None: not run on the CPU (cubes).
+    SHAPE = {'Texture1D': (1, False), 'Texture1DArray': (1, True), 'Texture2D': (2, False), 'Texture2DArray': (2, True),
+             'Texture3D': (3, False), 'TextureCube': None, 'TextureCubeArray': None,
+             'RWTexture1D': (1, False), 'RWTexture1DArray': (1, True), 'RWTexture2D': (2, False), 'RWTexture2DArray': (2, True),
+             'RWTexture3D': (3, False), 'RasterizerOrderedTexture2D': (2, False)}
+    def data_members(name, generic, kind):
+        struct = name + ('<T>' if generic else '')
+        if kind == 'texture':
+            return [f'    private readonly object? cpu;',
+                    f'    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>',
+                    f'    public {name}(CpuTexture texture) {{ cpu = texture; }}',
+                    f'    public CpuTexture? CpuData => cpu as CpuTexture;']
+        el = 'T' if generic else 'float4'
+        return [f'    private readonly object? cpu;',
+                f'    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>',
+                f'    public {name}({el}[] data) {{ cpu = data; }}',
+                f'    public {el}[]? CpuData => cpu as {el}[];']
     for name, (coord, load, index) in TEXTURES.items():
+        shape = SHAPE[name]
         for generic in (True, False):
             t = 'T' if generic else 'float4'
             header = f'public readonly struct {name}<T> where T : struct' if generic else f'/// <summary>{name} of float4, as SDSL writes it without an element type.</summary>\npublic readonly struct {name}'
             out.append(header)
             out.append('{')
+            out.extend(data_members(name, generic, 'texture'))
+            D, A = shape if shape else (0, False)
+            a = 'true' if A else 'false'
+            def body(expr):
+                return expr if shape else G
             if index is not None:
                 for v in (iv(index), uv(index)):
-                    out.append(f'    public {t} this[{v} location] => {G};')
+                    out.append(f'    public {t} this[{v} location] => {body(f"ResourceOps.Load<{t}>(cpu, {D}, {a}, ResourceOps.I(location), false)")};')
                 for v in (iv(load), uv(load)):
-                    out.append(f'    public {t} Load({v} location) => {G};')
-                    out.append(f'    public {t} Load({v} location, {iv(index if name != "Texture1DArray" and name != "Texture2DArray" else index - 1)} offset) => {G};')
-            offset = iv(coord if name not in ('Texture1DArray', 'Texture2DArray', 'TextureCubeArray') else coord - 1)
+                    out.append(f'    public {t} Load({v} location) => {body(f"ResourceOps.Load<{t}>(cpu, {D}, {a}, ResourceOps.I(location), true)")};')
+                    out.append(f'    public {t} Load({v} location, {iv(index if name != "Texture1DArray" and name != "Texture2DArray" else index - 1)} offset) => {body(f"ResourceOps.Load<{t}>(cpu, {D}, {a}, ResourceOps.I(location), true, ResourceOps.I(offset))")};')
+            spatial = coord if name not in ('Texture1DArray', 'Texture2DArray', 'TextureCubeArray') else coord - 1
+            offset = iv(spatial)
             for s in ('Sample', 'SampleLevel', 'SampleBias', 'SampleGrad'):
-                extra = {'Sample': '', 'SampleLevel': ', float lod', 'SampleBias': ', float bias', 'SampleGrad': f', {fv(coord if name not in ("Texture1DArray", "Texture2DArray", "TextureCubeArray") else coord - 1)} ddx, {fv(coord if name not in ("Texture1DArray", "Texture2DArray", "TextureCubeArray") else coord - 1)} ddy'}[s]
-                out.append(f'    public {t} {s}(SamplerState sampler, {fv(coord)} location{extra}) => {G};')
+                extra = {'Sample': '', 'SampleLevel': ', float lod', 'SampleBias': ', float bias', 'SampleGrad': f', {fv(spatial)} ddx, {fv(spatial)} ddy'}[s]
+                args = {'Sample': 'ResourceOps.Level.Implicit', 'SampleLevel': 'ResourceOps.Level.Explicit, lod', 'SampleBias': 'ResourceOps.Level.Bias, bias',
+                        'SampleGrad': 'ResourceOps.Level.Gradient, 0f'}[s]
+                grads = ', ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy)' if s == 'SampleGrad' else ''
+                out.append(f'    public {t} {s}(SamplerState sampler, {fv(coord)} location{extra}) => {body(f"ResourceOps.Sample<{t}>(cpu, sampler, {D}, {a}, ResourceOps.F(location), {args}{grads})")};')
                 if not name.startswith('TextureCube'):
-                    out.append(f'    public {t} {s}(SamplerState sampler, {fv(coord)} location{extra}, {offset} offset) => {G};')
+                    out.append(f'    public {t} {s}(SamplerState sampler, {fv(coord)} location{extra}, {offset} offset) => {body(f"ResourceOps.Sample<{t}>(cpu, sampler, {D}, {a}, ResourceOps.F(location), {args}, offset: ResourceOps.I(offset){grads})")};')
             for s in ('SampleCmp', 'SampleCmpLevelZero'):
-                out.append(f'    public float {s}(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {G};')
+                zero = 'true' if s == 'SampleCmpLevelZero' else 'false'
+                out.append(f'    public float {s}(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {body(f"ResourceOps.SampleCmp(cpu, sampler, {D}, {a}, ResourceOps.F(location), compare, {zero})")};')
                 if not name.startswith('TextureCube'):
-                    out.append(f'    public float {s}(SamplerComparisonState sampler, {fv(coord)} location, float compare, {offset} offset) => {G};')
+                    out.append(f'    public float {s}(SamplerComparisonState sampler, {fv(coord)} location, float compare, {offset} offset) => {body(f"ResourceOps.SampleCmp(cpu, sampler, {D}, {a}, ResourceOps.F(location), compare, {zero}, ResourceOps.I(offset))")};')
             if name in ('Texture2D', 'Texture2DArray', 'TextureCube', 'TextureCubeArray'):
-                el = 'T' if generic else 'float4'
                 for g in ('Gather', 'GatherRed', 'GatherGreen', 'GatherBlue', 'GatherAlpha'):
-                    out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location) => {G};')
+                    channel = {'Gather': 0, 'GatherRed': 0, 'GatherGreen': 1, 'GatherBlue': 2, 'GatherAlpha': 3}[g]
+                    out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location) => {body(f"ResourceOps.Gather(cpu, sampler, {a}, ResourceOps.F(location), {channel})")};')
                     if not name.startswith('TextureCube'):
-                        out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location, {offset} offset) => {G};')
+                        out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location, {offset} offset) => {body(f"ResourceOps.Gather(cpu, sampler, {a}, ResourceOps.F(location), {channel}, ResourceOps.I(offset))")};')
                         if g != 'Gather':
                             out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location, {offset} offset1, {offset} offset2, {offset} offset3, {offset} offset4) => {G};')
-                out.append(f'    public float4 GatherCmp(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {G};')
-                out.append(f'    public float4 GatherCmpRed(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {G};')
-            out.append(f'    public float CalculateLevelOfDetail(SamplerState sampler, {fv(coord if name not in ("Texture1DArray", "Texture2DArray", "TextureCubeArray") else coord - 1)} location) => {G};')
+                out.append(f'    public float4 GatherCmp(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {body(f"ResourceOps.GatherCmp(cpu, sampler, {a}, ResourceOps.F(location), compare)")};')
+                out.append(f'    public float4 GatherCmpRed(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {body(f"ResourceOps.GatherCmp(cpu, sampler, {a}, ResourceOps.F(location), compare)")};')
+            out.append(f'    public float CalculateLevelOfDetail(SamplerState sampler, {fv(spatial)} location) => {body(f"ResourceOps.CalculateLevelOfDetail(cpu, sampler, {D}, ResourceOps.F(location))")};')
             dims = {'Texture1D': ['width'], 'Texture1DArray': ['width', 'elements'], 'Texture2D': ['width', 'height'],
                     'Texture2DArray': ['width', 'height', 'elements'], 'Texture3D': ['width', 'height', 'depth'],
                     'TextureCube': ['width', 'height'], 'TextureCubeArray': ['width', 'height', 'elements']}[name]
-            for ty in ('uint', 'float'):
-                out.append(f'    public void GetDimensions({", ".join(f"out {ty} {d}" for d in dims)}) => {G};')
-                out.append(f'    public void GetDimensions(uint mipLevel, {", ".join(f"out {ty} {d}" for d in dims)}, out {ty} levels) => {G};')
+            out.extend(dimensions(dims, D, a, shape is not None, with_levels=True))
             out.append('}')
             out.append('')
     # RW textures
     for name, (coord, _, index) in [('RWTexture1D', (1, None, 1)), ('RWTexture1DArray', (2, None, 2)), ('RWTexture2D', (2, None, 2)), ('RWTexture2DArray', (3, None, 3)), ('RWTexture3D', (3, None, 3)),
                                     ('RasterizerOrderedTexture2D', (2, None, 2))]:
+        D, A = SHAPE[name]
+        a = 'true' if A else 'false'
         for generic in (True, False):
             t = 'T' if generic else 'float4'
             out.append(f'public readonly struct {name}<T> where T : struct' if generic else f'public readonly struct {name}')
             out.append('{')
+            out.extend(data_members(name, generic, 'texture'))
             for v in (iv(index), uv(index)):
-                out.append(f'    public {t} this[{v} location] {{ get => {G}; set => {G}; }}')
-                out.append(f'    public {t} Load({v} location) => {G};')
+                out.append(f'    public {t} this[{v} location] {{ get => ResourceOps.Load<{t}>(cpu, {D}, {a}, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, {D}, {a}, ResourceOps.I(location), value); }}')
+                out.append(f'    public {t} Load({v} location) => ResourceOps.Load<{t}>(cpu, {D}, {a}, ResourceOps.I(location), false);')
             dims = {1: ['width'], 2: ['width', 'height'], 3: ['width', 'height', 'depth']}[index]
             if 'Array' in name:
                 dims = dims[:-1] + ['elements']
-            for ty in ('uint', 'float'):
-                out.append(f'    public void GetDimensions({", ".join(f"out {ty} {d}" for d in dims)}) => {G};')
+            out.extend(dimensions(dims, D, a, True, with_levels=False))
             out.append('}')
             out.append('')
-    # multisampled
+    # multisampled: on the GPU only
     for name, index in (('Texture2DMS', 2), ('Texture2DMSArray', 3)):
         for arity in (1, 2):
             params = 'T' if arity == 1 else 'T, TSamples'
@@ -596,22 +662,23 @@ public readonly struct Samples32 { }
             t = 'T' if generic else 'float4'
             out.append(f'public readonly struct {name}<T> where T : struct' if generic else f'public readonly struct {name}')
             out.append('{')
+            out.extend(data_members(name, generic, 'buffer'))
             for v in ('int', 'uint'):
                 if rw:
-                    out.append(f'    public {t} this[{v} index] {{ get => {G}; set => {G}; }}')
+                    out.append(f'    public {t} this[{v} index] {{ get => ResourceOps.BufferLoad<{t}>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }}')
                 else:
-                    out.append(f'    public {t} this[{v} index] => {G};')
-                out.append(f'    public {t} Load({v} index) => {G};')
+                    out.append(f'    public {t} this[{v} index] => ResourceOps.BufferLoad<{t}>(cpu, index);')
+                out.append(f'    public {t} Load({v} index) => ResourceOps.BufferLoad<{t}>(cpu, index);')
             if structured:
-                out.append(f'    public void GetDimensions(out uint count, out uint stride) => {G};')
+                out.append(f'    public void GetDimensions(out uint count, out uint stride) {{ count = ResourceOps.BufferCount<{t}>(cpu); stride = ResourceOps.BufferStride<{t}>(); }}')
                 if rw:
                     out.append(f'    public uint IncrementCounter() => {G};')
                     out.append(f'    public uint DecrementCounter() => {G};')
             else:
-                out.append(f'    public void GetDimensions(out uint count) => {G};')
+                out.append(f'    public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<{t}>(cpu);')
             out.append('}')
             out.append('')
-    out.append(f'''public readonly struct AppendStructuredBuffer<T> where T : struct
+    out.append(f"""public readonly struct AppendStructuredBuffer<T> where T : struct
 {{
     public void Append(T value) => {G};
     public void GetDimensions(out uint count, out uint stride) => {G};
@@ -622,28 +689,53 @@ public readonly struct ConsumeStructuredBuffer<T> where T : struct
     public T Consume() => {G};
     public void GetDimensions(out uint count, out uint stride) => {G};
 }}
-''')
+""")
     for name, rw in (('ByteAddressBuffer', False), ('RWByteAddressBuffer', True)):
         out.append(f'public readonly struct {name}')
         out.append('{')
+        out.append('    private readonly object? cpu;')
+        out.append('    /// <summary>A buffer whose 32-bit words are on the CPU, for shader code run there.</summary>')
+        out.append(f'    public {name}(uint[] words) {{ cpu = words; }}')
+        out.append('    public uint[]? CpuData => cpu as uint[];')
         for v in ('int', 'uint'):
-            out.append(f'    public uint Load({v} address) => {G};')
+            out.append(f'    public uint Load({v} address) => ResourceOps.LoadWord(cpu, address);')
             for k in (2, 3, 4):
-                out.append(f'    public uint{k} Load{k}({v} address) => {G};')
+                words = ', '.join(f'ResourceOps.LoadWord(cpu, address + {4 * i})' for i in range(k))
+                out.append(f'    public uint{k} Load{k}({v} address) => new uint{k}({words});')
             if rw:
-                out.append(f'    public void Store({v} address, uint value) => {G};')
+                out.append(f'    public void Store({v} address, uint value) => ResourceOps.StoreWord(cpu, address, value);')
                 for k in (2, 3, 4):
-                    out.append(f'    public void Store{k}({v} address, uint{k} value) => {G};')
+                    stores = ' '.join(f'ResourceOps.StoreWord(cpu, address + {4 * i}, value.{COMPONENTS[i]});' for i in range(k))
+                    out.append(f'    public void Store{k}({v} address, uint{k} value) {{ {stores} }}')
                 for op in ('Add', 'And', 'Or', 'Xor', 'Min', 'Max', 'Exchange'):
                     out.append(f'    public void Interlocked{op}({v} address, uint value, out uint original) => {G};')
                     if op != 'Exchange':
                         out.append(f'    public void Interlocked{op}({v} address, uint value) => {G};')
                 out.append(f'    public void InterlockedCompareExchange({v} address, uint compare, uint value, out uint original) => {G};')
                 out.append(f'    public void InterlockedCompareStore({v} address, uint compare, uint value) => {G};')
-        out.append(f'    public void GetDimensions(out uint bytes) => {G};')
+        out.append('    public void GetDimensions(out uint bytes) => bytes = ResourceOps.BufferCount<uint>(cpu) * 4;')
         out.append('}')
         out.append('')
     return '\n'.join(out) + '\n'
+
+def dimensions(dims, D, a, cpu, with_levels):
+    """GetDimensions: the sizes the texture has (at mipLevel), as uint or float."""
+    out = []
+    G = 'throw GpuOnly.Exception()'
+    names = {'width': 'w', 'height': 'h', 'depth': 'd', 'elements': 'd'}
+    for ty in ('uint', 'float'):
+        sig = ", ".join(f"out {ty} {d}" for d in dims)
+        assign = ' '.join(f'{d} = {names[d]};' for d in dims)
+        if cpu:
+            out.append(f'    public void GetDimensions({sig}) {{ ResourceOps.Dimensions(cpu, {D}, {a}, 0, out var w, out var h, out var d, out _); {assign} }}')
+        else:
+            out.append(f'    public void GetDimensions({sig}) => {G};')
+        if with_levels:
+            if cpu:
+                out.append(f'    public void GetDimensions(uint mipLevel, {sig}, out {ty} levels) {{ ResourceOps.Dimensions(cpu, {D}, {a}, mipLevel, out var w, out var h, out var d, out var l); {assign} levels = l; }}')
+            else:
+                out.append(f'    public void GetDimensions(uint mipLevel, {sig}, out {ty} levels) => {G};')
+    return out
 
 # -- write -------------------------------------------------------------------------------------
 

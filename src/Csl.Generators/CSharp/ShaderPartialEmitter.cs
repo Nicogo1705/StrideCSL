@@ -39,9 +39,9 @@ public static class ShaderPartialEmitter
         sb.Append(indent).AppendLine("    /// <summary>The streams of the shader, as in SDSL: <c>streams.Position</c>.</summary>");
         sb.Append(indent).Append("    protected ").Append(baseIsShader ? "new " : string.Empty).Append(self).AppendLine(" streams { get => this; set { } }");
         sb.Append(indent).AppendLine("    /// <summary>A member named by a MemberName generic parameter: <c>streams[TName]</c> is SDSL's <c>streams.TName</c>.</summary>");
-        sb.Append(indent).Append("    public ").Append(baseIsShader ? "new " : string.Empty).AppendLine("dynamic this[global::Csl.MemberName name] { get => throw global::Csl.Gpu.Only; set { } }");
+        sb.Append(indent).Append("    public ").Append(baseIsShader ? "new " : string.Empty).AppendLine("dynamic this[global::Csl.MemberName name] { get => global::Csl.Cpu.Members.Get(this, name.Name!); set => global::Csl.Cpu.Members.Set(this, name.Name!, value); }");
         sb.Append(indent).AppendLine("    /// <summary>A stream the shader does not declare, that the effect mixes in: <c>streams[\"PositionWS\"]</c>.</summary>");
-        sb.Append(indent).Append("    public ").Append(baseIsShader ? "new " : string.Empty).AppendLine("dynamic this[string name] { get => throw global::Csl.Gpu.Only; set { } }");
+        sb.Append(indent).Append("    public ").Append(baseIsShader ? "new " : string.Empty).AppendLine("dynamic this[string name] { get => global::Csl.Cpu.Members.Get(this, name); set => global::Csl.Cpu.Members.Set(this, name, value); }");
 
         // Names the class already has: its own, its C# bases', and what the stubs of its C# bases bring.
         var taken = new HashSet<string>(System.StringComparer.Ordinal) { "streams" };
@@ -115,7 +115,20 @@ public static class ShaderPartialEmitter
                             sb.Append(parameter.RefKind switch { RefKind.Ref => "ref ", RefKind.Out => "out ", RefKind.In => "in ", _ => string.Empty });
                             sb.Append(parameter.Type.ToDisplayString(TypeFormat)).Append(' ').Append(Escape(parameter.Name));
                         }
-                        sb.AppendLine(") => throw global::Csl.Gpu.Only;");
+                        sb.Append(')');
+                        // On the CPU the call runs the mixin's own method (Csl.Cpu.Mixins): on a static one
+                        // directly, on an instance one through the mixin's instance kept for this shader.
+                        var owner = method.ContainingType;
+                        var arguments = string.Join(", ", method.Parameters.Select(p => (p.RefKind switch { RefKind.Ref => "ref ", RefKind.Out => "out ", _ => string.Empty }) + Escape(p.Name)));
+                        var ownerName = owner.ToDisplayString(TypeFormat);
+                        if (owner.IsGenericType)
+                            sb.AppendLine(" => throw global::Csl.Gpu.Only;");
+                        else if (method.IsStatic)
+                            sb.Append(" => ").Append(ownerName).Append('.').Append(Escape(method.Name)).Append('(').Append(arguments).AppendLine(");");
+                        else
+                            sb.Append(" { var mixin = global::Csl.Cpu.Mixins.Enter<").Append(ownerName).Append(">(this); try { ")
+                              .Append(method.ReturnsVoid ? string.Empty : "return ").Append("mixin.").Append(Escape(method.Name)).Append('(').Append(arguments)
+                              .AppendLine("); } finally { global::Csl.Cpu.Mixins.Leave(this, mixin); } }");
                         break;
                 }
             }

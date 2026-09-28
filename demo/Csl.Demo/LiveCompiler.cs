@@ -30,7 +30,9 @@ internal sealed class LiveCompiler
         Library,
     }
 
-    public sealed record Result(IReadOnlyList<(string ShaderName, string Sdsl, string Path, ShaderKind Kind)> Shaders, IReadOnlyList<string> Errors);
+    /// <param name="Assembly">The classes themselves, loaded with their debug information, for the CPU to run
+    /// what was just saved (Csl.Cpu); null when the C# has errors.</param>
+    public sealed record Result(IReadOnlyList<(string ShaderName, string Sdsl, string Path, ShaderKind Kind)> Shaders, IReadOnlyList<string> Errors, System.Reflection.Assembly? Assembly = null);
 
     public Result Compile(CancellationToken cancellation = default)
     {
@@ -58,7 +60,27 @@ internal sealed class LiveCompiler
                     shaders.Add((translated.ShaderName, translated.Sdsl, tree.FilePath, KindOf(type)));
             }
         }
-        return new Result(shaders, errors.Distinct().ToList());
+        return new Result(shaders, errors.Distinct().ToList(), errors.Count == 0 ? Load(generated, trees, cancellation) : null);
+    }
+
+    /// <summary>
+    /// The compilation as an assembly of its own, with a portable PDB pointing at the files: a debugger
+    /// binds its breakpoints in Shaders/*.cs to what the CPU runs. Collectible, the previous one goes when
+    /// nothing uses it any more.
+    /// </summary>
+    private static System.Reflection.Assembly? Load(Compilation compilation, List<SyntaxTree> trees, CancellationToken cancellation)
+    {
+        using var pe = new MemoryStream();
+        using var pdb = new MemoryStream();
+        var embedded = trees.Select(t => Microsoft.CodeAnalysis.EmbeddedText.FromSource(t.FilePath, t.GetText(cancellation)));
+        var emitted = compilation.WithOptions(compilation.Options.WithOptimizationLevel(OptimizationLevel.Debug))
+            .Emit(pe, pdb, options: new Microsoft.CodeAnalysis.Emit.EmitOptions(debugInformationFormat: Microsoft.CodeAnalysis.Emit.DebugInformationFormat.PortablePdb),
+                embeddedTexts: embedded, cancellationToken: cancellation);
+        if (!emitted.Success)
+            return null;
+        pe.Position = 0;
+        pdb.Position = 0;
+        return new System.Runtime.Loader.AssemblyLoadContext("CslDemos", isCollectible: true).LoadFromStream(pe, pdb);
     }
 
     private static ShaderKind KindOf(INamedTypeSymbol type)

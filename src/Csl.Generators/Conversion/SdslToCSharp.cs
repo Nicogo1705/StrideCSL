@@ -13,6 +13,9 @@ public sealed class SdslToCSharpOptions
     /// <summary>Only the declarations, bodies left out: a [Shader(External = true)] description of a shader that exists elsewhere.</summary>
     public bool DeclarationsOnly { get; set; }
 
+    /// <summary>[Shader(External = true)] with the bodies kept: the engine's own source stays the GPU's, the bodies run on the CPU.</summary>
+    public bool External { get; set; }
+
     /// <summary>The C# namespace; null keeps the shader's own (none when it has none).</summary>
     public string? Namespace { get; set; }
 
@@ -215,7 +218,7 @@ public sealed class SdslToCSharp
     private void EmitClassAttributes()
     {
         var shaderArguments = new List<string>();
-        if (options.DeclarationsOnly)
+        if (options.DeclarationsOnly || options.External)
             shaderArguments.Add("External = true");
         if (shader.Modifiers.Contains("internal"))
             shaderArguments.Add("Internal = true");

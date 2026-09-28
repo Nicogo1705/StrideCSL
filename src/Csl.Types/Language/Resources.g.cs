@@ -8,14 +8,33 @@ using System.Runtime.InteropServices;
 
 namespace Csl.Types;
 
-/// <summary>Shader resources: opaque handles, as on the GPU. They exist so shader code type-checks; every member runs on the GPU only.</summary>
+using Csl.Cpu;
+
+/// <summary>
+/// Shader resources: handles, as on the GPU, where they are accessed. Given CPU data (a CpuTexture, an
+/// array), their members also run on the CPU (Csl.Cpu.ResourceOps), for shader code run there.
+/// </summary>
 internal static class GpuOnly
 {
     public static Exception Exception() => new NotSupportedException("Shader resources are only accessed on the GPU");
 }
 
-public readonly struct SamplerState { }
-public readonly struct SamplerComparisonState { }
+/// <summary>A sampler: on the CPU, its description (Stride's defaults when it has none).</summary>
+public readonly struct SamplerState
+{
+    private readonly SamplerDescription? description;
+    public SamplerState(SamplerDescription description) { this.description = description; }
+    public SamplerDescription Description => description ?? SamplerDescription.Default;
+    public bool HasDescription => description != null;
+}
+
+public readonly struct SamplerComparisonState
+{
+    private readonly SamplerDescription? description;
+    public SamplerComparisonState(SamplerDescription description) { this.description = description; }
+    public SamplerDescription Description => description ?? SamplerDescription.Default;
+    public bool HasDescription => description != null;
+}
 
 /// <summary>Sample counts of a multisampled texture: Texture2DMS&lt;float4, Samples4&gt; is SDSL's Texture2DMS&lt;float4, 4&gt;.</summary>
 public readonly struct Samples1 { }
@@ -27,345 +46,389 @@ public readonly struct Samples32 { }
 
 public readonly struct Texture1D<T> where T : struct
 {
-    public T this[int location] => throw GpuOnly.Exception();
-    public T this[uint location] => throw GpuOnly.Exception();
-    public T Load(int2 location) => throw GpuOnly.Exception();
-    public T Load(int2 location, int offset) => throw GpuOnly.Exception();
-    public T Load(uint2 location) => throw GpuOnly.Exception();
-    public T Load(uint2 location, int offset) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float location) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float location, int offset) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float location, float lod) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float location, float lod, int offset) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float location, float bias) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float location, float bias, int offset) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float location, float ddx, float ddy) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float location, float ddx, float ddy, int offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float location, float compare, int offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float location, float compare, int offset) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float levels) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture1D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int location] => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), false);
+    public T this[uint location] => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), false);
+    public T Load(int2 location) => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), true);
+    public T Load(int2 location, int offset) => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Load(uint2 location) => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), true);
+    public T Load(uint2 location, int offset) => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Sample(SamplerState sampler, float location) => ResourceOps.Sample<T>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public T Sample(SamplerState sampler, float location, int offset) => ResourceOps.Sample<T>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public T SampleLevel(SamplerState sampler, float location, float lod) => ResourceOps.Sample<T>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public T SampleLevel(SamplerState sampler, float location, float lod, int offset) => ResourceOps.Sample<T>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public T SampleBias(SamplerState sampler, float location, float bias) => ResourceOps.Sample<T>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public T SampleBias(SamplerState sampler, float location, float bias, int offset) => ResourceOps.Sample<T>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public T SampleGrad(SamplerState sampler, float location, float ddx, float ddy) => ResourceOps.Sample<T>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public T SampleGrad(SamplerState sampler, float location, float ddx, float ddy, int offset) => ResourceOps.Sample<T>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 1, false, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float location, float compare, int offset) => ResourceOps.SampleCmp(cpu, sampler, 1, false, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 1, false, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float location, float compare, int offset) => ResourceOps.SampleCmp(cpu, sampler, 1, false, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float CalculateLevelOfDetail(SamplerState sampler, float location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 1, ResourceOps.F(location));
+    public void GetDimensions(out uint width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint levels) { ResourceOps.Dimensions(cpu, 1, false, mipLevel, out var w, out var h, out var d, out var l); width = w; levels = l; }
+    public void GetDimensions(out float width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
+    public void GetDimensions(uint mipLevel, out float width, out float levels) { ResourceOps.Dimensions(cpu, 1, false, mipLevel, out var w, out var h, out var d, out var l); width = w; levels = l; }
 }
 
 /// <summary>Texture1D of float4, as SDSL writes it without an element type.</summary>
 public readonly struct Texture1D
 {
-    public float4 this[int location] => throw GpuOnly.Exception();
-    public float4 this[uint location] => throw GpuOnly.Exception();
-    public float4 Load(int2 location) => throw GpuOnly.Exception();
-    public float4 Load(int2 location, int offset) => throw GpuOnly.Exception();
-    public float4 Load(uint2 location) => throw GpuOnly.Exception();
-    public float4 Load(uint2 location, int offset) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float location) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float location, int offset) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float location, float lod) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float location, float lod, int offset) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float location, float bias) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float location, float bias, int offset) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float location, float ddx, float ddy) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float location, float ddx, float ddy, int offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float location, float compare, int offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float location, float compare, int offset) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float levels) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture1D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int location] => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), false);
+    public float4 this[uint location] => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), false);
+    public float4 Load(int2 location) => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), true);
+    public float4 Load(int2 location, int offset) => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Load(uint2 location) => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), true);
+    public float4 Load(uint2 location, int offset) => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Sample(SamplerState sampler, float location) => ResourceOps.Sample<float4>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public float4 Sample(SamplerState sampler, float location, int offset) => ResourceOps.Sample<float4>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public float4 SampleLevel(SamplerState sampler, float location, float lod) => ResourceOps.Sample<float4>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public float4 SampleLevel(SamplerState sampler, float location, float lod, int offset) => ResourceOps.Sample<float4>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public float4 SampleBias(SamplerState sampler, float location, float bias) => ResourceOps.Sample<float4>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public float4 SampleBias(SamplerState sampler, float location, float bias, int offset) => ResourceOps.Sample<float4>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public float4 SampleGrad(SamplerState sampler, float location, float ddx, float ddy) => ResourceOps.Sample<float4>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float4 SampleGrad(SamplerState sampler, float location, float ddx, float ddy, int offset) => ResourceOps.Sample<float4>(cpu, sampler, 1, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 1, false, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float location, float compare, int offset) => ResourceOps.SampleCmp(cpu, sampler, 1, false, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 1, false, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float location, float compare, int offset) => ResourceOps.SampleCmp(cpu, sampler, 1, false, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float CalculateLevelOfDetail(SamplerState sampler, float location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 1, ResourceOps.F(location));
+    public void GetDimensions(out uint width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint levels) { ResourceOps.Dimensions(cpu, 1, false, mipLevel, out var w, out var h, out var d, out var l); width = w; levels = l; }
+    public void GetDimensions(out float width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
+    public void GetDimensions(uint mipLevel, out float width, out float levels) { ResourceOps.Dimensions(cpu, 1, false, mipLevel, out var w, out var h, out var d, out var l); width = w; levels = l; }
 }
 
 public readonly struct Texture1DArray<T> where T : struct
 {
-    public T this[int2 location] => throw GpuOnly.Exception();
-    public T this[uint2 location] => throw GpuOnly.Exception();
-    public T Load(int3 location) => throw GpuOnly.Exception();
-    public T Load(int3 location, int offset) => throw GpuOnly.Exception();
-    public T Load(uint3 location) => throw GpuOnly.Exception();
-    public T Load(uint3 location, int offset) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float2 location, int offset) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float2 location, float lod) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float2 location, float lod, int offset) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float2 location, float bias) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float2 location, float bias, int offset) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float2 location, float ddx, float ddy) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float2 location, float ddx, float ddy, int offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare, int offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare, int offset) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint elements) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint elements, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float elements) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float elements, out float levels) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture1DArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int2 location] => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), false);
+    public T this[uint2 location] => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), false);
+    public T Load(int3 location) => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), true);
+    public T Load(int3 location, int offset) => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Load(uint3 location) => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), true);
+    public T Load(uint3 location, int offset) => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Sample(SamplerState sampler, float2 location) => ResourceOps.Sample<T>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public T Sample(SamplerState sampler, float2 location, int offset) => ResourceOps.Sample<T>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public T SampleLevel(SamplerState sampler, float2 location, float lod) => ResourceOps.Sample<T>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public T SampleLevel(SamplerState sampler, float2 location, float lod, int offset) => ResourceOps.Sample<T>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public T SampleBias(SamplerState sampler, float2 location, float bias) => ResourceOps.Sample<T>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public T SampleBias(SamplerState sampler, float2 location, float bias, int offset) => ResourceOps.Sample<T>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public T SampleGrad(SamplerState sampler, float2 location, float ddx, float ddy) => ResourceOps.Sample<T>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public T SampleGrad(SamplerState sampler, float2 location, float ddx, float ddy, int offset) => ResourceOps.Sample<T>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 1, true, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare, int offset) => ResourceOps.SampleCmp(cpu, sampler, 1, true, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 1, true, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare, int offset) => ResourceOps.SampleCmp(cpu, sampler, 1, true, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float CalculateLevelOfDetail(SamplerState sampler, float location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 1, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint elements, out uint levels) { ResourceOps.Dimensions(cpu, 1, true, mipLevel, out var w, out var h, out var d, out var l); width = w; elements = d; levels = l; }
+    public void GetDimensions(out float width, out float elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
+    public void GetDimensions(uint mipLevel, out float width, out float elements, out float levels) { ResourceOps.Dimensions(cpu, 1, true, mipLevel, out var w, out var h, out var d, out var l); width = w; elements = d; levels = l; }
 }
 
 /// <summary>Texture1DArray of float4, as SDSL writes it without an element type.</summary>
 public readonly struct Texture1DArray
 {
-    public float4 this[int2 location] => throw GpuOnly.Exception();
-    public float4 this[uint2 location] => throw GpuOnly.Exception();
-    public float4 Load(int3 location) => throw GpuOnly.Exception();
-    public float4 Load(int3 location, int offset) => throw GpuOnly.Exception();
-    public float4 Load(uint3 location) => throw GpuOnly.Exception();
-    public float4 Load(uint3 location, int offset) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float2 location, int offset) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float2 location, float lod) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float2 location, float lod, int offset) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float2 location, float bias) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float2 location, float bias, int offset) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float2 location, float ddx, float ddy) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float2 location, float ddx, float ddy, int offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare, int offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare, int offset) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint elements) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint elements, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float elements) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float elements, out float levels) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture1DArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int2 location] => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), false);
+    public float4 this[uint2 location] => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), false);
+    public float4 Load(int3 location) => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), true);
+    public float4 Load(int3 location, int offset) => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Load(uint3 location) => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), true);
+    public float4 Load(uint3 location, int offset) => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Sample(SamplerState sampler, float2 location) => ResourceOps.Sample<float4>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public float4 Sample(SamplerState sampler, float2 location, int offset) => ResourceOps.Sample<float4>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public float4 SampleLevel(SamplerState sampler, float2 location, float lod) => ResourceOps.Sample<float4>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public float4 SampleLevel(SamplerState sampler, float2 location, float lod, int offset) => ResourceOps.Sample<float4>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public float4 SampleBias(SamplerState sampler, float2 location, float bias) => ResourceOps.Sample<float4>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public float4 SampleBias(SamplerState sampler, float2 location, float bias, int offset) => ResourceOps.Sample<float4>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public float4 SampleGrad(SamplerState sampler, float2 location, float ddx, float ddy) => ResourceOps.Sample<float4>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float4 SampleGrad(SamplerState sampler, float2 location, float ddx, float ddy, int offset) => ResourceOps.Sample<float4>(cpu, sampler, 1, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 1, true, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare, int offset) => ResourceOps.SampleCmp(cpu, sampler, 1, true, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 1, true, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare, int offset) => ResourceOps.SampleCmp(cpu, sampler, 1, true, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float CalculateLevelOfDetail(SamplerState sampler, float location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 1, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint elements, out uint levels) { ResourceOps.Dimensions(cpu, 1, true, mipLevel, out var w, out var h, out var d, out var l); width = w; elements = d; levels = l; }
+    public void GetDimensions(out float width, out float elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
+    public void GetDimensions(uint mipLevel, out float width, out float elements, out float levels) { ResourceOps.Dimensions(cpu, 1, true, mipLevel, out var w, out var h, out var d, out var l); width = w; elements = d; levels = l; }
 }
 
 public readonly struct Texture2D<T> where T : struct
 {
-    public T this[int2 location] => throw GpuOnly.Exception();
-    public T this[uint2 location] => throw GpuOnly.Exception();
-    public T Load(int3 location) => throw GpuOnly.Exception();
-    public T Load(int3 location, int2 offset) => throw GpuOnly.Exception();
-    public T Load(uint3 location) => throw GpuOnly.Exception();
-    public T Load(uint3 location, int2 offset) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float2 location, float lod) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float2 location, float lod, int2 offset) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float2 location, float bias) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float2 location, float bias, int2 offset) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float2 location, float2 ddx, float2 ddy) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float2 location, float2 ddx, float2 ddy, int2 offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare, int2 offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare, int2 offset) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture2D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int2 location] => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false);
+    public T this[uint2 location] => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false);
+    public T Load(int3 location) => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), true);
+    public T Load(int3 location, int2 offset) => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Load(uint3 location) => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), true);
+    public T Load(uint3 location, int2 offset) => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Sample(SamplerState sampler, float2 location) => ResourceOps.Sample<T>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public T Sample(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Sample<T>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public T SampleLevel(SamplerState sampler, float2 location, float lod) => ResourceOps.Sample<T>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public T SampleLevel(SamplerState sampler, float2 location, float lod, int2 offset) => ResourceOps.Sample<T>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public T SampleBias(SamplerState sampler, float2 location, float bias) => ResourceOps.Sample<T>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public T SampleBias(SamplerState sampler, float2 location, float bias, int2 offset) => ResourceOps.Sample<T>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public T SampleGrad(SamplerState sampler, float2 location, float2 ddx, float2 ddy) => ResourceOps.Sample<T>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public T SampleGrad(SamplerState sampler, float2 location, float2 ddx, float2 ddy, int2 offset) => ResourceOps.Sample<T>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 2, false, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare, int2 offset) => ResourceOps.SampleCmp(cpu, sampler, 2, false, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 2, false, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare, int2 offset) => ResourceOps.SampleCmp(cpu, sampler, 2, false, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float4 Gather(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 0);
+    public float4 Gather(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 0, ResourceOps.I(offset));
+    public float4 GatherRed(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 0);
+    public float4 GatherRed(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 0, ResourceOps.I(offset));
     public float4 GatherRed(SamplerState sampler, float2 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherGreen(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 1);
+    public float4 GatherGreen(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 1, ResourceOps.I(offset));
     public float4 GatherGreen(SamplerState sampler, float2 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherBlue(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 2);
+    public float4 GatherBlue(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 2, ResourceOps.I(offset));
     public float4 GatherBlue(SamplerState sampler, float2 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherAlpha(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 3);
+    public float4 GatherAlpha(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 3, ResourceOps.I(offset));
     public float4 GatherAlpha(SamplerState sampler, float2 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherCmp(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float4 GatherCmpRed(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) => throw GpuOnly.Exception();
+    public float4 GatherCmp(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.GatherCmp(cpu, sampler, false, ResourceOps.F(location), compare);
+    public float4 GatherCmpRed(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.GatherCmp(cpu, sampler, false, ResourceOps.F(location), compare);
+    public float CalculateLevelOfDetail(SamplerState sampler, float2 location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 2, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint levels) { ResourceOps.Dimensions(cpu, 2, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; levels = l; }
+    public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) { ResourceOps.Dimensions(cpu, 2, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; levels = l; }
 }
 
 /// <summary>Texture2D of float4, as SDSL writes it without an element type.</summary>
 public readonly struct Texture2D
 {
-    public float4 this[int2 location] => throw GpuOnly.Exception();
-    public float4 this[uint2 location] => throw GpuOnly.Exception();
-    public float4 Load(int3 location) => throw GpuOnly.Exception();
-    public float4 Load(int3 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 Load(uint3 location) => throw GpuOnly.Exception();
-    public float4 Load(uint3 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float2 location, float lod) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float2 location, float lod, int2 offset) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float2 location, float bias) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float2 location, float bias, int2 offset) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float2 location, float2 ddx, float2 ddy) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float2 location, float2 ddx, float2 ddy, int2 offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare, int2 offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare, int2 offset) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture2D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int2 location] => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false);
+    public float4 this[uint2 location] => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false);
+    public float4 Load(int3 location) => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), true);
+    public float4 Load(int3 location, int2 offset) => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Load(uint3 location) => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), true);
+    public float4 Load(uint3 location, int2 offset) => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Sample(SamplerState sampler, float2 location) => ResourceOps.Sample<float4>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public float4 Sample(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Sample<float4>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public float4 SampleLevel(SamplerState sampler, float2 location, float lod) => ResourceOps.Sample<float4>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public float4 SampleLevel(SamplerState sampler, float2 location, float lod, int2 offset) => ResourceOps.Sample<float4>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public float4 SampleBias(SamplerState sampler, float2 location, float bias) => ResourceOps.Sample<float4>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public float4 SampleBias(SamplerState sampler, float2 location, float bias, int2 offset) => ResourceOps.Sample<float4>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public float4 SampleGrad(SamplerState sampler, float2 location, float2 ddx, float2 ddy) => ResourceOps.Sample<float4>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float4 SampleGrad(SamplerState sampler, float2 location, float2 ddx, float2 ddy, int2 offset) => ResourceOps.Sample<float4>(cpu, sampler, 2, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 2, false, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float2 location, float compare, int2 offset) => ResourceOps.SampleCmp(cpu, sampler, 2, false, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 2, false, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float2 location, float compare, int2 offset) => ResourceOps.SampleCmp(cpu, sampler, 2, false, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float4 Gather(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 0);
+    public float4 Gather(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 0, ResourceOps.I(offset));
+    public float4 GatherRed(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 0);
+    public float4 GatherRed(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 0, ResourceOps.I(offset));
     public float4 GatherRed(SamplerState sampler, float2 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherGreen(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 1);
+    public float4 GatherGreen(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 1, ResourceOps.I(offset));
     public float4 GatherGreen(SamplerState sampler, float2 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherBlue(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 2);
+    public float4 GatherBlue(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 2, ResourceOps.I(offset));
     public float4 GatherBlue(SamplerState sampler, float2 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float2 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherAlpha(SamplerState sampler, float2 location) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 3);
+    public float4 GatherAlpha(SamplerState sampler, float2 location, int2 offset) => ResourceOps.Gather(cpu, sampler, false, ResourceOps.F(location), 3, ResourceOps.I(offset));
     public float4 GatherAlpha(SamplerState sampler, float2 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherCmp(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float4 GatherCmpRed(SamplerComparisonState sampler, float2 location, float compare) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) => throw GpuOnly.Exception();
+    public float4 GatherCmp(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.GatherCmp(cpu, sampler, false, ResourceOps.F(location), compare);
+    public float4 GatherCmpRed(SamplerComparisonState sampler, float2 location, float compare) => ResourceOps.GatherCmp(cpu, sampler, false, ResourceOps.F(location), compare);
+    public float CalculateLevelOfDetail(SamplerState sampler, float2 location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 2, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint levels) { ResourceOps.Dimensions(cpu, 2, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; levels = l; }
+    public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) { ResourceOps.Dimensions(cpu, 2, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; levels = l; }
 }
 
 public readonly struct Texture2DArray<T> where T : struct
 {
-    public T this[int3 location] => throw GpuOnly.Exception();
-    public T this[uint3 location] => throw GpuOnly.Exception();
-    public T Load(int4 location) => throw GpuOnly.Exception();
-    public T Load(int4 location, int2 offset) => throw GpuOnly.Exception();
-    public T Load(uint4 location) => throw GpuOnly.Exception();
-    public T Load(uint4 location, int2 offset) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float3 location, float lod) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float3 location, float lod, int2 offset) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float3 location, float bias) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float3 location, float bias, int2 offset) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float3 location, float2 ddx, float2 ddy) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float3 location, float2 ddx, float2 ddy, int2 offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare, int2 offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare, int2 offset) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture2DArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int3 location] => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), false);
+    public T this[uint3 location] => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), false);
+    public T Load(int4 location) => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), true);
+    public T Load(int4 location, int2 offset) => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Load(uint4 location) => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), true);
+    public T Load(uint4 location, int2 offset) => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Sample(SamplerState sampler, float3 location) => ResourceOps.Sample<T>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public T Sample(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Sample<T>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public T SampleLevel(SamplerState sampler, float3 location, float lod) => ResourceOps.Sample<T>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public T SampleLevel(SamplerState sampler, float3 location, float lod, int2 offset) => ResourceOps.Sample<T>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public T SampleBias(SamplerState sampler, float3 location, float bias) => ResourceOps.Sample<T>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public T SampleBias(SamplerState sampler, float3 location, float bias, int2 offset) => ResourceOps.Sample<T>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public T SampleGrad(SamplerState sampler, float3 location, float2 ddx, float2 ddy) => ResourceOps.Sample<T>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public T SampleGrad(SamplerState sampler, float3 location, float2 ddx, float2 ddy, int2 offset) => ResourceOps.Sample<T>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 2, true, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare, int2 offset) => ResourceOps.SampleCmp(cpu, sampler, 2, true, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 2, true, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare, int2 offset) => ResourceOps.SampleCmp(cpu, sampler, 2, true, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float4 Gather(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 0);
+    public float4 Gather(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 0, ResourceOps.I(offset));
+    public float4 GatherRed(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 0);
+    public float4 GatherRed(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 0, ResourceOps.I(offset));
     public float4 GatherRed(SamplerState sampler, float3 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherGreen(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 1);
+    public float4 GatherGreen(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 1, ResourceOps.I(offset));
     public float4 GatherGreen(SamplerState sampler, float3 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherBlue(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 2);
+    public float4 GatherBlue(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 2, ResourceOps.I(offset));
     public float4 GatherBlue(SamplerState sampler, float3 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherAlpha(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 3);
+    public float4 GatherAlpha(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 3, ResourceOps.I(offset));
     public float4 GatherAlpha(SamplerState sampler, float3 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float4 GatherCmpRed(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height, out uint elements) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint elements, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height, out float elements) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float height, out float elements, out float levels) => throw GpuOnly.Exception();
+    public float4 GatherCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.GatherCmp(cpu, sampler, true, ResourceOps.F(location), compare);
+    public float4 GatherCmpRed(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.GatherCmp(cpu, sampler, true, ResourceOps.F(location), compare);
+    public float CalculateLevelOfDetail(SamplerState sampler, float2 location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 2, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint height, out uint elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint elements, out uint levels) { ResourceOps.Dimensions(cpu, 2, true, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; elements = d; levels = l; }
+    public void GetDimensions(out float width, out float height, out float elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
+    public void GetDimensions(uint mipLevel, out float width, out float height, out float elements, out float levels) { ResourceOps.Dimensions(cpu, 2, true, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; elements = d; levels = l; }
 }
 
 /// <summary>Texture2DArray of float4, as SDSL writes it without an element type.</summary>
 public readonly struct Texture2DArray
 {
-    public float4 this[int3 location] => throw GpuOnly.Exception();
-    public float4 this[uint3 location] => throw GpuOnly.Exception();
-    public float4 Load(int4 location) => throw GpuOnly.Exception();
-    public float4 Load(int4 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 Load(uint4 location) => throw GpuOnly.Exception();
-    public float4 Load(uint4 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float3 location, float lod) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float3 location, float lod, int2 offset) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float3 location, float bias) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float3 location, float bias, int2 offset) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float3 location, float2 ddx, float2 ddy) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float3 location, float2 ddx, float2 ddy, int2 offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare, int2 offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare, int2 offset) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture2DArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int3 location] => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), false);
+    public float4 this[uint3 location] => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), false);
+    public float4 Load(int4 location) => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), true);
+    public float4 Load(int4 location, int2 offset) => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Load(uint4 location) => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), true);
+    public float4 Load(uint4 location, int2 offset) => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Sample(SamplerState sampler, float3 location) => ResourceOps.Sample<float4>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public float4 Sample(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Sample<float4>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public float4 SampleLevel(SamplerState sampler, float3 location, float lod) => ResourceOps.Sample<float4>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public float4 SampleLevel(SamplerState sampler, float3 location, float lod, int2 offset) => ResourceOps.Sample<float4>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public float4 SampleBias(SamplerState sampler, float3 location, float bias) => ResourceOps.Sample<float4>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public float4 SampleBias(SamplerState sampler, float3 location, float bias, int2 offset) => ResourceOps.Sample<float4>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public float4 SampleGrad(SamplerState sampler, float3 location, float2 ddx, float2 ddy) => ResourceOps.Sample<float4>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float4 SampleGrad(SamplerState sampler, float3 location, float2 ddx, float2 ddy, int2 offset) => ResourceOps.Sample<float4>(cpu, sampler, 2, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 2, true, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare, int2 offset) => ResourceOps.SampleCmp(cpu, sampler, 2, true, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 2, true, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare, int2 offset) => ResourceOps.SampleCmp(cpu, sampler, 2, true, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float4 Gather(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 0);
+    public float4 Gather(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 0, ResourceOps.I(offset));
+    public float4 GatherRed(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 0);
+    public float4 GatherRed(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 0, ResourceOps.I(offset));
     public float4 GatherRed(SamplerState sampler, float3 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherGreen(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 1);
+    public float4 GatherGreen(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 1, ResourceOps.I(offset));
     public float4 GatherGreen(SamplerState sampler, float3 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherBlue(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 2);
+    public float4 GatherBlue(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 2, ResourceOps.I(offset));
     public float4 GatherBlue(SamplerState sampler, float3 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float3 location, int2 offset) => throw GpuOnly.Exception();
+    public float4 GatherAlpha(SamplerState sampler, float3 location) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 3);
+    public float4 GatherAlpha(SamplerState sampler, float3 location, int2 offset) => ResourceOps.Gather(cpu, sampler, true, ResourceOps.F(location), 3, ResourceOps.I(offset));
     public float4 GatherAlpha(SamplerState sampler, float3 location, int2 offset1, int2 offset2, int2 offset3, int2 offset4) => throw GpuOnly.Exception();
-    public float4 GatherCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float4 GatherCmpRed(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height, out uint elements) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint elements, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height, out float elements) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float height, out float elements, out float levels) => throw GpuOnly.Exception();
+    public float4 GatherCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.GatherCmp(cpu, sampler, true, ResourceOps.F(location), compare);
+    public float4 GatherCmpRed(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.GatherCmp(cpu, sampler, true, ResourceOps.F(location), compare);
+    public float CalculateLevelOfDetail(SamplerState sampler, float2 location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 2, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint height, out uint elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint elements, out uint levels) { ResourceOps.Dimensions(cpu, 2, true, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; elements = d; levels = l; }
+    public void GetDimensions(out float width, out float height, out float elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
+    public void GetDimensions(uint mipLevel, out float width, out float height, out float elements, out float levels) { ResourceOps.Dimensions(cpu, 2, true, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; elements = d; levels = l; }
 }
 
 public readonly struct Texture3D<T> where T : struct
 {
-    public T this[int3 location] => throw GpuOnly.Exception();
-    public T this[uint3 location] => throw GpuOnly.Exception();
-    public T Load(int4 location) => throw GpuOnly.Exception();
-    public T Load(int4 location, int3 offset) => throw GpuOnly.Exception();
-    public T Load(uint4 location) => throw GpuOnly.Exception();
-    public T Load(uint4 location, int3 offset) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public T Sample(SamplerState sampler, float3 location, int3 offset) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float3 location, float lod) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float3 location, float lod, int3 offset) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float3 location, float bias) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float3 location, float bias, int3 offset) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy, int3 offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare, int3 offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare, int3 offset) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height, out uint depth) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint depth, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height, out float depth) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float height, out float depth, out float levels) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture3D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int3 location] => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), false);
+    public T this[uint3 location] => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), false);
+    public T Load(int4 location) => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), true);
+    public T Load(int4 location, int3 offset) => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Load(uint4 location) => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), true);
+    public T Load(uint4 location, int3 offset) => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public T Sample(SamplerState sampler, float3 location) => ResourceOps.Sample<T>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public T Sample(SamplerState sampler, float3 location, int3 offset) => ResourceOps.Sample<T>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public T SampleLevel(SamplerState sampler, float3 location, float lod) => ResourceOps.Sample<T>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public T SampleLevel(SamplerState sampler, float3 location, float lod, int3 offset) => ResourceOps.Sample<T>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public T SampleBias(SamplerState sampler, float3 location, float bias) => ResourceOps.Sample<T>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public T SampleBias(SamplerState sampler, float3 location, float bias, int3 offset) => ResourceOps.Sample<T>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public T SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy) => ResourceOps.Sample<T>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public T SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy, int3 offset) => ResourceOps.Sample<T>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 3, false, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare, int3 offset) => ResourceOps.SampleCmp(cpu, sampler, 3, false, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 3, false, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare, int3 offset) => ResourceOps.SampleCmp(cpu, sampler, 3, false, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 3, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint height, out uint depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint depth, out uint levels) { ResourceOps.Dimensions(cpu, 3, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; depth = d; levels = l; }
+    public void GetDimensions(out float width, out float height, out float depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
+    public void GetDimensions(uint mipLevel, out float width, out float height, out float depth, out float levels) { ResourceOps.Dimensions(cpu, 3, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; depth = d; levels = l; }
 }
 
 /// <summary>Texture3D of float4, as SDSL writes it without an element type.</summary>
 public readonly struct Texture3D
 {
-    public float4 this[int3 location] => throw GpuOnly.Exception();
-    public float4 this[uint3 location] => throw GpuOnly.Exception();
-    public float4 Load(int4 location) => throw GpuOnly.Exception();
-    public float4 Load(int4 location, int3 offset) => throw GpuOnly.Exception();
-    public float4 Load(uint4 location) => throw GpuOnly.Exception();
-    public float4 Load(uint4 location, int3 offset) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 Sample(SamplerState sampler, float3 location, int3 offset) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float3 location, float lod) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float3 location, float lod, int3 offset) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float3 location, float bias) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float3 location, float bias, int3 offset) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy, int3 offset) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare, int3 offset) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare, int3 offset) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height, out uint depth) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint depth, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height, out float depth) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float height, out float depth, out float levels) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public Texture3D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int3 location] => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), false);
+    public float4 this[uint3 location] => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), false);
+    public float4 Load(int4 location) => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), true);
+    public float4 Load(int4 location, int3 offset) => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Load(uint4 location) => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), true);
+    public float4 Load(uint4 location, int3 offset) => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), true, ResourceOps.I(offset));
+    public float4 Sample(SamplerState sampler, float3 location) => ResourceOps.Sample<float4>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public float4 Sample(SamplerState sampler, float3 location, int3 offset) => ResourceOps.Sample<float4>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Implicit, offset: ResourceOps.I(offset));
+    public float4 SampleLevel(SamplerState sampler, float3 location, float lod) => ResourceOps.Sample<float4>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public float4 SampleLevel(SamplerState sampler, float3 location, float lod, int3 offset) => ResourceOps.Sample<float4>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod, offset: ResourceOps.I(offset));
+    public float4 SampleBias(SamplerState sampler, float3 location, float bias) => ResourceOps.Sample<float4>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public float4 SampleBias(SamplerState sampler, float3 location, float bias, int3 offset) => ResourceOps.Sample<float4>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias, offset: ResourceOps.I(offset));
+    public float4 SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy) => ResourceOps.Sample<float4>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float4 SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy, int3 offset) => ResourceOps.Sample<float4>(cpu, sampler, 3, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, offset: ResourceOps.I(offset), ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 3, false, ResourceOps.F(location), compare, false);
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare, int3 offset) => ResourceOps.SampleCmp(cpu, sampler, 3, false, ResourceOps.F(location), compare, false, ResourceOps.I(offset));
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmp(cpu, sampler, 3, false, ResourceOps.F(location), compare, true);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare, int3 offset) => ResourceOps.SampleCmp(cpu, sampler, 3, false, ResourceOps.F(location), compare, true, ResourceOps.I(offset));
+    public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => ResourceOps.CalculateLevelOfDetail(cpu, sampler, 3, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint height, out uint depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint depth, out uint levels) { ResourceOps.Dimensions(cpu, 3, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; depth = d; levels = l; }
+    public void GetDimensions(out float width, out float height, out float depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
+    public void GetDimensions(uint mipLevel, out float width, out float height, out float depth, out float levels) { ResourceOps.Dimensions(cpu, 3, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; depth = d; levels = l; }
 }
 
 public readonly struct TextureCube<T> where T : struct
 {
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public TextureCube(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
     public T Sample(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
     public T SampleLevel(SamplerState sampler, float3 location, float lod) => throw GpuOnly.Exception();
     public T SampleBias(SamplerState sampler, float3 location, float bias) => throw GpuOnly.Exception();
@@ -389,6 +452,10 @@ public readonly struct TextureCube<T> where T : struct
 /// <summary>TextureCube of float4, as SDSL writes it without an element type.</summary>
 public readonly struct TextureCube
 {
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public TextureCube(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
     public float4 Sample(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
     public float4 SampleLevel(SamplerState sampler, float3 location, float lod) => throw GpuOnly.Exception();
     public float4 SampleBias(SamplerState sampler, float3 location, float bias) => throw GpuOnly.Exception();
@@ -411,6 +478,10 @@ public readonly struct TextureCube
 
 public readonly struct TextureCubeArray<T> where T : struct
 {
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public TextureCubeArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
     public T Sample(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
     public T SampleLevel(SamplerState sampler, float4 location, float lod) => throw GpuOnly.Exception();
     public T SampleBias(SamplerState sampler, float4 location, float bias) => throw GpuOnly.Exception();
@@ -434,6 +505,10 @@ public readonly struct TextureCubeArray<T> where T : struct
 /// <summary>TextureCubeArray of float4, as SDSL writes it without an element type.</summary>
 public readonly struct TextureCubeArray
 {
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public TextureCubeArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
     public float4 Sample(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
     public float4 SampleLevel(SamplerState sampler, float4 location, float lod) => throw GpuOnly.Exception();
     public float4 SampleBias(SamplerState sampler, float4 location, float bias) => throw GpuOnly.Exception();
@@ -456,122 +531,170 @@ public readonly struct TextureCubeArray
 
 public readonly struct RWTexture1D<T> where T : struct
 {
-    public T this[int location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int location) => throw GpuOnly.Exception();
-    public T this[uint location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture1D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int location] { get => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 1, false, ResourceOps.I(location), value); }
+    public T Load(int location) => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), false);
+    public T this[uint location] { get => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 1, false, ResourceOps.I(location), value); }
+    public T Load(uint location) => ResourceOps.Load<T>(cpu, 1, false, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
+    public void GetDimensions(out float width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
 }
 
 public readonly struct RWTexture1D
 {
-    public float4 this[int location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(int location) => throw GpuOnly.Exception();
-    public float4 this[uint location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(uint location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture1D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int location] { get => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 1, false, ResourceOps.I(location), value); }
+    public float4 Load(int location) => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), false);
+    public float4 this[uint location] { get => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 1, false, ResourceOps.I(location), value); }
+    public float4 Load(uint location) => ResourceOps.Load<float4>(cpu, 1, false, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
+    public void GetDimensions(out float width) { ResourceOps.Dimensions(cpu, 1, false, 0, out var w, out var h, out var d, out _); width = w; }
 }
 
 public readonly struct RWTexture1DArray<T> where T : struct
 {
-    public T this[int2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int2 location) => throw GpuOnly.Exception();
-    public T this[uint2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint elements) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float elements) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture1DArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int2 location] { get => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 1, true, ResourceOps.I(location), value); }
+    public T Load(int2 location) => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), false);
+    public T this[uint2 location] { get => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 1, true, ResourceOps.I(location), value); }
+    public T Load(uint2 location) => ResourceOps.Load<T>(cpu, 1, true, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
+    public void GetDimensions(out float width, out float elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
 }
 
 public readonly struct RWTexture1DArray
 {
-    public float4 this[int2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(int2 location) => throw GpuOnly.Exception();
-    public float4 this[uint2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(uint2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint elements) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float elements) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture1DArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int2 location] { get => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 1, true, ResourceOps.I(location), value); }
+    public float4 Load(int2 location) => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), false);
+    public float4 this[uint2 location] { get => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 1, true, ResourceOps.I(location), value); }
+    public float4 Load(uint2 location) => ResourceOps.Load<float4>(cpu, 1, true, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
+    public void GetDimensions(out float width, out float elements) { ResourceOps.Dimensions(cpu, 1, true, 0, out var w, out var h, out var d, out _); width = w; elements = d; }
 }
 
 public readonly struct RWTexture2D<T> where T : struct
 {
-    public T this[int2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int2 location) => throw GpuOnly.Exception();
-    public T this[uint2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture2D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int2 location] { get => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, false, ResourceOps.I(location), value); }
+    public T Load(int2 location) => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false);
+    public T this[uint2 location] { get => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, false, ResourceOps.I(location), value); }
+    public T Load(uint2 location) => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
 }
 
 public readonly struct RWTexture2D
 {
-    public float4 this[int2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(int2 location) => throw GpuOnly.Exception();
-    public float4 this[uint2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(uint2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture2D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int2 location] { get => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, false, ResourceOps.I(location), value); }
+    public float4 Load(int2 location) => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false);
+    public float4 this[uint2 location] { get => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, false, ResourceOps.I(location), value); }
+    public float4 Load(uint2 location) => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
 }
 
 public readonly struct RWTexture2DArray<T> where T : struct
 {
-    public T this[int3 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int3 location) => throw GpuOnly.Exception();
-    public T this[uint3 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint3 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height, out uint elements) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height, out float elements) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture2DArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int3 location] { get => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, true, ResourceOps.I(location), value); }
+    public T Load(int3 location) => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), false);
+    public T this[uint3 location] { get => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, true, ResourceOps.I(location), value); }
+    public T Load(uint3 location) => ResourceOps.Load<T>(cpu, 2, true, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint height, out uint elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
+    public void GetDimensions(out float width, out float height, out float elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
 }
 
 public readonly struct RWTexture2DArray
 {
-    public float4 this[int3 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(int3 location) => throw GpuOnly.Exception();
-    public float4 this[uint3 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(uint3 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height, out uint elements) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height, out float elements) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture2DArray(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int3 location] { get => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, true, ResourceOps.I(location), value); }
+    public float4 Load(int3 location) => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), false);
+    public float4 this[uint3 location] { get => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, true, ResourceOps.I(location), value); }
+    public float4 Load(uint3 location) => ResourceOps.Load<float4>(cpu, 2, true, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint height, out uint elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
+    public void GetDimensions(out float width, out float height, out float elements) { ResourceOps.Dimensions(cpu, 2, true, 0, out var w, out var h, out var d, out _); width = w; height = h; elements = d; }
 }
 
 public readonly struct RWTexture3D<T> where T : struct
 {
-    public T this[int3 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int3 location) => throw GpuOnly.Exception();
-    public T this[uint3 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint3 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height, out uint depth) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height, out float depth) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture3D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int3 location] { get => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 3, false, ResourceOps.I(location), value); }
+    public T Load(int3 location) => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), false);
+    public T this[uint3 location] { get => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 3, false, ResourceOps.I(location), value); }
+    public T Load(uint3 location) => ResourceOps.Load<T>(cpu, 3, false, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint height, out uint depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
+    public void GetDimensions(out float width, out float height, out float depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
 }
 
 public readonly struct RWTexture3D
 {
-    public float4 this[int3 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(int3 location) => throw GpuOnly.Exception();
-    public float4 this[uint3 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(uint3 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height, out uint depth) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height, out float depth) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RWTexture3D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int3 location] { get => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 3, false, ResourceOps.I(location), value); }
+    public float4 Load(int3 location) => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), false);
+    public float4 this[uint3 location] { get => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 3, false, ResourceOps.I(location), value); }
+    public float4 Load(uint3 location) => ResourceOps.Load<float4>(cpu, 3, false, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint height, out uint depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
+    public void GetDimensions(out float width, out float height, out float depth) { ResourceOps.Dimensions(cpu, 3, false, 0, out var w, out var h, out var d, out _); width = w; height = h; depth = d; }
 }
 
 public readonly struct RasterizerOrderedTexture2D<T> where T : struct
 {
-    public T this[int2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int2 location) => throw GpuOnly.Exception();
-    public T this[uint2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RasterizerOrderedTexture2D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public T this[int2 location] { get => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, false, ResourceOps.I(location), value); }
+    public T Load(int2 location) => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false);
+    public T this[uint2 location] { get => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, false, ResourceOps.I(location), value); }
+    public T Load(uint2 location) => ResourceOps.Load<T>(cpu, 2, false, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
 }
 
 public readonly struct RasterizerOrderedTexture2D
 {
-    public float4 this[int2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(int2 location) => throw GpuOnly.Exception();
-    public float4 this[uint2 location] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(uint2 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
+    public RasterizerOrderedTexture2D(CpuTexture texture) { cpu = texture; }
+    public CpuTexture? CpuData => cpu as CpuTexture;
+    public float4 this[int2 location] { get => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, false, ResourceOps.I(location), value); }
+    public float4 Load(int2 location) => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false);
+    public float4 this[uint2 location] { get => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false); set => ResourceOps.Store(cpu, 2, false, ResourceOps.I(location), value); }
+    public float4 Load(uint2 location) => ResourceOps.Load<float4>(cpu, 2, false, ResourceOps.I(location), false);
+    public void GetDimensions(out uint width, out uint height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
 }
 
 public readonly struct Texture2DMS<T> where T : struct
@@ -636,85 +759,121 @@ public readonly struct Texture2DMSArray
 
 public readonly struct Buffer<T> where T : struct
 {
-    public T this[int index] => throw GpuOnly.Exception();
-    public T Load(int index) => throw GpuOnly.Exception();
-    public T this[uint index] => throw GpuOnly.Exception();
-    public T Load(uint index) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint count) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>
+    public Buffer(T[] data) { cpu = data; }
+    public T[]? CpuData => cpu as T[];
+    public T this[int index] => ResourceOps.BufferLoad<T>(cpu, index);
+    public T Load(int index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public T this[uint index] => ResourceOps.BufferLoad<T>(cpu, index);
+    public T Load(uint index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<T>(cpu);
 }
 
 public readonly struct Buffer
 {
-    public float4 this[int index] => throw GpuOnly.Exception();
-    public float4 Load(int index) => throw GpuOnly.Exception();
-    public float4 this[uint index] => throw GpuOnly.Exception();
-    public float4 Load(uint index) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint count) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>
+    public Buffer(float4[] data) { cpu = data; }
+    public float4[]? CpuData => cpu as float4[];
+    public float4 this[int index] => ResourceOps.BufferLoad<float4>(cpu, index);
+    public float4 Load(int index) => ResourceOps.BufferLoad<float4>(cpu, index);
+    public float4 this[uint index] => ResourceOps.BufferLoad<float4>(cpu, index);
+    public float4 Load(uint index) => ResourceOps.BufferLoad<float4>(cpu, index);
+    public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<float4>(cpu);
 }
 
 public readonly struct RWBuffer<T> where T : struct
 {
-    public T this[int index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int index) => throw GpuOnly.Exception();
-    public T this[uint index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint index) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint count) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>
+    public RWBuffer(T[] data) { cpu = data; }
+    public T[]? CpuData => cpu as T[];
+    public T this[int index] { get => ResourceOps.BufferLoad<T>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public T Load(int index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public T this[uint index] { get => ResourceOps.BufferLoad<T>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public T Load(uint index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<T>(cpu);
 }
 
 public readonly struct RWBuffer
 {
-    public float4 this[int index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(int index) => throw GpuOnly.Exception();
-    public float4 this[uint index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(uint index) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint count) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>
+    public RWBuffer(float4[] data) { cpu = data; }
+    public float4[]? CpuData => cpu as float4[];
+    public float4 this[int index] { get => ResourceOps.BufferLoad<float4>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public float4 Load(int index) => ResourceOps.BufferLoad<float4>(cpu, index);
+    public float4 this[uint index] { get => ResourceOps.BufferLoad<float4>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public float4 Load(uint index) => ResourceOps.BufferLoad<float4>(cpu, index);
+    public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<float4>(cpu);
 }
 
 public readonly struct StructuredBuffer<T> where T : struct
 {
-    public T this[int index] => throw GpuOnly.Exception();
-    public T Load(int index) => throw GpuOnly.Exception();
-    public T this[uint index] => throw GpuOnly.Exception();
-    public T Load(uint index) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint count, out uint stride) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>
+    public StructuredBuffer(T[] data) { cpu = data; }
+    public T[]? CpuData => cpu as T[];
+    public T this[int index] => ResourceOps.BufferLoad<T>(cpu, index);
+    public T Load(int index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public T this[uint index] => ResourceOps.BufferLoad<T>(cpu, index);
+    public T Load(uint index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public void GetDimensions(out uint count, out uint stride) { count = ResourceOps.BufferCount<T>(cpu); stride = ResourceOps.BufferStride<T>(); }
 }
 
 public readonly struct RWStructuredBuffer<T> where T : struct
 {
-    public T this[int index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int index) => throw GpuOnly.Exception();
-    public T this[uint index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint index) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint count, out uint stride) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>
+    public RWStructuredBuffer(T[] data) { cpu = data; }
+    public T[]? CpuData => cpu as T[];
+    public T this[int index] { get => ResourceOps.BufferLoad<T>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public T Load(int index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public T this[uint index] { get => ResourceOps.BufferLoad<T>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public T Load(uint index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public void GetDimensions(out uint count, out uint stride) { count = ResourceOps.BufferCount<T>(cpu); stride = ResourceOps.BufferStride<T>(); }
     public uint IncrementCounter() => throw GpuOnly.Exception();
     public uint DecrementCounter() => throw GpuOnly.Exception();
 }
 
 public readonly struct RasterizerOrderedBuffer<T> where T : struct
 {
-    public T this[int index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int index) => throw GpuOnly.Exception();
-    public T this[uint index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint index) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint count) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>
+    public RasterizerOrderedBuffer(T[] data) { cpu = data; }
+    public T[]? CpuData => cpu as T[];
+    public T this[int index] { get => ResourceOps.BufferLoad<T>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public T Load(int index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public T this[uint index] { get => ResourceOps.BufferLoad<T>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public T Load(uint index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<T>(cpu);
 }
 
 public readonly struct RasterizerOrderedBuffer
 {
-    public float4 this[int index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(int index) => throw GpuOnly.Exception();
-    public float4 this[uint index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public float4 Load(uint index) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint count) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>
+    public RasterizerOrderedBuffer(float4[] data) { cpu = data; }
+    public float4[]? CpuData => cpu as float4[];
+    public float4 this[int index] { get => ResourceOps.BufferLoad<float4>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public float4 Load(int index) => ResourceOps.BufferLoad<float4>(cpu, index);
+    public float4 this[uint index] { get => ResourceOps.BufferLoad<float4>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public float4 Load(uint index) => ResourceOps.BufferLoad<float4>(cpu, index);
+    public void GetDimensions(out uint count) => count = ResourceOps.BufferCount<float4>(cpu);
 }
 
 public readonly struct RasterizerOrderedStructuredBuffer<T> where T : struct
 {
-    public T this[int index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(int index) => throw GpuOnly.Exception();
-    public T this[uint index] { get => throw GpuOnly.Exception(); set => throw GpuOnly.Exception(); }
-    public T Load(uint index) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint count, out uint stride) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose elements are on the CPU, for shader code run there.</summary>
+    public RasterizerOrderedStructuredBuffer(T[] data) { cpu = data; }
+    public T[]? CpuData => cpu as T[];
+    public T this[int index] { get => ResourceOps.BufferLoad<T>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public T Load(int index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public T this[uint index] { get => ResourceOps.BufferLoad<T>(cpu, index); set => ResourceOps.BufferStore(cpu, index, value); }
+    public T Load(uint index) => ResourceOps.BufferLoad<T>(cpu, index);
+    public void GetDimensions(out uint count, out uint stride) { count = ResourceOps.BufferCount<T>(cpu); stride = ResourceOps.BufferStride<T>(); }
     public uint IncrementCounter() => throw GpuOnly.Exception();
     public uint DecrementCounter() => throw GpuOnly.Exception();
 }
@@ -733,27 +892,35 @@ public readonly struct ConsumeStructuredBuffer<T> where T : struct
 
 public readonly struct ByteAddressBuffer
 {
-    public uint Load(int address) => throw GpuOnly.Exception();
-    public uint2 Load2(int address) => throw GpuOnly.Exception();
-    public uint3 Load3(int address) => throw GpuOnly.Exception();
-    public uint4 Load4(int address) => throw GpuOnly.Exception();
-    public uint Load(uint address) => throw GpuOnly.Exception();
-    public uint2 Load2(uint address) => throw GpuOnly.Exception();
-    public uint3 Load3(uint address) => throw GpuOnly.Exception();
-    public uint4 Load4(uint address) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint bytes) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose 32-bit words are on the CPU, for shader code run there.</summary>
+    public ByteAddressBuffer(uint[] words) { cpu = words; }
+    public uint[]? CpuData => cpu as uint[];
+    public uint Load(int address) => ResourceOps.LoadWord(cpu, address);
+    public uint2 Load2(int address) => new uint2(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4));
+    public uint3 Load3(int address) => new uint3(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4), ResourceOps.LoadWord(cpu, address + 8));
+    public uint4 Load4(int address) => new uint4(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4), ResourceOps.LoadWord(cpu, address + 8), ResourceOps.LoadWord(cpu, address + 12));
+    public uint Load(uint address) => ResourceOps.LoadWord(cpu, address);
+    public uint2 Load2(uint address) => new uint2(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4));
+    public uint3 Load3(uint address) => new uint3(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4), ResourceOps.LoadWord(cpu, address + 8));
+    public uint4 Load4(uint address) => new uint4(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4), ResourceOps.LoadWord(cpu, address + 8), ResourceOps.LoadWord(cpu, address + 12));
+    public void GetDimensions(out uint bytes) => bytes = ResourceOps.BufferCount<uint>(cpu) * 4;
 }
 
 public readonly struct RWByteAddressBuffer
 {
-    public uint Load(int address) => throw GpuOnly.Exception();
-    public uint2 Load2(int address) => throw GpuOnly.Exception();
-    public uint3 Load3(int address) => throw GpuOnly.Exception();
-    public uint4 Load4(int address) => throw GpuOnly.Exception();
-    public void Store(int address, uint value) => throw GpuOnly.Exception();
-    public void Store2(int address, uint2 value) => throw GpuOnly.Exception();
-    public void Store3(int address, uint3 value) => throw GpuOnly.Exception();
-    public void Store4(int address, uint4 value) => throw GpuOnly.Exception();
+    private readonly object? cpu;
+    /// <summary>A buffer whose 32-bit words are on the CPU, for shader code run there.</summary>
+    public RWByteAddressBuffer(uint[] words) { cpu = words; }
+    public uint[]? CpuData => cpu as uint[];
+    public uint Load(int address) => ResourceOps.LoadWord(cpu, address);
+    public uint2 Load2(int address) => new uint2(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4));
+    public uint3 Load3(int address) => new uint3(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4), ResourceOps.LoadWord(cpu, address + 8));
+    public uint4 Load4(int address) => new uint4(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4), ResourceOps.LoadWord(cpu, address + 8), ResourceOps.LoadWord(cpu, address + 12));
+    public void Store(int address, uint value) => ResourceOps.StoreWord(cpu, address, value);
+    public void Store2(int address, uint2 value) { ResourceOps.StoreWord(cpu, address + 0, value.x); ResourceOps.StoreWord(cpu, address + 4, value.y); }
+    public void Store3(int address, uint3 value) { ResourceOps.StoreWord(cpu, address + 0, value.x); ResourceOps.StoreWord(cpu, address + 4, value.y); ResourceOps.StoreWord(cpu, address + 8, value.z); }
+    public void Store4(int address, uint4 value) { ResourceOps.StoreWord(cpu, address + 0, value.x); ResourceOps.StoreWord(cpu, address + 4, value.y); ResourceOps.StoreWord(cpu, address + 8, value.z); ResourceOps.StoreWord(cpu, address + 12, value.w); }
     public void InterlockedAdd(int address, uint value, out uint original) => throw GpuOnly.Exception();
     public void InterlockedAdd(int address, uint value) => throw GpuOnly.Exception();
     public void InterlockedAnd(int address, uint value, out uint original) => throw GpuOnly.Exception();
@@ -769,14 +936,14 @@ public readonly struct RWByteAddressBuffer
     public void InterlockedExchange(int address, uint value, out uint original) => throw GpuOnly.Exception();
     public void InterlockedCompareExchange(int address, uint compare, uint value, out uint original) => throw GpuOnly.Exception();
     public void InterlockedCompareStore(int address, uint compare, uint value) => throw GpuOnly.Exception();
-    public uint Load(uint address) => throw GpuOnly.Exception();
-    public uint2 Load2(uint address) => throw GpuOnly.Exception();
-    public uint3 Load3(uint address) => throw GpuOnly.Exception();
-    public uint4 Load4(uint address) => throw GpuOnly.Exception();
-    public void Store(uint address, uint value) => throw GpuOnly.Exception();
-    public void Store2(uint address, uint2 value) => throw GpuOnly.Exception();
-    public void Store3(uint address, uint3 value) => throw GpuOnly.Exception();
-    public void Store4(uint address, uint4 value) => throw GpuOnly.Exception();
+    public uint Load(uint address) => ResourceOps.LoadWord(cpu, address);
+    public uint2 Load2(uint address) => new uint2(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4));
+    public uint3 Load3(uint address) => new uint3(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4), ResourceOps.LoadWord(cpu, address + 8));
+    public uint4 Load4(uint address) => new uint4(ResourceOps.LoadWord(cpu, address + 0), ResourceOps.LoadWord(cpu, address + 4), ResourceOps.LoadWord(cpu, address + 8), ResourceOps.LoadWord(cpu, address + 12));
+    public void Store(uint address, uint value) => ResourceOps.StoreWord(cpu, address, value);
+    public void Store2(uint address, uint2 value) { ResourceOps.StoreWord(cpu, address + 0, value.x); ResourceOps.StoreWord(cpu, address + 4, value.y); }
+    public void Store3(uint address, uint3 value) { ResourceOps.StoreWord(cpu, address + 0, value.x); ResourceOps.StoreWord(cpu, address + 4, value.y); ResourceOps.StoreWord(cpu, address + 8, value.z); }
+    public void Store4(uint address, uint4 value) { ResourceOps.StoreWord(cpu, address + 0, value.x); ResourceOps.StoreWord(cpu, address + 4, value.y); ResourceOps.StoreWord(cpu, address + 8, value.z); ResourceOps.StoreWord(cpu, address + 12, value.w); }
     public void InterlockedAdd(uint address, uint value, out uint original) => throw GpuOnly.Exception();
     public void InterlockedAdd(uint address, uint value) => throw GpuOnly.Exception();
     public void InterlockedAnd(uint address, uint value, out uint original) => throw GpuOnly.Exception();
@@ -792,6 +959,6 @@ public readonly struct RWByteAddressBuffer
     public void InterlockedExchange(uint address, uint value, out uint original) => throw GpuOnly.Exception();
     public void InterlockedCompareExchange(uint address, uint compare, uint value, out uint original) => throw GpuOnly.Exception();
     public void InterlockedCompareStore(uint address, uint compare, uint value) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint bytes) => throw GpuOnly.Exception();
+    public void GetDimensions(out uint bytes) => bytes = ResourceOps.BufferCount<uint>(cpu) * 4;
 }
 
