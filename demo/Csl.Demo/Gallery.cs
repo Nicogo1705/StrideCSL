@@ -445,15 +445,10 @@ internal sealed class Gallery : IDisposable
 
     private void Upload(RenderDrawContext context, CpuFrame frame)
     {
-        if (cpuFrame == null || cpuFrame.Width != frame.Width || cpuFrame.Height != frame.Height)
-        {
-            cpuFrame?.Dispose();
-            cpuFrame = Texture.New2D(context.GraphicsDevice, frame.Width, frame.Height, PixelFormat.R8G8B8A8_UNorm, frame.Pixels);
-        }
-        else
-        {
-            cpuFrame.SetData(context.CommandList, frame.Pixels);
-        }
+        // A new texture per frame: one made from data is immutable (SetData cannot map it), and a frame
+        // comes about once a second.
+        cpuFrame?.Dispose();
+        cpuFrame = Texture.New2D(context.GraphicsDevice, frame.Width, frame.Height, PixelFormat.R8G8B8A8_UNorm, frame.Pixels);
         lastCpuFrame = frame;
     }
 
