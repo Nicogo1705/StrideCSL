@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ApplicationIcon>Resources\GameIcon.ico</ApplicationIcon>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>TopDownRPG</RootNamespace>
+    <OutputPath>..\Bin\Windows\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DefineConstants>STRIDE_PLATFORM_DESKTOP</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StrideCurrentPackagePath>$(MSBuildThisFileDirectory)..\TopDownRPG.sdpkg</StrideCurrentPackagePath>
+    <StridePlatform>Windows</StridePlatform>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TopDownRPG.Game\TopDownRPG.Game.csproj" />
+  </ItemGroup>
+</Project>

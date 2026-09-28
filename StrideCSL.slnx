@@ -2,6 +2,17 @@
   <Folder Name="/demo/">
     <Project Path="demo/Csl.Demo/Csl.Demo.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/MaterialShader/MaterialShader.Game/MaterialShader.Game.csproj" />
+    <Project Path="samples/MaterialShader/MaterialShader.Windows/MaterialShader.Windows.csproj" />
+    <Project Path="samples/Packs/mannequinModel/mannequinModel.csproj" />
+    <Project Path="samples/Packs/PrototypingBlocks/PrototypingBlocks.csproj" />
+    <Project Path="samples/Packs/SamplesAssetPackage/SamplesAssetPackage.csproj" />
+    <Project Path="samples/Packs/VFXPackage/VFXPackage.csproj" />
+    <Project Path="samples/TopDownRPG/TopDownRPG.Game/TopDownRPG.Game.csproj" />
+    <Project Path="samples/TopDownRPG/TopDownRPG.Windows/TopDownRPG.Windows.csproj" />
+  </Folder>
+  <Folder Name="/samples/Packs/" />
   <Folder Name="/src/">
     <Project Path="src/Csl.Generators/Csl.Generators.csproj" />
     <Project Path="src/Csl.Runtime/Csl.Runtime.csproj" />
