@@ -94,7 +94,18 @@ previous version stays on screen until the file compiles again.
 | `DemoTile` | shared, inherited | The base of the tiles above: `Shading` written once, calling `Color(p)` that each tile overrides; `Global` mixed in for `Time`; `Aspect`, set by the app. |
 | `DemoCommon` | shared, called | Static functions any shader calls by name: `Hash`, `Noise`, `Fbm`, `Palette`. |
 
-Keys: 1-9 one shader alone, 0 or space all of them, B the blur on and off, + and - its radius.
+Keys: 1-9 one shader alone, 0 or space all of them, B the blur on and off, + and - its radius;
+Ctrl+click a tile to run that pixel on the CPU (see [Running shaders on the CPU](#running-shaders-on-the-cpu)).
+
+The demo's launch profiles (Visual Studio's start button list, or `dotnet run --project demo/Csl.Demo --launch-profile "..."`):
+
+| Profile | Does |
+|---------|------|
+| Gallery (GPU) | The window above. |
+| Gallery computed on the CPU | The same frame, every shader run by the CPU, drawn once and again on each save. |
+| Debug a pixel on the CPU | One pixel of DemoClouds on the CPU, no GPU: under the debugger it stops before it, F11 steps into the shader. |
+| Compare CPU and GPU | Every demo drawn by both, compared; images and report in `cpu-check/`. |
+| Screenshot, GPU / CPU | One frame saved as `shot-gpu.png` / `shot-cpu.png`, window hidden. |
 
 Each image effect is an `ImageEffectShader` with `Shading()` overridden, directly or through
 `DemoTile`; the tiles draw into a texture that `DemoBlur` blurs into the back buffer. A new

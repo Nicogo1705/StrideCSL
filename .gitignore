@@ -4,3 +4,5 @@
 obj/
 TestResults/
 /artifacts/
+cpu-check/
+shot-*.png

@@ -1,7 +1,27 @@
 {
   "profiles": {
-    "Csl.Demo": {
+    "Gallery (GPU)": {
       "commandName": "Project"
+    },
+    "Gallery computed on the CPU": {
+      "commandName": "Project",
+      "commandLineArgs": "--cpu --time 2"
+    },
+    "Debug a pixel on the CPU (DemoClouds 120 45)": {
+      "commandName": "Project",
+      "commandLineArgs": "--debug-pixel DemoClouds 120 45 --time 2"
+    },
+    "Compare CPU and GPU (report in cpu-check)": {
+      "commandName": "Project",
+      "commandLineArgs": "--cpu-check cpu-check --time 2"
+    },
+    "Screenshot, GPU (shot-gpu.png)": {
+      "commandName": "Project",
+      "commandLineArgs": "--shot shot-gpu.png --time 2"
+    },
+    "Screenshot, CPU (shot-cpu.png)": {
+      "commandName": "Project",
+      "commandLineArgs": "--cpu --shot shot-cpu.png --time 2"
     }
   }
 }
