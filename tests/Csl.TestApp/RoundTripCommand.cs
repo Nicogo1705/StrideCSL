@@ -130,4 +130,69 @@ internal static class RoundTripCommand
         var line = text.Split('\n').FirstOrDefault(l => l.Trim().Length > 0) ?? string.Empty;
         return line.Length > 200 ? line.Substring(0, 200) : line;
     }
+
+    /// <summary>
+    /// Every engine shader the round trip compiles, in the context it made up, mixed by the engine and
+    /// each stage flattened to C# (FlatHlsl, the converter): how many SPIRV-Cross translates and how many
+    /// convert and compile, the whole effect as the CPU would run it.
+    /// </summary>
+    public static int FlatAll(string[] args)
+    {
+        var files = EngineShaders.Files().Select(p => (Path: p, Text: File.ReadAllText(p))).ToList();
+        var original = new Dictionary<string, string>(StringComparer.Ordinal);
+        var index = new SdslShaderIndex();
+        foreach (var (path, text) in files)
+        {
+            var unit = SdslSyntaxParser.Parse(path, text);
+            index.Add(unit);
+            foreach (var shader in unit.Shaders())
+                original.TryAdd(shader.Name, text);
+        }
+        var flats = new ConcurrentBag<(string Shader, string Path, string Text)>();
+        var failures = new ConcurrentDictionary<string, string>(StringComparer.Ordinal);
+        int compiled = 0;
+        Parallel.ForEach(index.Shaders.Select(s => s.Name).Where(n => original.ContainsKey(n)).ToList(), name =>
+        {
+            var context = new EffectContext(index, index.Find(name)!);
+            var result = context.Settle(new Dictionary<string, string>(original, StringComparer.Ordinal));
+            if (!result.Success)
+                return;
+            Interlocked.Increment(ref compiled);
+            try
+            {
+                var d3d = new EngineCompiler(new Dictionary<string, string>(original.Concat(context.Stubs).GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.Last().Value), StringComparer.Ordinal)) { ForD3D11 = true }.Compile(context.Mixin());
+                if (!d3d.Success)
+                    return;
+                foreach (var (stage, hlsl) in D3D11Compiler.Translate(d3d.Bytecode, legalize: false))
+                {
+                    var flat = Csl.Generators.Conversion.FlatHlsl.From(hlsl, "Flat_" + name + "_" + stage);
+                    flats.Add((name, flat.ClassName + ".sdsl", flat.Sdsl));
+                }
+            }
+            catch (Exception e)
+            {
+                failures[name] = "SPIRV-Cross: " + e.GetBaseException().Message.Split('\n')[0];
+            }
+        });
+        var converted = ConvertCommand.Convert(flats.Select(f => (f.Path, f.Text)).ToList());
+        var byShader = flats.GroupBy(f => f.Shader).ToDictionary(g => g.Key, g => g.Select(f => System.IO.Path.GetFileNameWithoutExtension(f.Path)).ToList());
+        var outcome = converted.ToDictionary(r => r.Name, StringComparer.Ordinal);
+        int ok = 0;
+        var errors = new List<string>();
+        foreach (var (shader, classes) in byShader)
+        {
+            var bad = classes.Select(c => outcome.TryGetValue(c, out var r) ? r : null).Where(r => r == null || r.ConversionErrors.Count + r.CompileErrors.Count > 0).ToList();
+            if (bad.Count == 0)
+                ok++;
+            else
+                errors.AddRange(bad.Where(r => r != null).SelectMany(r => r!.ConversionErrors.Concat(r.CompileErrors).Select(e => shader + ": " + e)).Take(3));
+        }
+        Console.WriteLine($"{compiled} effects compile; {failures.Count} fail in SPIRV-Cross; {ok} of {byShader.Count} flatten to C# that compiles");
+        foreach (var group in errors.Select(e => System.Text.RegularExpressions.Regex.Replace(e.Substring(e.IndexOf(": ") + 2), @"\(\d+,\d+\)|'[^']*'", "…")).GroupBy(e => e).OrderByDescending(g => g.Count()).Take(15))
+            Console.WriteLine($"  {group.Count(),4} {group.Key.Substring(0, Math.Min(150, group.Key.Length))}");
+        foreach (var failure in failures.Take(5))
+            Console.WriteLine($"  {failure.Key}: {failure.Value}");
+        File.WriteAllLines(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "csl-flat-all.txt"), errors.Concat(failures.Select(f => f.Key + ": " + f.Value)));
+        return ok == byShader.Count && failures.IsEmpty ? 0 : 1;
+    }
 }

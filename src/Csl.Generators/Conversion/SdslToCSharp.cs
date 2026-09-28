@@ -922,10 +922,20 @@ public sealed class SdslToCSharp
         {
             if (arraySizes.Count > 0)
                 return ArrayCreation(type, arraySizes, list);
-            // { a, b } for a vector or a struct.
+            // { a, b } for a struct: its fields by name; for a vector, its constructor.
+            if (StructFields(type.Name) is { } fields && fields.Count == list.Items.Count)
+                return "new " + TypeText(type, initializer.Position) + " { " + string.Join(", ", fields.Select((f, i) => EscapeIdentifier(f) + " = " + Expression(list.Items[i]))) + " }";
             return "new " + TypeText(type, initializer.Position) + "(" + string.Join(", ", list.Items.Select(Expression)) + ")";
         }
         return Expression(initializer);
+    }
+
+    /// <summary>The field names of a struct this shader or another declares, in order; null for anything else.</summary>
+    private List<string>? StructFields(string name)
+    {
+        var declaration = shader.Members.OfType<SdslStruct>().FirstOrDefault(s => s.Name == name)
+            ?? index.StructOwner(name)?.Members.OfType<SdslStruct>().FirstOrDefault(s => s.Name == name);
+        return declaration?.Fields.Select(f => f.Name).ToList();
     }
 
     private string ArrayCreation(SdslType type, List<string> sizes, SdslInitializerList? values)

@@ -17,6 +17,14 @@ internal static unsafe class D3D11Compiler
 {
     private static readonly D3DCompiler Api = D3DCompiler.GetApi();
 
+    /// <summary>The HLSL SPIRV-Cross writes for each entry point, as the effect compiler hands it to fxc.</summary>
+    public static List<(ExecutionModel Stage, string Hlsl)> Translate(byte[] spirv, bool legalize = true)
+    {
+        var legalized = legalize ? SpirvTools.LegalizeForHlsl(MemoryMarshal.Cast<byte, uint>(spirv.AsSpan())) : MemoryMarshal.Cast<byte, uint>(spirv.AsSpan()).ToArray();
+        var translator = new SpirvTranslator(legalized.AsMemory());
+        return translator.GetEntryPoints().Select(e => (e.ExecutionModel, translator.Translate(Backend.Hlsl, e))).ToList();
+    }
+
     /// <summary>The fxc errors for each entry point, empty when all compile.</summary>
     public static string Compile(byte[] spirv)
     {
