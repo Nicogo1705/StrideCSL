@@ -13,6 +13,8 @@ switch (command)
         return RoundTripCommand.Run(rest);
     case "compile":
         return CompileCommand(rest);
+    case "names":
+        return NamesProbe.Run(rest);
     case "gpu":
         return GpuTests.Run(rest);
     default:
@@ -22,6 +24,7 @@ switch (command)
         Console.WriteLine("Csl.TestApp roundtrip [--out DIR] [--only NAME,...]");
         Console.WriteLine("                                          compile each shader from its SDSL and from its round trip, compare the SPIR-V");
         Console.WriteLine("Csl.TestApp gpu                           run the C# shaders of Shaders/ on the GPU (a hidden game window) and check what they compute");
+        Console.WriteLine("Csl.TestApp names [NAME...]                which identifiers fail as a local, parameter, method, variable or field (SPIR-V, then D3D11 on the CPU)");
         Console.WriteLine("Csl.TestApp compile NAME...               compile engine shaders, mixed in this order, with the engine's SDSL compiler");
         return command == "help" ? 0 : 2;
 }

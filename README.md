@@ -362,7 +362,7 @@ allocate with the format of the element type and the views the slots need; `MipV
 | CSL001–004 | A `.sdsl` declaration the wrapper parser did not understand, a parameter type or array without a C# key type, a shader declared twice. |
 | CSL010 | A texture read and written through its RW view with a format Direct3D 11 cannot load from. |
 | CSL100–109 | C# that has no SDSL equivalent, on its line: a non-partial shader class, a statement or type outside the subset, a call outside the intrinsics and shader methods, a base that is not a shader, a C# shader named like a `.sdsl`. |
-| CSL110 | A name the SDSL parser takes for a keyword or a type (`sample`, `point`, `line`, `half`, `texture`, `float2`, `params`…): C# accepts it, the engine then fails with a parse error on another token. |
+| CSL110 | A name the SDSL parser takes for a keyword or a type (`sample`, `point`, `line`, `half`, `texture`, `float2`, `@if`, `rgroup`…), or `@base`/`@this`/`streams` as a local, parameter or shader variable: C# accepts it, the engine then fails with a parse error on another token. The list is measured by `Csl.TestApp names`. |
 | CSL111 | A method that calls itself, directly or through others (the cycle is in the message): GPU code has no call stack. |
 | CSL112 | A shader parameter written (`Scale = 2`, `Offset.x += 1`): parameters live in constant buffers, read-only on the GPU. Streams, `static` and `[GroupShared]` fields, and the elements of RW resources can be written. |
 | CSL113 | `ddx`, `ddy`, `fwidth`, `discard`, `clip`, or a `Sample` that picks its mip level from derivatives, in a compute shader: pixel shaders only. |

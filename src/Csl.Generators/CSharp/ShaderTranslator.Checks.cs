@@ -18,29 +18,41 @@ public sealed partial class ShaderTranslator
     /// <summary>
     /// Identifiers the engine's SDSL parser takes for keywords or types: a local named <c>sample</c> or
     /// <c>float2</c> fails with "Unexpected token : override" several lines away. The vector and matrix
-    /// type names are matched by <see cref="HlslTypeName"/>.
+    /// type names are matched by <see cref="HlslTypeName"/>. Measured by <c>Csl.TestApp names</c>: each
+    /// fails as a local, a parameter, a method, a shader variable and a struct field.
     /// </summary>
     private static readonly HashSet<string> ReservedNames = new HashSet<string>(StringComparer.Ordinal)
     {
         // HLSL and SDSL keywords C# does not reserve.
         "sample", "point", "line", "triangle", "lineadj", "triangleadj", "linear", "centroid", "precise",
         "shared", "groupshared", "uniform", "register", "packoffset", "inout", "inline", "export", "compile",
-        "compile_fragment", "technique", "technique10", "technique11", "pass", "stateblock", "pixelfragment",
-        "vertexfragment", "typedef", "unsigned", "nointerpolation", "noperspective", "row_major", "column_major",
-        "snorm", "unorm", "discard", "vector", "matrix", "texture", "sampler", "cbuffer", "tbuffer", "asm",
-        "NULL", "stream", "streams", "shader", "compose",
+        "compile_fragment", "technique", "technique10", "technique11", "pass", "stateblock", "stateblock_state",
+        "pixelfragment", "vertexfragment", "typedef", "unsigned", "nointerpolation", "noperspective", "row_major",
+        "column_major", "snorm", "unorm", "discard", "vector", "matrix", "texture", "sampler", "cbuffer", "tbuffer",
+        "rgroup", "fxgroup", "asm", "asm_fragment", "NULL", "stream", "shader", "compose", "foreach",
         // C# keywords, reachable as @name, that SDSL reserves as well.
-        "base", "this", "params", "in", "out", "struct", "class", "static", "const", "extern", "volatile",
-        "namespace", "string", "var", "void", "return", "true", "false", "do", "case", "default",
+        "in", "out", "struct", "class", "interface", "static", "const", "extern", "volatile", "namespace", "string",
+        "var", "void", "return", "true", "false", "if", "else", "for", "do", "while", "switch", "case", "default",
+        "break", "continue",
         // HLSL object types.
         "Buffer", "RWBuffer", "StructuredBuffer", "RWStructuredBuffer", "ByteAddressBuffer", "RWByteAddressBuffer",
         "AppendStructuredBuffer", "ConsumeStructuredBuffer", "SamplerState", "SamplerComparisonState",
         "Texture1D", "Texture1DArray", "Texture2D", "Texture2DArray", "Texture2DMS", "Texture2DMSArray",
         "Texture3D", "TextureCube", "TextureCubeArray", "RWTexture1D", "RWTexture1DArray", "RWTexture2D",
         "RWTexture2DArray", "RWTexture3D", "InputPatch", "OutputPatch", "PointStream", "LineStream",
-        "TriangleStream", "BlendState", "DepthStencilState", "RasterizerState",
+        "TriangleStream", "BlendState", "DepthStencilState", "RasterizerState", "DepthStencilView",
+        "RenderTargetView", "PixelShader", "VertexShader", "GeometryShader", "HullShader", "DomainShader",
+        "ComputeShader", "CompileShader",
     };
 
+    /// <summary>
+    /// Names SDSL gives a value of its own (the shader, its base, the streams): fine for a method or a
+    /// struct field, not for a local, a parameter or a shader variable.
+    /// </summary>
+    private static readonly HashSet<string> ReservedValueNames = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "base", "this", "streams",
+    };
     private static readonly Regex HlslTypeName = new Regex(
         @"^(bool|int|uint|dword|half|float|double|min16float|min10float|min16int|min12int|min16uint)([1-4](x[1-4])?)?$",
         RegexOptions.CultureInvariant);
@@ -74,13 +86,14 @@ public sealed partial class ShaderTranslator
                 switch (node)
                 {
                     case VariableDeclaratorSyntax variable:
-                        CheckReservedName(variable.Identifier.ValueText, variable.Identifier.GetLocation());
+                        // A struct field is reached through its struct: only the keywords matter.
+                        CheckReservedName(variable.Identifier.ValueText, variable.Identifier.GetLocation(), isValue: variable.FirstAncestorOrSelf<StructDeclarationSyntax>() == null);
                         break;
                     case ParameterSyntax parameter:
-                        CheckReservedName(parameter.Identifier.ValueText, parameter.Identifier.GetLocation());
+                        CheckReservedName(parameter.Identifier.ValueText, parameter.Identifier.GetLocation(), isValue: true);
                         break;
                     case SingleVariableDesignationSyntax designation:
-                        CheckReservedName(designation.Identifier.ValueText, designation.Identifier.GetLocation());
+                        CheckReservedName(designation.Identifier.ValueText, designation.Identifier.GetLocation(), isValue: true);
                         break;
                     case StructDeclarationSyntax structure:
                         CheckReservedName(structure.Identifier.ValueText, structure.Identifier.GetLocation());
@@ -146,9 +159,9 @@ public sealed partial class ShaderTranslator
             && marker.ContainingType?.ToDisplayString() == SdslType;
     }
 
-    private void CheckReservedName(string name, Location location)
+    private void CheckReservedName(string name, Location location, bool isValue = false)
     {
-        if (ReservedNames.Contains(name) || HlslTypeName.IsMatch(name))
+        if (ReservedNames.Contains(name) || HlslTypeName.IsMatch(name) || (isValue && ReservedValueNames.Contains(name)))
             Report(Diagnostics.ReservedName, location, name);
     }
 

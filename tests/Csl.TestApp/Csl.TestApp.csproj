@@ -9,6 +9,7 @@
     <CslNeedsEngineShaders>true</CslNeedsEngineShaders>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Csl.TestApp</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <!-- Keep the generator's output on disk, to read the SDSL and the wrappers it wrote. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
@@ -21,6 +22,10 @@
     <PackageReference Include="Stride.AssetCompiler" Version="$(StrideVersion)" IncludeAssets="build;buildTransitive" />
     <!-- Newer than the generator builds against: the conversion compiles C# 14 (extension members of Csl.Types). -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+    <!-- fxc and SPIR-V enums, for the Direct3D 11 half of the effect compiler run on the CPU (same versions as the engine). -->
+    <PackageReference Include="Silk.NET.Direct3D.Compilers" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.SPIRV" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.SPIRV.Cross" Version="2.23.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -183,7 +183,9 @@ namespace T
     [InlineData("float half = 1.0f;", "CSL110")]
     [InlineData("float float2 = 1.0f;", "CSL110")]
     [InlineData("float Texture2D = 1.0f;", "CSL110")]
-    [InlineData("float @params = 1.0f;", "CSL110")]
+    [InlineData("float @while = 1.0f;", "CSL110")]
+    [InlineData("float rgroup = 1.0f;", "CSL110")]
+    [InlineData("float @base = 1.0f;", "CSL110")]
     [InlineData("Scale = 2.0f;", "CSL112")]
     [InlineData("Scale += 2.0f;", "CSL112")]
     [InlineData("Scale++;", "CSL112")]
@@ -201,6 +203,7 @@ namespace T
 
     [Theory]
     [InlineData("float distance = 1.0f; float length = 2.0f; float stage = 3.0f; float mixin = 4.0f;")]
+    [InlineData("float @params = 1.0f; float @object = 2.0f; float @checked = 3.0f;")]
     [InlineData("float local = Scale; local = 2.0f; local += 1.0f;")]
     [InlineData("Output[p] = new float4(Scale, 0.0f, 0.0f, 1.0f);")]
     [InlineData("Counter = 1.0f; Shared[0] = 1.0f;")]

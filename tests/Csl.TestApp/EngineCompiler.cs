@@ -44,6 +44,9 @@ internal sealed class EngineCompiler
         ("class", "shader"),
     };
 
+    /// <summary>Registers bound per resource kind (b#, t#, u#, s#), as Direct3D 11 wants them.</summary>
+    public bool ForD3D11 { get; init; }
+
     public sealed class Result
     {
         public bool Success;
@@ -73,7 +76,7 @@ internal sealed class EngineCompiler
         var result = new Result();
         try
         {
-            result.Success = new ShaderMixer(loader).MergeSDSL(mixin, new ShaderMixer.Options(false), log, out var bytecode, out _, out _, out _);
+            result.Success = new ShaderMixer(loader).MergeSDSL(mixin, new ShaderMixer.Options(ForD3D11), log, out var bytecode, out _, out _, out _);
             result.Bytecode = bytecode.ToArray();
         }
         catch (Exception e)
