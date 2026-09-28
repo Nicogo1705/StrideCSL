@@ -545,7 +545,7 @@ public readonly struct Samples32 { }
     def iv(n): return vec('int', n)
     def uv(n): return vec('uint', n)
     G = 'throw GpuOnly.Exception()'
-    # spatial dimensions and array flag of each texture; None: not run on the CPU (cubes).
+    # spatial dimensions and array flag of each texture; None: cube maps, run through their own operations.
     SHAPE = {'Texture1D': (1, False), 'Texture1DArray': (1, True), 'Texture2D': (2, False), 'Texture2DArray': (2, True),
              'Texture3D': (3, False), 'TextureCube': None, 'TextureCubeArray': None,
              'RWTexture1D': (1, False), 'RWTexture1DArray': (1, True), 'RWTexture2D': (2, False), 'RWTexture2DArray': (2, True),
@@ -572,6 +572,9 @@ public readonly struct Samples32 { }
             out.extend(data_members(name, generic, 'texture'))
             D, A = shape if shape else (0, False)
             a = 'true' if A else 'false'
+            # Cube maps: the face the direction points at, sampled as a 2D slice (ResourceOps.SampleCube).
+            cube = name.startswith('TextureCube')
+            ca = 'true' if name == 'TextureCubeArray' else 'false'
             def body(expr):
                 return expr if shape else G
             if index is not None:
@@ -587,29 +590,46 @@ public readonly struct Samples32 { }
                 args = {'Sample': 'ResourceOps.Level.Implicit', 'SampleLevel': 'ResourceOps.Level.Explicit, lod', 'SampleBias': 'ResourceOps.Level.Bias, bias',
                         'SampleGrad': 'ResourceOps.Level.Gradient, 0f'}[s]
                 grads = ', ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy)' if s == 'SampleGrad' else ''
-                out.append(f'    public {t} {s}(SamplerState sampler, {fv(coord)} location{extra}) => {body(f"ResourceOps.Sample<{t}>(cpu, sampler, {D}, {a}, ResourceOps.F(location), {args}{grads})")};')
+                if cube:
+                    out.append(f'    public {t} {s}(SamplerState sampler, {fv(coord)} location{extra}) => ResourceOps.SampleCube<{t}>(cpu, sampler, {ca}, ResourceOps.F(location), {args}{grads});')
+                else:
+                    out.append(f'    public {t} {s}(SamplerState sampler, {fv(coord)} location{extra}) => {body(f"ResourceOps.Sample<{t}>(cpu, sampler, {D}, {a}, ResourceOps.F(location), {args}{grads})")};')
                 if not name.startswith('TextureCube'):
                     out.append(f'    public {t} {s}(SamplerState sampler, {fv(coord)} location{extra}, {offset} offset) => {body(f"ResourceOps.Sample<{t}>(cpu, sampler, {D}, {a}, ResourceOps.F(location), {args}, offset: ResourceOps.I(offset){grads})")};')
             for s in ('SampleCmp', 'SampleCmpLevelZero'):
                 zero = 'true' if s == 'SampleCmpLevelZero' else 'false'
-                out.append(f'    public float {s}(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {body(f"ResourceOps.SampleCmp(cpu, sampler, {D}, {a}, ResourceOps.F(location), compare, {zero})")};')
+                if cube:
+                    out.append(f'    public float {s}(SamplerComparisonState sampler, {fv(coord)} location, float compare) => ResourceOps.SampleCmpCube(cpu, sampler, {ca}, ResourceOps.F(location), compare, {zero});')
+                else:
+                    out.append(f'    public float {s}(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {body(f"ResourceOps.SampleCmp(cpu, sampler, {D}, {a}, ResourceOps.F(location), compare, {zero})")};')
                 if not name.startswith('TextureCube'):
                     out.append(f'    public float {s}(SamplerComparisonState sampler, {fv(coord)} location, float compare, {offset} offset) => {body(f"ResourceOps.SampleCmp(cpu, sampler, {D}, {a}, ResourceOps.F(location), compare, {zero}, ResourceOps.I(offset))")};')
             if name in ('Texture2D', 'Texture2DArray', 'TextureCube', 'TextureCubeArray'):
                 for g in ('Gather', 'GatherRed', 'GatherGreen', 'GatherBlue', 'GatherAlpha'):
                     channel = {'Gather': 0, 'GatherRed': 0, 'GatherGreen': 1, 'GatherBlue': 2, 'GatherAlpha': 3}[g]
-                    out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location) => {body(f"ResourceOps.Gather(cpu, sampler, {a}, ResourceOps.F(location), {channel})")};')
+                    if cube:
+                        out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location) => ResourceOps.GatherCube(cpu, sampler, {ca}, ResourceOps.F(location), {channel});')
+                    else:
+                        out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location) => {body(f"ResourceOps.Gather(cpu, sampler, {a}, ResourceOps.F(location), {channel})")};')
                     if not name.startswith('TextureCube'):
                         out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location, {offset} offset) => {body(f"ResourceOps.Gather(cpu, sampler, {a}, ResourceOps.F(location), {channel}, ResourceOps.I(offset))")};')
                         if g != 'Gather':
                             out.append(f'    public float4 {g}(SamplerState sampler, {fv(coord)} location, {offset} offset1, {offset} offset2, {offset} offset3, {offset} offset4) => {G};')
-                out.append(f'    public float4 GatherCmp(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {body(f"ResourceOps.GatherCmp(cpu, sampler, {a}, ResourceOps.F(location), compare)")};')
-                out.append(f'    public float4 GatherCmpRed(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {body(f"ResourceOps.GatherCmp(cpu, sampler, {a}, ResourceOps.F(location), compare)")};')
-            out.append(f'    public float CalculateLevelOfDetail(SamplerState sampler, {fv(spatial)} location) => {body(f"ResourceOps.CalculateLevelOfDetail(cpu, sampler, {D}, ResourceOps.F(location))")};')
+                for g in ('GatherCmp', 'GatherCmpRed'):
+                    call = f'ResourceOps.GatherCmpCube(cpu, sampler, {ca}, ResourceOps.F(location), compare)' if cube else body(f'ResourceOps.GatherCmp(cpu, sampler, {a}, ResourceOps.F(location), compare)')
+                    out.append(f'    public float4 {g}(SamplerComparisonState sampler, {fv(coord)} location, float compare) => {call};')
+            if name == 'TextureCube':
+                out.append(f'    public float CalculateLevelOfDetail(SamplerState sampler, {fv(spatial)} location) => ResourceOps.CalculateLevelOfDetailCube(cpu, sampler, ResourceOps.F(location));')
+            else:
+                out.append(f'    public float CalculateLevelOfDetail(SamplerState sampler, {fv(spatial)} location) => {body(f"ResourceOps.CalculateLevelOfDetail(cpu, sampler, {D}, ResourceOps.F(location))")};')
             dims = {'Texture1D': ['width'], 'Texture1DArray': ['width', 'elements'], 'Texture2D': ['width', 'height'],
                     'Texture2DArray': ['width', 'height', 'elements'], 'Texture3D': ['width', 'height', 'depth'],
                     'TextureCube': ['width', 'height'], 'TextureCubeArray': ['width', 'height', 'elements']}[name]
-            out.extend(dimensions(dims, D, a, shape is not None, with_levels=True))
+            if name == 'TextureCube':
+                # A face's size: a 2D slice's.
+                out.extend(dimensions(dims, 2, 'false', True, with_levels=True))
+            else:
+                out.extend(dimensions(dims, D, a, shape is not None, with_levels=True))
             out.append('}')
             out.append('')
     # RW textures

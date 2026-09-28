@@ -300,15 +300,24 @@ public static class CpuCapture
         lock (TextureCache)
             if (TextureCache.TryGetValue(texture, out var known))
                 return known;
-        var read = GraphicsContext != null && texture.Dimension != TextureDimension.Texture3D && !texture.IsDepthStencil && !IsIntegerFormat(texture.Format) && texture.MultisampleCount == MultisampleCount.None
-            ? ReadThroughGpu(texture, GraphicsContext)
-            : ReadDirectly(texture, commandList);
+        CpuTexture read;
+        try
+        {
+            // A cube map takes no single-face view to draw from: read back as it is.
+            read = GraphicsContext != null && texture.Dimension is TextureDimension.Texture1D or TextureDimension.Texture2D && !texture.IsDepthStencil && !IsIntegerFormat(texture.Format) && texture.MultisampleCount == MultisampleCount.None
+                ? ReadThroughGpu(texture, GraphicsContext)
+                : ReadDirectly(texture, commandList);
+        }
+        catch (Exception e) when (e is not NotSupportedException)
+        {
+            throw new InvalidOperationException($"Reading back {texture.Name ?? "a texture"} ({texture.Dimension} {texture.Width}x{texture.Height}x{texture.Depth}, {texture.ArraySize} slices, {texture.MipLevelCount} levels, {texture.Format}, {texture.Flags}) failed: {e.Message}", e);
+        }
         lock (TextureCache)
             TextureCache[texture] = read;
         return read;
     }
 
-    private static bool IsIntegerFormat(PixelFormat format) => format.ToString().EndsWith("Int", StringComparison.Ordinal);
+    private static bool IsIntegerFormat(PixelFormat format) => format.ToString().EndsWith("Int", StringComparison.Ordinal) && !format.ToString().StartsWith('D');
 
     private static CpuTexture ReadThroughGpu(Texture texture, GraphicsContext context)
     {
@@ -366,10 +375,25 @@ public static class CpuCapture
         return result;
     }
 
-    /// <summary>A GPU buffer read back as an array of the shader's element type.</summary>
+    /// <summary>
+    /// A GPU buffer read back as an array of the shader's element type. A typed buffer's elements are
+    /// its view format's (a Buffer&lt;uint4&gt; over R32_UInt holds 4 bytes per element), converted as a
+    /// texel is; a structured buffer's are the element type's bytes.
+    /// </summary>
     public static Array ReadBuffer(Stride.Graphics.Buffer buffer, Type element, CommandList commandList)
     {
         var bytes = buffer.GetData<byte>(commandList);
+        if (buffer.ViewFormat != PixelFormat.None && (buffer.ViewFlags & BufferFlags.StructuredBuffer) == 0)
+        {
+            var format = buffer.ViewFormat;
+            int stride = format.SizeInBytes;
+            var elements = Array.CreateInstance(element, bytes.Length / stride);
+            bool integer = IsIntegerFormat(format);
+            var convert = typeof(ResourceOps).GetMethod(integer ? nameof(ResourceOps.AsInteger) : nameof(ResourceOps.As))!.MakeGenericMethod(element);
+            for (int i = 0; i < elements.Length; i++)
+                elements.SetValue(convert.Invoke(null, [integer ? (object)DecodeInteger(format, bytes, i * stride) : Decode(format, bytes, i * stride)]), i);
+            return elements;
+        }
         int size = Marshal.SizeOf(element);
         var array = Array.CreateInstance(element, bytes.Length / size);
         for (int i = 0; i < array.Length; i++)
@@ -382,13 +406,15 @@ public static class CpuCapture
         PixelFormat.R8G8B8A8_UNorm or PixelFormat.B8G8R8A8_UNorm or PixelFormat.R8G8B8A8_Typeless => TexelFormat.Rgba8UNorm,
         PixelFormat.R8G8B8A8_UNorm_SRgb or PixelFormat.B8G8R8A8_UNorm_SRgb => TexelFormat.Rgba8UNormSrgb,
         PixelFormat.R16G16B16A16_Float => TexelFormat.Rgba16Float,
-        PixelFormat.R32_Float => TexelFormat.R32Float,
+        PixelFormat.R32_Float or PixelFormat.D32_Float or PixelFormat.D24_UNorm_S8_UInt or PixelFormat.D16_UNorm => TexelFormat.R32Float,
         PixelFormat.R16_Float => TexelFormat.R16Float,
         PixelFormat.R32G32_Float => TexelFormat.Rg32Float,
         PixelFormat.R8_UNorm => TexelFormat.R8UNorm,
         PixelFormat.R32_UInt => TexelFormat.R32UInt,
         PixelFormat.R32_SInt => TexelFormat.R32SInt,
         PixelFormat.R32G32B32A32_UInt => TexelFormat.Rgba32UInt,
+        // The other integer formats, their channels as the shader's uint4 reads them.
+        _ when IsIntegerFormat(format) => TexelFormat.Rgba32UInt,
         // Anything else kept exactly, as 32-bit floats.
         _ => TexelFormat.Rgba32Float,
     };
@@ -417,6 +443,13 @@ public static class CpuCapture
                 return new CslTypes.float4(F16(0), F16(1), 0f, 1f);
             case PixelFormat.R16_Float:
                 return new CslTypes.float4(F16(0), 0f, 0f, 1f);
+            // Depth as the shader samples it: the depth in red.
+            case PixelFormat.D32_Float:
+                return new CslTypes.float4(F32(0), 0f, 0f, 1f);
+            case PixelFormat.D24_UNorm_S8_UInt:
+                return new CslTypes.float4((BitConverter.ToUInt32(b, at) & 0xFFFFFF) / 16777215f, 0f, 0f, 1f);
+            case PixelFormat.D16_UNorm:
+                return new CslTypes.float4(BitConverter.ToUInt16(b, at) / 65535f, 0f, 0f, 1f);
             case PixelFormat.R32G32B32A32_Float:
                 return new CslTypes.float4(F32(0), F32(1), F32(2), F32(3));
             case PixelFormat.R32G32B32_Float:
@@ -481,7 +514,15 @@ public static class CpuCapture
     private static CslTypes.uint4 DecodeInteger(PixelFormat format, byte[] b, int at) => format switch
     {
         PixelFormat.R32_UInt or PixelFormat.R32_SInt => new CslTypes.uint4(BitConverter.ToUInt32(b, at), 0, 0, 1),
-        PixelFormat.R32G32B32A32_UInt => new CslTypes.uint4(BitConverter.ToUInt32(b, at), BitConverter.ToUInt32(b, at + 4), BitConverter.ToUInt32(b, at + 8), BitConverter.ToUInt32(b, at + 12)),
+        PixelFormat.R32G32B32A32_UInt or PixelFormat.R32G32B32A32_SInt => new CslTypes.uint4(BitConverter.ToUInt32(b, at), BitConverter.ToUInt32(b, at + 4), BitConverter.ToUInt32(b, at + 8), BitConverter.ToUInt32(b, at + 12)),
+        PixelFormat.R32G32B32_UInt or PixelFormat.R32G32B32_SInt => new CslTypes.uint4(BitConverter.ToUInt32(b, at), BitConverter.ToUInt32(b, at + 4), BitConverter.ToUInt32(b, at + 8), 1),
+        PixelFormat.R32G32_UInt or PixelFormat.R32G32_SInt => new CslTypes.uint4(BitConverter.ToUInt32(b, at), BitConverter.ToUInt32(b, at + 4), 0, 1),
+        PixelFormat.R16G16B16A16_UInt => new CslTypes.uint4(BitConverter.ToUInt16(b, at), BitConverter.ToUInt16(b, at + 2), BitConverter.ToUInt16(b, at + 4), BitConverter.ToUInt16(b, at + 6)),
+        PixelFormat.R16G16_UInt => new CslTypes.uint4(BitConverter.ToUInt16(b, at), BitConverter.ToUInt16(b, at + 2), 0, 1),
+        PixelFormat.R16_UInt => new CslTypes.uint4(BitConverter.ToUInt16(b, at), 0, 0, 1),
+        PixelFormat.R8G8B8A8_UInt => new CslTypes.uint4(b[at], b[at + 1], b[at + 2], b[at + 3]),
+        PixelFormat.R8G8_UInt => new CslTypes.uint4(b[at], b[at + 1], 0, 1),
+        PixelFormat.R8_UInt => new CslTypes.uint4(b[at], 0, 0, 1),
         _ => throw new NotSupportedException($"Reading {format} back for the CPU is not supported yet"),
     };
 }

@@ -449,24 +449,24 @@ public readonly struct TextureCube<T> where T : struct
     /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
     public TextureCube(CpuTexture texture) { cpu = texture; }
     public CpuTexture? CpuData => cpu as CpuTexture;
-    public T Sample(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float3 location, float lod) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float3 location, float bias) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float4 GatherCmpRed(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) => throw GpuOnly.Exception();
+    public T Sample(SamplerState sampler, float3 location) => ResourceOps.SampleCube<T>(cpu, sampler, false, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public T SampleLevel(SamplerState sampler, float3 location, float lod) => ResourceOps.SampleCube<T>(cpu, sampler, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public T SampleBias(SamplerState sampler, float3 location, float bias) => ResourceOps.SampleCube<T>(cpu, sampler, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public T SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy) => ResourceOps.SampleCube<T>(cpu, sampler, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmpCube(cpu, sampler, false, ResourceOps.F(location), compare, false);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmpCube(cpu, sampler, false, ResourceOps.F(location), compare, true);
+    public float4 Gather(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 0);
+    public float4 GatherRed(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 0);
+    public float4 GatherGreen(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 1);
+    public float4 GatherBlue(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 2);
+    public float4 GatherAlpha(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 3);
+    public float4 GatherCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.GatherCmpCube(cpu, sampler, false, ResourceOps.F(location), compare);
+    public float4 GatherCmpRed(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.GatherCmpCube(cpu, sampler, false, ResourceOps.F(location), compare);
+    public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => ResourceOps.CalculateLevelOfDetailCube(cpu, sampler, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint levels) { ResourceOps.Dimensions(cpu, 2, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; levels = l; }
+    public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) { ResourceOps.Dimensions(cpu, 2, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; levels = l; }
 }
 
 /// <summary>TextureCube of float4, as SDSL writes it without an element type.</summary>
@@ -477,24 +477,24 @@ public readonly struct TextureCube
     /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
     public TextureCube(CpuTexture texture) { cpu = texture; }
     public CpuTexture? CpuData => cpu as CpuTexture;
-    public float4 Sample(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float3 location, float lod) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float3 location, float bias) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public float4 GatherCmp(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float4 GatherCmpRed(SamplerComparisonState sampler, float3 location, float compare) => throw GpuOnly.Exception();
-    public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
-    public void GetDimensions(out uint width, out uint height) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint levels) => throw GpuOnly.Exception();
-    public void GetDimensions(out float width, out float height) => throw GpuOnly.Exception();
-    public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) => throw GpuOnly.Exception();
+    public float4 Sample(SamplerState sampler, float3 location) => ResourceOps.SampleCube<float4>(cpu, sampler, false, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public float4 SampleLevel(SamplerState sampler, float3 location, float lod) => ResourceOps.SampleCube<float4>(cpu, sampler, false, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public float4 SampleBias(SamplerState sampler, float3 location, float bias) => ResourceOps.SampleCube<float4>(cpu, sampler, false, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public float4 SampleGrad(SamplerState sampler, float3 location, float3 ddx, float3 ddy) => ResourceOps.SampleCube<float4>(cpu, sampler, false, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmpCube(cpu, sampler, false, ResourceOps.F(location), compare, false);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.SampleCmpCube(cpu, sampler, false, ResourceOps.F(location), compare, true);
+    public float4 Gather(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 0);
+    public float4 GatherRed(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 0);
+    public float4 GatherGreen(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 1);
+    public float4 GatherBlue(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 2);
+    public float4 GatherAlpha(SamplerState sampler, float3 location) => ResourceOps.GatherCube(cpu, sampler, false, ResourceOps.F(location), 3);
+    public float4 GatherCmp(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.GatherCmpCube(cpu, sampler, false, ResourceOps.F(location), compare);
+    public float4 GatherCmpRed(SamplerComparisonState sampler, float3 location, float compare) => ResourceOps.GatherCmpCube(cpu, sampler, false, ResourceOps.F(location), compare);
+    public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => ResourceOps.CalculateLevelOfDetailCube(cpu, sampler, ResourceOps.F(location));
+    public void GetDimensions(out uint width, out uint height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint levels) { ResourceOps.Dimensions(cpu, 2, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; levels = l; }
+    public void GetDimensions(out float width, out float height) { ResourceOps.Dimensions(cpu, 2, false, 0, out var w, out var h, out var d, out _); width = w; height = h; }
+    public void GetDimensions(uint mipLevel, out float width, out float height, out float levels) { ResourceOps.Dimensions(cpu, 2, false, mipLevel, out var w, out var h, out var d, out var l); width = w; height = h; levels = l; }
 }
 
 [System.Diagnostics.DebuggerNonUserCode]
@@ -504,19 +504,19 @@ public readonly struct TextureCubeArray<T> where T : struct
     /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
     public TextureCubeArray(CpuTexture texture) { cpu = texture; }
     public CpuTexture? CpuData => cpu as CpuTexture;
-    public T Sample(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public T SampleLevel(SamplerState sampler, float4 location, float lod) => throw GpuOnly.Exception();
-    public T SampleBias(SamplerState sampler, float4 location, float bias) => throw GpuOnly.Exception();
-    public T SampleGrad(SamplerState sampler, float4 location, float3 ddx, float3 ddy) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float4 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float4 location, float compare) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherCmp(SamplerComparisonState sampler, float4 location, float compare) => throw GpuOnly.Exception();
-    public float4 GatherCmpRed(SamplerComparisonState sampler, float4 location, float compare) => throw GpuOnly.Exception();
+    public T Sample(SamplerState sampler, float4 location) => ResourceOps.SampleCube<T>(cpu, sampler, true, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public T SampleLevel(SamplerState sampler, float4 location, float lod) => ResourceOps.SampleCube<T>(cpu, sampler, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public T SampleBias(SamplerState sampler, float4 location, float bias) => ResourceOps.SampleCube<T>(cpu, sampler, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public T SampleGrad(SamplerState sampler, float4 location, float3 ddx, float3 ddy) => ResourceOps.SampleCube<T>(cpu, sampler, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float4 location, float compare) => ResourceOps.SampleCmpCube(cpu, sampler, true, ResourceOps.F(location), compare, false);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float4 location, float compare) => ResourceOps.SampleCmpCube(cpu, sampler, true, ResourceOps.F(location), compare, true);
+    public float4 Gather(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 0);
+    public float4 GatherRed(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 0);
+    public float4 GatherGreen(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 1);
+    public float4 GatherBlue(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 2);
+    public float4 GatherAlpha(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 3);
+    public float4 GatherCmp(SamplerComparisonState sampler, float4 location, float compare) => ResourceOps.GatherCmpCube(cpu, sampler, true, ResourceOps.F(location), compare);
+    public float4 GatherCmpRed(SamplerComparisonState sampler, float4 location, float compare) => ResourceOps.GatherCmpCube(cpu, sampler, true, ResourceOps.F(location), compare);
     public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
     public void GetDimensions(out uint width, out uint height, out uint elements) => throw GpuOnly.Exception();
     public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint elements, out uint levels) => throw GpuOnly.Exception();
@@ -532,19 +532,19 @@ public readonly struct TextureCubeArray
     /// <summary>A texture whose texels are on the CPU, for shader code run there.</summary>
     public TextureCubeArray(CpuTexture texture) { cpu = texture; }
     public CpuTexture? CpuData => cpu as CpuTexture;
-    public float4 Sample(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 SampleLevel(SamplerState sampler, float4 location, float lod) => throw GpuOnly.Exception();
-    public float4 SampleBias(SamplerState sampler, float4 location, float bias) => throw GpuOnly.Exception();
-    public float4 SampleGrad(SamplerState sampler, float4 location, float3 ddx, float3 ddy) => throw GpuOnly.Exception();
-    public float SampleCmp(SamplerComparisonState sampler, float4 location, float compare) => throw GpuOnly.Exception();
-    public float SampleCmpLevelZero(SamplerComparisonState sampler, float4 location, float compare) => throw GpuOnly.Exception();
-    public float4 Gather(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherRed(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherGreen(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherBlue(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherAlpha(SamplerState sampler, float4 location) => throw GpuOnly.Exception();
-    public float4 GatherCmp(SamplerComparisonState sampler, float4 location, float compare) => throw GpuOnly.Exception();
-    public float4 GatherCmpRed(SamplerComparisonState sampler, float4 location, float compare) => throw GpuOnly.Exception();
+    public float4 Sample(SamplerState sampler, float4 location) => ResourceOps.SampleCube<float4>(cpu, sampler, true, ResourceOps.F(location), ResourceOps.Level.Implicit);
+    public float4 SampleLevel(SamplerState sampler, float4 location, float lod) => ResourceOps.SampleCube<float4>(cpu, sampler, true, ResourceOps.F(location), ResourceOps.Level.Explicit, lod);
+    public float4 SampleBias(SamplerState sampler, float4 location, float bias) => ResourceOps.SampleCube<float4>(cpu, sampler, true, ResourceOps.F(location), ResourceOps.Level.Bias, bias);
+    public float4 SampleGrad(SamplerState sampler, float4 location, float3 ddx, float3 ddy) => ResourceOps.SampleCube<float4>(cpu, sampler, true, ResourceOps.F(location), ResourceOps.Level.Gradient, 0f, ddx: ResourceOps.F(ddx), ddy: ResourceOps.F(ddy));
+    public float SampleCmp(SamplerComparisonState sampler, float4 location, float compare) => ResourceOps.SampleCmpCube(cpu, sampler, true, ResourceOps.F(location), compare, false);
+    public float SampleCmpLevelZero(SamplerComparisonState sampler, float4 location, float compare) => ResourceOps.SampleCmpCube(cpu, sampler, true, ResourceOps.F(location), compare, true);
+    public float4 Gather(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 0);
+    public float4 GatherRed(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 0);
+    public float4 GatherGreen(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 1);
+    public float4 GatherBlue(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 2);
+    public float4 GatherAlpha(SamplerState sampler, float4 location) => ResourceOps.GatherCube(cpu, sampler, true, ResourceOps.F(location), 3);
+    public float4 GatherCmp(SamplerComparisonState sampler, float4 location, float compare) => ResourceOps.GatherCmpCube(cpu, sampler, true, ResourceOps.F(location), compare);
+    public float4 GatherCmpRed(SamplerComparisonState sampler, float4 location, float compare) => ResourceOps.GatherCmpCube(cpu, sampler, true, ResourceOps.F(location), compare);
     public float CalculateLevelOfDetail(SamplerState sampler, float3 location) => throw GpuOnly.Exception();
     public void GetDimensions(out uint width, out uint height, out uint elements) => throw GpuOnly.Exception();
     public void GetDimensions(uint mipLevel, out uint width, out uint height, out uint elements, out uint levels) => throw GpuOnly.Exception();

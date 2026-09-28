@@ -104,7 +104,8 @@ public sealed class CslDebugSystem : GameSystemBase
         {
             // Every effect compiled from now on is known by its mixin.
             recorder = new EffectRecorder(compiler);
-            effectSystem.Compiler = recorder;            ShaderSourceRegistry.InstallInto(effectSystem);
+            effectSystem.Compiler = recorder;
+            ShaderSourceRegistry.InstallInto(effectSystem);
             CslDebug.Log("registered: Ctrl+click a pixel to run it on the CPU" + (reloader != null ? $"; C# shaders of {reloader.Directory} reloaded on save" : string.Empty));
         }
         if (reloader != null && effectSystem != null)
@@ -124,18 +125,58 @@ public sealed class CslDebugSystem : GameSystemBase
         InstallFeature();
     }
 
-    /// <summary>The capture, as a sub-feature of the compositor's mesh feature: it sees every draw with its data.</summary>
+    /// <summary>
+    /// The capture, as a sub-feature of the compositor's mesh feature: it sees every draw with its data.
+    /// And the forward renderers' post effects tapped, for the colour before them.
+    /// </summary>
     private void InstallFeature()
     {
-        var meshFeature = game.SceneSystem?.GraphicsCompositor?.RenderFeatures.OfType<MeshRenderFeature>().FirstOrDefault();
+        var compositor = game.SceneSystem?.GraphicsCompositor;
+        if (compositor?.Game != null)
+            TapPostEffects(compositor.Game);
+        var meshFeature = compositor?.RenderFeatures.OfType<MeshRenderFeature>().FirstOrDefault();
         if (meshFeature == null || meshFeature.RenderFeatures.Contains(feature!))
             return;
         feature = new CaptureFeature(this);
         meshFeature.RenderFeatures.Add(feature);
+        PostEffectsTap.Hook = CopyColor;
+    }
+
+    private static void TapPostEffects(Stride.Rendering.Compositing.ISceneRenderer renderer)
+    {
+        switch (renderer)
+        {
+            case Stride.Rendering.Compositing.ForwardRenderer forward when forward.PostEffects != null && !PostEffectsTap.IsWrapped(forward.PostEffects):
+                forward.PostEffects = PostEffectsTap.Wrap(forward.PostEffects);
+                break;
+            case Stride.Rendering.Compositing.SceneCameraRenderer camera when camera.Child != null:
+                TapPostEffects(camera.Child);
+                break;
+            case Stride.Rendering.Compositing.SceneRendererCollection collection:
+                foreach (var child in collection.Children)
+                    TapPostEffects(child);
+                break;
+        }
+    }
+
+    /// <summary>The scene's colour before the post effects, in the frame of the pick (once, the main camera's).</summary>
+    internal Texture? ColorBeforePost { get; private set; }
+
+    private void CopyColor(RenderDrawContext context, Span<Texture> inputs)
+    {
+        if (PendingPick == null || Captured.Count == 0 || ColorBeforePost != null || inputs.Length == 0 || inputs[0] is not { } color)
+            return;
+        var copy = Texture.New2D(context.GraphicsDevice, color.Width, color.Height, color.ViewFormat, TextureFlags.ShaderResource);
+        if (color.MultisampleCount != MultisampleCount.None)
+            context.CommandList.CopyMultisample(color, 0, copy, 0, color.ViewFormat);
+        else
+            context.CommandList.Copy(color, copy);
+        ColorBeforePost = copy;
     }
 
     public override void Draw(GameTime gameTime)
     {
+        DrawOverlay();
         if (request is not { } at || Captured.Count == 0)
             return;
         request = null;
@@ -152,10 +193,13 @@ public sealed class CslDebugSystem : GameSystemBase
         catch (Exception e)
         {
             CslDebug.Log("the CPU run failed: " + e.GetBaseException());
+            Show("Csl: the CPU run failed: " + e.GetBaseException().Message, Color.Red);
         }
         foreach (var copy in copies)
             copy.Dispose();
         TargetCopies.Clear();
+        ColorBeforePost?.Dispose();
+        ColorBeforePost = null;
         if (exitAfterPick)
             game.Exit();
     }
@@ -197,31 +241,88 @@ public sealed class CslDebugSystem : GameSystemBase
             }
             catch (Exception e)
             {
-                CslDebug.Log($"{capture.Name}: not run on the CPU: {e.GetBaseException()}");
+                CslDebug.Log($"{capture.Name}: not run on the CPU: {e.Message}{(e.InnerException != null ? "\n" + e.GetBaseException() : string.Empty)}");
             }
         }
         var result = CpuScene.DebugPixel(draws, width, height, x, y);
         if (result is not { } hit)
         {
             CslDebug.Log($"pixel ({x}, {y}): no triangle of the {draws.Count} draws run on the CPU covers it");
+            Show($"Csl pixel ({x}, {y}): no triangle of the {draws.Count} draws run on the CPU covers it", Color.Orange);
             return;
         }
         var color = hit.Color;
-        string gpu = string.Empty;
+        string gpu = string.Empty, gpuLine, diffLine = string.Empty;
         try
         {
-            // The target after the frame: the last draw to write the pixel, before the post effects read it.
-            if (sources[hit.Draw].RenderTarget is { } drawn && TargetCopies.TryGetValue(drawn, out var target) && x < target.Width && y < target.Height)
+            // The colour the post effects were given (the last draw to write the pixel, MSAA resolved), else the
+            // target copied at the end of the frame (no post effects: nothing reused it since).
+            var target = ColorBeforePost;
+            if (target == null && sources[hit.Draw].RenderTarget is { } drawn)
+                TargetCopies.TryGetValue(drawn, out target);
+            if (target != null && x < target.Width && y < target.Height)
             {
                 var texel = CpuCapture.ReadTexture(target, commandList).Read(0, x, y);
                 gpu = $"; the GPU's target holds {texel.x:F4} {texel.y:F4} {texel.z:F4} {texel.w:F4}";
+                gpuLine = $"GPU  {texel.x:F4} {texel.y:F4} {texel.z:F4} {texel.w:F4}";
+                var diff = Math.Max(Math.Max(Math.Abs(color.x - texel.x), Math.Abs(color.y - texel.y)), Math.Max(Math.Abs(color.z - texel.z), Math.Abs(color.w - texel.w)));
+                // An 8-bit target rounds to 1/255: below 2/255 the two agree.
+                diffLine = $"max diff {diff:F4} ({diff * 255:F1}/255)" + (diff <= 2 / 255f ? "  OK" : "  DIFFERS");
             }
+            else
+                gpuLine = "GPU  target not captured";
         }
         catch (Exception e)
         {
             gpu = "; the GPU's target could not be read: " + e.GetBaseException().Message;
+            gpuLine = "GPU  not readable: " + e.GetBaseException().Message;
         }
         CslDebug.Log($"pixel ({x}, {y}): {sources[hit.Draw].Name}, triangle {hit.Triangle}: the pixel shader wrote {color.x:F4} {color.y:F4} {color.z:F4} {color.w:F4} on the CPU{gpu}");
+        Show($"Csl pixel ({x}, {y}): {sources[hit.Draw].Name}, triangle {hit.Triangle}\nCPU  {color.x:F4} {color.y:F4} {color.z:F4} {color.w:F4}\n{gpuLine}\n{diffLine}",
+            diffLine.EndsWith("OK") ? Color.LightGreen : Color.Orange);
+    }
+
+    /// <summary>The pick's result in the window, until the next pick or for a few seconds.</summary>
+    private void Show(string text, Color color)
+    {
+        overlay = text.Split('\n');
+        overlayColor = color;
+        overlayUntil = DateTime.Now.AddSeconds(15);
+    }
+
+    private string[]? overlay;
+    private Color overlayColor;
+    private DateTime overlayUntil;
+    private FastTextRenderer? textRenderer;
+    private SpriteBatch? spriteBatch;
+    private Texture? white;
+    private const int OverlayScale = 2;
+
+    /// <summary>The overlay, drawn at twice the debug font's size over a dark box, on the back buffer.</summary>
+    private void DrawOverlay()
+    {
+        if (overlay == null || DateTime.Now > overlayUntil)
+            return;
+        var context = game.GraphicsContext;
+        var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
+        context.CommandList.SetRenderTargetAndViewport(null, backBuffer);
+        textRenderer ??= new FastTextRenderer(context) { DebugSpriteFont = Content.Load<Texture>("/Stride.Engine/StrideDebugSpriteFont") };
+        spriteBatch ??= new SpriteBatch(game.GraphicsDevice);
+        white ??= Texture.New2D(game.GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { Color.White });
+
+        int glyphWidth = textRenderer.GlyphWidth * OverlayScale, lineHeight = textRenderer.GlyphHeight * OverlayScale, margin = 10;
+        var width = overlay.Max(l => l.Length) * glyphWidth + 2 * margin;
+        spriteBatch.Begin(context);
+        spriteBatch.Draw(white, new RectangleF(0, 0, width, overlay.Length * lineHeight + 2 * margin), new Color(0, 0, 0, 190));
+        spriteBatch.End();
+
+        // The renderer lays the glyphs out in clip space at their size: scaled about the top left corner.
+        textRenderer.MatrixTransform = Matrix.Scaling(OverlayScale, OverlayScale, 1) * Matrix.Translation(OverlayScale - 1, 1 - OverlayScale, 0);
+        textRenderer.TextColor = overlayColor;
+        textRenderer.Begin(context);
+        for (int i = 0; i < overlay.Length; i++)
+            textRenderer.DrawString(context, overlay[i], margin / OverlayScale, (margin + i * lineHeight) / OverlayScale);
+        textRenderer.End(context);
     }
 }
 

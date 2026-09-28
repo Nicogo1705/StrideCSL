@@ -50,7 +50,7 @@ public static class ResourceOps
         return HlslConvert.Convert<T>(v);
     }
 
-    private static T AsInteger<T>(uint4 v)
+    public static T AsInteger<T>(uint4 v)
     {
         if (typeof(T) == typeof(uint)) return (T)(object)v.x;
         if (typeof(T) == typeof(uint4)) return (T)(object)v;
@@ -127,6 +127,119 @@ public static class ResourceOps
         var texture = Texture(cpu);
         int layer = array ? Layer(texture, location.z) : 0;
         return Sampling.Gather(texture, sampler.Description, location, layer, default, 0, compare);
+    }
+
+    // -- cube maps: the face the direction points at (D3D's rules), sampled as a 2D slice ----------------
+    // Filtering stops at the face's edge (clamped) where the GPU blends in the next face: a texel's
+    // difference along the seams.
+
+    /// <summary>The face (a slice: +X, -X, +Y, -Y, +Z, -Z) and its (s, t, |major axis|) for a direction.</summary>
+    private static (int Face, float S, float T, float Major) CubeFace(float3 d)
+    {
+        float ax = MathF.Abs(d.x), ay = MathF.Abs(d.y), az = MathF.Abs(d.z);
+        if (az >= ax && az >= ay)
+            return d.z >= 0 ? (4, d.x, -d.y, az) : (5, -d.x, -d.y, az);
+        if (ay >= ax)
+            return d.y >= 0 ? (2, d.x, d.z, ay) : (3, d.x, -d.z, ay);
+        return d.x >= 0 ? (0, -d.z, -d.y, ax) : (1, d.z, -d.y, ax);
+    }
+
+    /// <summary>The (s, t, major) of another direction on the given face: the derivatives project on the centre's face.</summary>
+    private static float3 OnFace(int face, float3 d) => face switch
+    {
+        0 => new float3(-d.z, -d.y, d.x),
+        1 => new float3(d.z, -d.y, -d.x),
+        2 => new float3(d.x, d.z, d.y),
+        3 => new float3(d.x, -d.z, -d.y),
+        4 => new float3(d.x, -d.y, d.z),
+        _ => new float3(-d.x, -d.y, -d.z),
+    };
+
+    private static SamplerDescription Clamped(SamplerDescription s) => new()
+    {
+        MinFilter = s.MinFilter, MagFilter = s.MagFilter, MipFilter = s.MipFilter, Anisotropic = s.Anisotropic,
+        MipLodBias = s.MipLodBias, MinLod = s.MinLod, MaxLod = s.MaxLod, Compare = s.Compare, BorderColor = s.BorderColor,
+    };
+
+    /// <summary>The face's texture coordinates and slice for a direction (and a cube index of an array).</summary>
+    private static (float4 Uv, int Layer, int Face, float3 Sc) CubeCoordinate(CpuTexture texture, bool array, float4 location)
+    {
+        var direction = new float3(location.x, location.y, location.z);
+        var (face, s, t, major) = CubeFace(direction);
+        var uv = new float4(0.5f * (s / major) + 0.5f, 0.5f * (t / major) + 0.5f, 0f, 0f);
+        int layer = face + (array ? 6 * (int)MathF.Round(location.w) : 0);
+        return (uv, Math.Clamp(layer, 0, texture.Depth - 1), face, new float3(s, t, major));
+    }
+
+    /// <summary>A direction's derivative as the face coordinates' derivative: d(0.5 s / ma) with the quotient rule.</summary>
+    private static float4 FaceDerivative(int face, float3 sc, float4 derivative)
+    {
+        var d = OnFace(face, new float3(derivative.x, derivative.y, derivative.z));
+        float ma = sc.z;
+        return new float4(0.5f * (d.x * ma - sc.x * d.z) / (ma * ma), 0.5f * (d.y * ma - sc.y * d.z) / (ma * ma), 0f, 0f);
+    }
+
+    private static float CubeLevel(CpuTexture texture, SamplerDescription? sampler, float4 location, int face, float3 sc, Level mode, float value, float4 ddx, float4 ddy)
+    {
+        switch (mode)
+        {
+            case Level.Explicit:
+                return value;
+            case Level.Zero:
+                return 0f;
+            case Level.Gradient:
+                return Sampling.LevelOfDetail(texture, 2, FaceDerivative(face, sc, ddx), FaceDerivative(face, sc, ddy));
+        }
+        float lod = 0f;
+        bool matters = texture.MipLevels > 1 || sampler == null || sampler.MinFilter != sampler.MagFilter;
+        if (matters && Lane.Current is { IsPixel: true })
+        {
+            var (dx, dy) = Lane.Derivatives(location);
+            lod = Sampling.LevelOfDetail(texture, 2, FaceDerivative(face, sc, dx), FaceDerivative(face, sc, dy));
+        }
+        else if (texture.MipLevels > 1)
+        {
+            throw new InvalidOperationException("Sample picks its level from the 2x2 quad: only in a pixel shader run (use SampleLevel elsewhere).");
+        }
+        return mode == Level.Bias ? lod + value : lod;
+    }
+
+    public static T SampleCube<T>(object? cpu, SamplerState sampler, bool array, float4 location, Level mode, float value = 0f, float4 ddx = default, float4 ddy = default)
+    {
+        var texture = Texture(cpu);
+        var (uv, layer, face, sc) = CubeCoordinate(texture, array, location);
+        float lod = CubeLevel(texture, sampler.Description, location, face, sc, mode, value, ddx, ddy);
+        return As<T>(Sampling.Sample(texture, Clamped(sampler.Description), 2, uv, layer, lod, default));
+    }
+
+    public static float SampleCmpCube(object? cpu, SamplerComparisonState sampler, bool array, float4 location, float compare, bool levelZero)
+    {
+        var texture = Texture(cpu);
+        var (uv, layer, face, sc) = CubeCoordinate(texture, array, location);
+        float lod = levelZero ? 0f : CubeLevel(texture, sampler.Description, location, face, sc, Level.Implicit, 0f, default, default);
+        return Sampling.Sample(texture, Clamped(sampler.Description), 2, uv, layer, lod, default, compare).x;
+    }
+
+    public static float4 GatherCube(object? cpu, SamplerState sampler, bool array, float4 location, int channel)
+    {
+        var texture = Texture(cpu);
+        var (uv, layer, _, _) = CubeCoordinate(texture, array, location);
+        return Sampling.Gather(texture, Clamped(sampler.Description), uv, layer, default, channel);
+    }
+
+    public static float4 GatherCmpCube(object? cpu, SamplerComparisonState sampler, bool array, float4 location, float compare)
+    {
+        var texture = Texture(cpu);
+        var (uv, layer, _, _) = CubeCoordinate(texture, array, location);
+        return Sampling.Gather(texture, Clamped(sampler.Description), uv, layer, default, 0, compare);
+    }
+
+    public static float CalculateLevelOfDetailCube(object? cpu, SamplerState sampler, float4 location)
+    {
+        var texture = Texture(cpu);
+        var (_, _, face, sc) = CubeCoordinate(texture, false, location);
+        var lod = CubeLevel(texture, null, location, face, sc, Level.Implicit, 0f, default, default) + sampler.Description.MipLodBias;
+        return Math.Clamp(lod, Math.Max(0f, sampler.Description.MinLod), Math.Min(texture.MipLevels - 1, sampler.Description.MaxLod));
     }
 
     public static float CalculateLevelOfDetail(object? cpu, SamplerState sampler, int dimensions, float4 location)
