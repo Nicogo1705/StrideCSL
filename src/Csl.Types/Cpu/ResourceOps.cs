@@ -102,7 +102,7 @@ public static class ResourceOps
     {
         var texture = Texture(cpu);
         int layer = array ? Layer(texture, At(location, dimensions)) : 0;
-        float lod = LevelOf(texture, dimensions, location, mode, value, ddx, ddy);
+        float lod = LevelOf(texture, sampler.Description, dimensions, location, mode, value, ddx, ddy);
         return As<T>(Sampling.Sample(texture, sampler.Description, dimensions, location, layer, lod, offset));
     }
 
@@ -110,7 +110,7 @@ public static class ResourceOps
     {
         var texture = Texture(cpu);
         int layer = array ? Layer(texture, At(location, dimensions)) : 0;
-        float lod = levelZero ? 0f : LevelOf(texture, dimensions, location, Level.Implicit, 0f, default, default);
+        float lod = levelZero ? 0f : LevelOf(texture, sampler.Description, dimensions, location, Level.Implicit, 0f, default, default);
         return Sampling.Sample(texture, sampler.Description, dimensions, location, layer, lod, offset, compare).x;
     }
 
@@ -131,11 +131,11 @@ public static class ResourceOps
     public static float CalculateLevelOfDetail(object? cpu, SamplerState sampler, int dimensions, float4 location)
     {
         var texture = Texture(cpu);
-        var lod = LevelOf(texture, dimensions, location, Level.Implicit, 0f, default, default) + sampler.Description.MipLodBias;
+        var lod = LevelOf(texture, null, dimensions, location, Level.Implicit, 0f, default, default) + sampler.Description.MipLodBias;
         return Math.Clamp(lod, Math.Max(0f, sampler.Description.MinLod), Math.Min(texture.MipLevels - 1, sampler.Description.MaxLod));
     }
 
-    private static float LevelOf(CpuTexture texture, int dimensions, float4 location, Level mode, float value, float4 ddx, float4 ddy)
+    private static float LevelOf(CpuTexture texture, SamplerDescription? sampler, int dimensions, float4 location, Level mode, float value, float4 ddx, float4 ddy)
     {
         switch (mode)
         {
@@ -146,9 +146,11 @@ public static class ResourceOps
             case Level.Gradient:
                 return Sampling.LevelOfDetail(texture, dimensions, ddx, ddy);
         }
-        // Implicit: from the quad, as the GPU does; a texture with one level does not need it.
+        // Implicit: from the quad, as the GPU does. With one level and the same filter for minifying and
+        // magnifying, the level changes nothing: no need to wait for the neighbours.
         float lod = 0f;
-        if (Lane.Current is { Team.Size: 4 })
+        bool matters = texture.MipLevels > 1 || sampler == null || sampler.MinFilter != sampler.MagFilter;
+        if (matters && Lane.Current is { IsPixel: true })
         {
             var (dx, dy) = Lane.Derivatives(location);
             lod = Sampling.LevelOfDetail(texture, dimensions, dx, dy);
@@ -181,13 +183,11 @@ public static class ResourceOps
         // Out of bounds, a write does nothing (D3D).
         if (x < 0 || y < 0 || z < 0 || x >= texture.Width || y >= texture.Height || z >= texture.Depth)
             return;
-        lock (texture)
-        {
-            if (texture.IsInteger)
-                texture.WriteInteger(0, x, y, z, ToUInt4(value));
-            else
-                texture.Write(0, x, y, z, ToFloat4(value));
-        }
+        // No lock: threads write their own texels; two writing one texel race on the GPU too.
+        if (texture.IsInteger)
+            texture.WriteInteger(0, x, y, z, ToUInt4(value));
+        else
+            texture.Write(0, x, y, z, ToFloat4(value));
     }
 
     // -- buffers -------------------------------------------------------------------------------------

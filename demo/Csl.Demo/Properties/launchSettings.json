@@ -5,7 +5,11 @@
     },
     "Gallery computed on the CPU": {
       "commandName": "Project",
-      "commandLineArgs": "--cpu --time 2"
+      "commandLineArgs": "--cpu"
+    },
+    "Benchmark the CPU frames (10 frames)": {
+      "commandName": "Project",
+      "commandLineArgs": "--cpu-bench 10 --time 2"
     },
     "Debug a pixel on the CPU (DemoClouds 120 45)": {
       "commandName": "Project",

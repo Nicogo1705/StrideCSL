@@ -12,6 +12,7 @@ namespace Csl.Cpu;
 public sealed class Macros
 {
     private readonly Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, object> parsed = new System.Collections.Concurrent.ConcurrentDictionary<string, object>(StringComparer.Ordinal);
 
     public static Macros Direct3D11()
     {
@@ -33,13 +34,16 @@ public sealed class Macros
     public Macros Set(string name, object value)
     {
         values[name] = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        parsed.Clear();
         return this;
     }
 
     public bool IsDefined(string name) => values.ContainsKey(name);
 
     /// <summary>A macro's value: a <see cref="MacroValue"/> for a number, else its text; undefined is an error, as the shader would not compile.</summary>
-    public object Value(string name)
+    public object Value(string name) => parsed.GetOrAdd(name, Parse);
+
+    private object Parse(string name)
     {
         if (!values.TryGetValue(name, out var text))
             throw new InvalidOperationException($"The macro {name} is not defined for this run (Macros.Set it)");

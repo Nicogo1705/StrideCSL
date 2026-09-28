@@ -95,16 +95,40 @@ public abstract class Run
 
 /// <summary>
 /// An image effect (a shader deriving from the engine's ImageEffectShader) drawn on the CPU into a
-/// <see cref="CpuTexture"/>: PSMain for each pixel, TexCoord at the pixel's centre, in 2x2 quads that
-/// run in lockstep for ddx, ddy and Sample's level, as a full-viewport draw on the GPU.
+/// <see cref="CpuTexture"/>: PSMain for each pixel, TexCoord at the pixel's centre, as a draw over the
+/// viewport on the GPU. Each 2x2 quad first runs straight on one thread; a derivative (ddx, ddy, the
+/// level of a Sample that needs one) runs it again with its four lanes in lockstep, and every quad
+/// after it too.
 /// </summary>
 public sealed class CpuImageEffect : Run
 {
+    private readonly Action<object, float2>? setTexCoord;
+    private readonly Action<object, float4>? setPosition;
+    private readonly Func<object, float4>? getColor;
+    private volatile bool lockstep;
+
     public CpuImageEffect(Type shader, int width, int height) : base(shader, "PSMain")
     {
         Width = width;
         Height = height;
+        var type = Shader.GetType();
+        setTexCoord = Members.Setter<float2>(type, "TexCoord");
+        setPosition = Members.Setter<float4>(type, "ShadingPosition");
+        getColor = Members.Getter<float4>(type, "ColorTarget");
+        directQuad = new System.Threading.ThreadLocal<(Lane[], object[])>(() =>
+        {
+            var lanes = new Lane[4];
+            var shaders = new object[4];
+            for (int i = 0; i < 4; i++)
+            {
+                lanes[i] = new Lane(i, null, Macros, isPixel: true);
+                shaders[i] = ShaderInstances.Clone(Shader);
+            }
+            return (lanes, shaders);
+        });
     }
+
+    private readonly System.Threading.ThreadLocal<(Lane[] Lanes, object[] Shaders)> directQuad;
 
     public int Width { get; }
     public int Height { get; }
@@ -112,8 +136,18 @@ public sealed class CpuImageEffect : Run
     /// <summary>The render target's format: what the colour is rounded to when written.</summary>
     public TexelFormat Format { get; set; } = TexelFormat.Rgba8UNorm;
 
-    /// <summary>The streams a pixel starts with; by default what SpriteBase's vertex shader gives a full-viewport quad.</summary>
+    /// <summary>Where the pixels of this run are in the window: SV_Position is offset by it.</summary>
+    public int Left { get; set; }
+    public int Top { get; set; }
+
+    /// <summary>The viewport TexCoord goes across, in window pixels; by default the run's own pixels.</summary>
+    public (float X, float Y, float Width, float Height)? Viewport { get; set; }
+
+    /// <summary>The streams a pixel starts with, instead of what SpriteBase's vertex shader gives a quad over the viewport.</summary>
     public Action<object, int, int>? PixelInputs { get; set; }
+
+    /// <summary>Whether the shader needed its quads in lockstep: it takes derivatives.</summary>
+    public bool NeedsQuads => lockstep;
 
     /// <summary>The whole image.</summary>
     public CpuTexture Draw()
@@ -123,17 +157,25 @@ public sealed class CpuImageEffect : Run
         var teams = new ConcurrentBag<LaneTeam>();
         try
         {
-            Parallel.For(0, quadsX * quadsY, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount / 2) }, quad =>
+            Parallel.For(0, quadsY, row =>
             {
-                if (!teams.TryTake(out var team))
-                    team = new LaneTeam(4, Macros);
+                LaneTeam? team = null;
                 try
                 {
-                    DrawQuad(team, target, quad % quadsX * 2, quad / quadsX * 2, -1, -1);
+                    for (int column = 0; column < quadsX; column++)
+                    {
+                        if (!lockstep && DirectQuad(target, column * 2, row * 2))
+                            continue;
+                        lockstep = true;
+                        if (team == null && !teams.TryTake(out team))
+                            team = new LaneTeam(4, Macros, isPixel: true);
+                        TeamQuad(team, target, column * 2, row * 2, -1, -1);
+                    }
                 }
                 finally
                 {
-                    teams.Add(team);
+                    if (team != null)
+                        teams.Add(team);
                 }
             });
         }
@@ -145,62 +187,146 @@ public sealed class CpuImageEffect : Run
         return target;
     }
 
-    /// <summary>One pixel, with its quad; with <see cref="Run.Break"/>, the debugger stops right before its lane runs.</summary>
+    /// <summary>One pixel, with its quad in lockstep; with <see cref="Run.Break"/>, the debugger stops right before its lane runs.</summary>
     public float4 DrawPixel(int x, int y)
     {
         var target = new CpuTexture(Width, Height, format: Format);
-        using var team = new LaneTeam(4, Macros);
-        DrawQuad(team, target, x & ~1, y & ~1, x, y);
+        using var team = new LaneTeam(4, Macros, isPixel: true);
+        TeamQuad(team, target, x & ~1, y & ~1, x, y);
         return target.Read(0, x, y);
     }
 
-    private void DrawQuad(LaneTeam team, CpuTexture target, int left, int top, int breakX, int breakY)
+    /// <summary>The quad's four lanes one after the other on this thread; false when one needs the others.</summary>
+    private bool DirectQuad(CpuTexture target, int left, int top)
+    {
+        // The thread's own four lanes and shader objects, reset from the configured shader for each
+        // quad: no allocation per pixel.
+        var (lanes, shaders) = directQuad.Value!;
+        for (int i = 0; i < 4; i++)
+        {
+            lanes[i].Discarded = false;
+            shaders[i] = Prepare(lanes[i], left, top, shaders[i]);
+        }
+        for (int i = 0; i < 4; i++)
+        {
+            Lane.Enter(lanes[i]);
+            try
+            {
+                Invoke(shaders[i], false);
+            }
+            catch (NeedsLockstep)
+            {
+                return false;
+            }
+            finally
+            {
+                Lane.Leave();
+            }
+        }
+        for (int i = 0; i < 4; i++)
+            Finish(lanes[i], shaders[i], target);
+        return true;
+    }
+
+    private void TeamQuad(LaneTeam team, CpuTexture target, int left, int top, int breakX, int breakY)
     {
         var shaders = new object[4];
         team.Run(lane =>
         {
-            var shader = shaders[lane.Index];
-            int x = lane.Pixel.x, y = lane.Pixel.y;
-            Invoke(shader, Break && x == breakX && y == breakY);
-            if (!lane.Discarded && !lane.IsHelper && Members.InstanceFields(shader.GetType()).TryGetValue("ColorTarget", out var output))
-                target.Write(0, x, y, 0, (float4)output.GetValue(shader)!);
-        }, lane =>
+            Invoke(shaders[lane.Index], Break && lane.Pixel.x == breakX && lane.Pixel.y == breakY);
+            Finish(lane, shaders[lane.Index], target);
+        }, lane => shaders[lane.Index] = Prepare(lane, left, top));
+    }
+
+    private object Prepare(Lane lane, int left, int top, object? reuse = null)
+    {
+        int x = left + (lane.Index & 1), y = top + (lane.Index >> 1);
+        lane.Pixel = new int2(x, y);
+        // Outside the target (an odd size): a helper, run for its neighbours' derivatives only.
+        lane.IsHelper = x >= Width || y >= Height;
+        object shader;
+        if (reuse != null)
         {
-            int x = left + (lane.Index & 1), y = top + (lane.Index >> 1);
-            lane.Pixel = new int2(x, y);
-            // Outside the target (an odd size): a helper, run for its neighbours' derivatives only.
-            lane.IsHelper = x >= Width || y >= Height;
-            var shader = ShaderInstances.Clone(Shader);
-            if (PixelInputs != null)
-                PixelInputs(shader, x, y);
-            else
-            {
-                TrySet(shader, "TexCoord", new float2((x + 0.5f) / Width, (y + 0.5f) / Height));
-                TrySet(shader, "ShadingPosition", new float4(x + 0.5f, y + 0.5f, 0f, 1f));
-            }
-            shaders[lane.Index] = shader;
-        });
+            Members.Copy(Shader, reuse);
+            shader = reuse;
+        }
+        else
+        {
+            shader = ShaderInstances.Clone(Shader);
+        }
+        if (PixelInputs != null)
+        {
+            PixelInputs(shader, x, y);
+            return shader;
+        }
+        var (vx, vy, vw, vh) = Viewport ?? (Left, Top, Width, Height);
+        float px = Left + x + 0.5f, py = Top + y + 0.5f;
+        setTexCoord?.Invoke(shader, new float2((px - vx) / vw, (py - vy) / vh));
+        setPosition?.Invoke(shader, new float4(px, py, 0f, 1f));
+        return shader;
+    }
+
+    private void Finish(Lane lane, object shader, CpuTexture target)
+    {
+        if (!lane.Discarded && !lane.IsHelper && getColor != null)
+            target.Write(0, lane.Pixel.x, lane.Pixel.y, 0, getColor(shader));
     }
 }
 
 /// <summary>
-/// A compute shader dispatched on the CPU: each group's threads run in lockstep at
-/// GroupMemoryBarrierWithGroupSync, groups one after the other (group-shared statics are the group's).
+/// A compute shader dispatched on the CPU. Each group's threads first run straight, one after the
+/// other; GroupMemoryBarrierWithGroupSync runs the group again with its threads in lockstep, and every
+/// group after it. Groups run in parallel, unless the shader has [GroupShared] statics: then one after
+/// the other, the statics being the group's memory.
 /// </summary>
 public sealed class CpuComputeShader : Run
 {
-    public CpuComputeShader(Type shader) : base(shader, "CSMain")
+    private readonly Action<object, uint3>? setGroupId, setGroupThreadId, setDispatchThreadId;
+    private readonly Action<object, uint>? setGroupIndex;
+    private volatile bool lockstep;
+
+    private readonly bool engineMain;
+    private readonly Action<object, int>? setThreadCountX, setThreadCountY, setThreadCountZ;
+    private readonly Action<object, uint>? setThreadCountPerGroup, setThreadGroupIndex;
+    private readonly Action<object, uint3>? setThreadGroupCount;
+    private int3 groupCount;
+
+    /// <summary>
+    /// The engine's CSMain only fills streams from the macros and the group, then calls Compute: when the
+    /// shader keeps it, the run fills them itself and calls Compute, sparing each thread six dynamic
+    /// macro reads. A shader that overrides CSMain has it run.
+    /// </summary>
+    private static string EntryOf(Type shader)
+        => shader.GetMethod("CSMain", Type.EmptyTypes)?.DeclaringType?.FullName == "Csl.Engine.ComputeShaderBase" && shader.GetMethod("Compute", Type.EmptyTypes) != null ? "Compute" : "CSMain";
+
+    public CpuComputeShader(Type shader) : base(shader, EntryOf(shader))
     {
         var numThreads = Enumerable.Repeat(shader, 1).Concat(BaseTypes(shader)).Select(t => t.GetCustomAttribute<NumThreadsAttribute>(inherit: false)).FirstOrDefault(a => a != null)
             ?? throw new InvalidOperationException(shader.Name + " has no [NumThreads]");
         ThreadsX = numThreads.X;
         ThreadsY = numThreads.Y;
         ThreadsZ = numThreads.Z;
+        var type = Shader.GetType();
+        setGroupId = Members.Setter<uint3>(type, "GroupId");
+        setGroupThreadId = Members.Setter<uint3>(type, "GroupThreadId");
+        setDispatchThreadId = Members.Setter<uint3>(type, "DispatchThreadId");
+        setGroupIndex = Members.Setter<uint>(type, "GroupIndex");
+        engineMain = EntryOf(shader) == "Compute";
+        setThreadCountX = Members.Setter<int>(type, "ThreadCountX");
+        setThreadCountY = Members.Setter<int>(type, "ThreadCountY");
+        setThreadCountZ = Members.Setter<int>(type, "ThreadCountZ");
+        setThreadCountPerGroup = Members.Setter<uint>(type, "ThreadCountPerGroup");
+        setThreadGroupIndex = Members.Setter<uint>(type, "ThreadGroupIndex");
+        setThreadGroupCount = Members.Setter<uint3>(type, "ThreadGroupCount");
+        directThread = new System.Threading.ThreadLocal<object>(() => ShaderInstances.Clone(Shader));
     }
 
     public int ThreadsX { get; }
     public int ThreadsY { get; }
     public int ThreadsZ { get; }
+
+    /// <summary>Whether the shader needed its groups in lockstep: it has a barrier.</summary>
+    public bool NeedsGroups => lockstep;
 
     private static System.Collections.Generic.IEnumerable<Type> BaseTypes(Type type)
     {
@@ -213,32 +339,149 @@ public sealed class CpuComputeShader : Run
     {
         Macros.Set("ThreadNumberX", ThreadsX).Set("ThreadNumberY", ThreadsY).Set("ThreadNumberZ", ThreadsZ);
         TrySet(Shader, "ThreadGroupCountGlobal", new int3(groupsX, groupsY, groupsZ));
+        groupCount = new int3(groupsX, groupsY, groupsZ);
         int size = ThreadsX * ThreadsY * ThreadsZ;
-        using var team = new LaneTeam(size, Macros);
-        var shaders = new object[size];
-        for (int gz = 0; gz < groupsZ; gz++)
-        for (int gy = 0; gy < groupsY; gy++)
-        for (int gx = 0; gx < groupsX; gx++)
+        int count = groupsX * groupsY * groupsZ;
+        uint3 GroupOf(int g) => new uint3((uint)(g % groupsX), (uint)(g / groupsX % groupsY), (uint)(g / (groupsX * groupsY)));
+        bool breaking = Break && breakAt != null;
+
+        if (HasGroupShared() || breaking)
         {
-            var group = new uint3((uint)gx, (uint)gy, (uint)gz);
-            ResetGroupShared();
-            team.Run(lane =>
+            // One after the other: the [GroupShared] statics are one group's at a time; a break, one thread's.
+            LaneTeam? team = null;
+            try
             {
-                var shader = shaders[lane.Index];
-                var id = (uint3)Members.Get(shader, "DispatchThreadId");
-                Invoke(shader, Break && breakAt is { } at && at.x == id.x && at.y == id.y && at.z == id.z);
-            }, lane =>
+                for (int g = 0; g < count; g++)
+                {
+                    ResetGroupShared();
+                    if (!lockstep && !breaking && DirectGroup(GroupOf(g), size))
+                        continue;
+                    if (!breaking)
+                        lockstep = true;
+                    team ??= new LaneTeam(size, Macros, isPixel: false);
+                    TeamGroup(team, GroupOf(g), size, breakAt);
+                }
+            }
+            finally
             {
-                int i = lane.Index;
-                var thread = new uint3((uint)(i % ThreadsX), (uint)(i / ThreadsX % ThreadsY), (uint)(i / (ThreadsX * ThreadsY)));
-                var shader = ShaderInstances.Clone(Shader);
-                TrySet(shader, "GroupId", group);
-                TrySet(shader, "GroupThreadId", thread);
-                TrySet(shader, "DispatchThreadId", new uint3(group.x * (uint)ThreadsX + thread.x, group.y * (uint)ThreadsY + thread.y, group.z * (uint)ThreadsZ + thread.z));
-                TrySet(shader, "GroupIndex", (uint)i);
-                shaders[i] = shader;
+                team?.Dispose();
+            }
+            return;
+        }
+
+        var teams = new ConcurrentBag<LaneTeam>();
+        try
+        {
+            Parallel.For(0, count, g =>
+            {
+                if (!lockstep && DirectGroup(GroupOf(g), size))
+                    return;
+                lockstep = true;
+                if (!teams.TryTake(out var team))
+                    team = new LaneTeam(size, Macros, isPixel: false);
+                try
+                {
+                    TeamGroup(team, GroupOf(g), size, null);
+                }
+                finally
+                {
+                    teams.Add(team);
+                }
             });
         }
+        finally
+        {
+            foreach (var team in teams)
+                team.Dispose();
+        }
+    }
+
+    /// <summary>The group's threads one after the other on this thread; false when one reaches a barrier.</summary>
+    private bool DirectGroup(uint3 group, int size)
+    {
+        var lane = new Lane(0, null, Macros, isPixel: false);
+        var reuse = directThread.Value!;
+        for (int i = 0; i < size; i++)
+        {
+            var shader = Prepare(i, group, reuse);
+            Lane.Enter(lane);
+            try
+            {
+                Invoke(shader, false);
+            }
+            catch (NeedsLockstep)
+            {
+                return false;
+            }
+            finally
+            {
+                Lane.Leave();
+            }
+        }
+        return true;
+    }
+
+    private void TeamGroup(LaneTeam team, uint3 group, int size, uint3? breakAt)
+    {
+        var shaders = new object[size];
+        var ids = new uint3[size];
+        team.Run(lane =>
+        {
+            var id = ids[lane.Index];
+            Invoke(shaders[lane.Index], Break && breakAt is { } at && at.x == id.x && at.y == id.y && at.z == id.z);
+        }, lane =>
+        {
+            shaders[lane.Index] = Prepare(lane.Index, group);
+            ids[lane.Index] = DispatchId(lane.Index, group);
+        });
+    }
+
+    private uint3 ThreadOf(int i) => new uint3((uint)(i % ThreadsX), (uint)(i / ThreadsX % ThreadsY), (uint)(i / (ThreadsX * ThreadsY)));
+
+    private uint3 DispatchId(int i, uint3 group)
+    {
+        var thread = ThreadOf(i);
+        return new uint3(group.x * (uint)ThreadsX + thread.x, group.y * (uint)ThreadsY + thread.y, group.z * (uint)ThreadsZ + thread.z);
+    }
+
+    private readonly System.Threading.ThreadLocal<object> directThread;
+
+    private object Prepare(int i, uint3 group, object? reuse = null)
+    {
+        object shader;
+        if (reuse != null)
+        {
+            Members.Copy(Shader, reuse);
+            shader = reuse;
+        }
+        else
+        {
+            shader = ShaderInstances.Clone(Shader);
+        }
+        setGroupId?.Invoke(shader, group);
+        setGroupThreadId?.Invoke(shader, ThreadOf(i));
+        setDispatchThreadId?.Invoke(shader, DispatchId(i, group));
+        setGroupIndex?.Invoke(shader, (uint)i);
+        if (engineMain)
+        {
+            // What ComputeShaderBase.CSMain writes before calling Compute.
+            setThreadCountX?.Invoke(shader, ThreadsX);
+            setThreadCountY?.Invoke(shader, ThreadsY);
+            setThreadCountZ?.Invoke(shader, ThreadsZ);
+            setThreadCountPerGroup?.Invoke(shader, (uint)(ThreadsX * ThreadsY * ThreadsZ));
+            var count = new uint3((uint)groupCount.x, (uint)groupCount.y, (uint)groupCount.z);
+            setThreadGroupCount?.Invoke(shader, count);
+            setThreadGroupIndex?.Invoke(shader, (group.z * count.y + group.y) * count.x + group.x);
+        }
+        return shader;
+    }
+
+    private bool HasGroupShared()
+    {
+        for (var type = ShaderType; type != null && type != typeof(object); type = type.BaseType)
+            if (type.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Any(f => f.GetCustomAttribute<GroupSharedAttribute>() != null))
+                return true;
+        return false;
     }
 
     /// <summary>[GroupShared] static arrays, new for each group: group-shared memory starts undefined, here zero.</summary>

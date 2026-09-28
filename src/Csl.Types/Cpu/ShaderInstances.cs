@@ -186,6 +186,8 @@ public static class Members
 {
     private static readonly ConcurrentDictionary<Type, Dictionary<string, FieldInfo>> Fields = new ConcurrentDictionary<Type, Dictionary<string, FieldInfo>>();
     private static readonly ConcurrentDictionary<(Type, Type), (FieldInfo From, FieldInfo To)[]> Pairs = new ConcurrentDictionary<(Type, Type), (FieldInfo, FieldInfo)[]>();
+    private static readonly ConcurrentDictionary<(Type, Type), Action<object, object>> Copiers = new ConcurrentDictionary<(Type, Type), Action<object, object>>();
+    private static readonly ConcurrentDictionary<(Type, string, Type), Delegate?> Accessors = new ConcurrentDictionary<(Type, string, Type), Delegate?>();
 
     /// <summary>The instance fields of a type and its bases, the most derived one for a name.</summary>
     public static Dictionary<string, FieldInfo> InstanceFields(Type type) => Fields.GetOrAdd(type, t =>
@@ -207,12 +209,45 @@ public static class Members
             .ToArray();
     });
 
-    /// <summary>Every member both have, from one to the other.</summary>
-    public static void Copy(object from, object to)
+    /// <summary>Every member both have, from one to the other: compiled once per pair of types, a mixin call makes two.</summary>
+    public static void Copy(object from, object to) => Copiers.GetOrAdd((from.GetType(), to.GetType()), key =>
     {
-        foreach (var (source, target) in PairsOf(from.GetType(), to.GetType()))
-            target.SetValue(to, source.GetValue(from));
-    }
+        var source = System.Linq.Expressions.Expression.Parameter(typeof(object));
+        var target = System.Linq.Expressions.Expression.Parameter(typeof(object));
+        var typedSource = System.Linq.Expressions.Expression.Variable(key.Item1);
+        var typedTarget = System.Linq.Expressions.Expression.Variable(key.Item2);
+        var body = new List<System.Linq.Expressions.Expression>
+        {
+            System.Linq.Expressions.Expression.Assign(typedSource, System.Linq.Expressions.Expression.Convert(source, key.Item1)),
+            System.Linq.Expressions.Expression.Assign(typedTarget, System.Linq.Expressions.Expression.Convert(target, key.Item2)),
+        };
+        foreach (var (f, t) in PairsOf(key.Item1, key.Item2))
+            if (!t.IsInitOnly)
+                body.Add(System.Linq.Expressions.Expression.Assign(System.Linq.Expressions.Expression.Field(typedTarget, t), System.Linq.Expressions.Expression.Field(typedSource, f)));
+        return System.Linq.Expressions.Expression.Lambda<Action<object, object>>(
+            System.Linq.Expressions.Expression.Block(new[] { typedSource, typedTarget }, body), source, target).Compile();
+    })(from, to);
+
+    /// <summary>A compiled setter of a field of this name and type, or null when the shader has none.</summary>
+    public static Action<object, T>? Setter<T>(Type type, string name) => (Action<object, T>?)Accessors.GetOrAdd((type, "set " + name, typeof(T)), key =>
+    {
+        if (!InstanceFields(type).TryGetValue(name, out var field) || field.FieldType != typeof(T) || field.IsInitOnly)
+            return null;
+        var instance = System.Linq.Expressions.Expression.Parameter(typeof(object));
+        var value = System.Linq.Expressions.Expression.Parameter(typeof(T));
+        return System.Linq.Expressions.Expression.Lambda<Action<object, T>>(
+            System.Linq.Expressions.Expression.Assign(System.Linq.Expressions.Expression.Field(System.Linq.Expressions.Expression.Convert(instance, field.DeclaringType!), field), value), instance, value).Compile();
+    });
+
+    /// <summary>A compiled getter of a field of this name and type, or null when the shader has none.</summary>
+    public static Func<object, T>? Getter<T>(Type type, string name) => (Func<object, T>?)Accessors.GetOrAdd((type, "get " + name, typeof(T)), key =>
+    {
+        if (!InstanceFields(type).TryGetValue(name, out var field) || field.FieldType != typeof(T))
+            return null;
+        var instance = System.Linq.Expressions.Expression.Parameter(typeof(object));
+        return System.Linq.Expressions.Expression.Lambda<Func<object, T>>(
+            System.Linq.Expressions.Expression.Field(System.Linq.Expressions.Expression.Convert(instance, field.DeclaringType!), field), instance).Compile();
+    });
 
     /// <summary>The members <paramref name="to"/> still has at their default value, from <paramref name="from"/>.</summary>
     public static void CopyDefaultsInto(object from, object to)

@@ -17,17 +17,25 @@ public sealed class Lane
     /// <summary>The lane of this thread, null outside a run.</summary>
     public static Lane? Current => current;
 
-    internal Lane(int index, LaneTeam team, Macros macros)
+    internal Lane(int index, LaneTeam? team, Macros macros, bool isPixel)
     {
         Index = index;
         Team = team;
         Macros = macros;
+        IsPixel = isPixel;
     }
 
     /// <summary>0 to 3 in a quad (x then y), the flattened thread index in a group.</summary>
     public int Index { get; }
 
-    public LaneTeam Team { get; }
+    /// <summary>
+    /// The threads it runs in lockstep with; null when it runs straight on the caller's thread, which
+    /// is enough until a derivative or a barrier needs the others (<see cref="NeedsLockstep"/>).
+    /// </summary>
+    public LaneTeam? Team { get; }
+
+    /// <summary>A pixel shader's lane, in a 2x2 quad; otherwise a compute thread.</summary>
+    public bool IsPixel { get; }
 
     public Macros Macros { get; }
 
@@ -54,8 +62,10 @@ public sealed class Lane
     /// </summary>
     private float4[] Exchange(float4 value)
     {
-        if (Team.Size != 4)
-            throw new InvalidOperationException("Derivatives need the 2x2 quad of a pixel shader; this lane runs alone or in a compute group.");
+        if (!IsPixel)
+            throw new InvalidOperationException("Derivatives need the 2x2 quad of a pixel shader; this lane is a compute thread.");
+        if (Team == null)
+            throw new NeedsLockstep();
         return Team.Exchange(Index, value);
     }
 
@@ -87,7 +97,21 @@ public sealed class Lane
     // -- group ---------------------------------------------------------------------------------------
 
     /// <summary>GroupMemoryBarrierWithGroupSync: every thread of the group reaches it before any goes on.</summary>
-    public void GroupSync() => Team.Sync();
+    public void GroupSync()
+    {
+        if (Team == null)
+            throw new NeedsLockstep();
+        Team.Sync();
+    }
+}
+
+/// <summary>
+/// Thrown in a lane run straight on its thread when it needs its neighbours (a derivative, a barrier):
+/// the run starts that quad or group again with a <see cref="LaneTeam"/>, and keeps one from then on.
+/// </summary>
+public sealed class NeedsLockstep : Exception
+{
+    public NeedsLockstep() : base("This lane needs its quad or its group in lockstep") { }
 }
 
 /// <summary>
@@ -107,7 +131,7 @@ public sealed class LaneTeam : IDisposable
     private readonly List<Exception> failures = new List<Exception>();
     private volatile bool stopping;
 
-    public LaneTeam(int size, Macros macros)
+    public LaneTeam(int size, Macros macros, bool isPixel)
     {
         Size = size;
         slots = new float4[size];
@@ -119,7 +143,7 @@ public sealed class LaneTeam : IDisposable
         for (int i = 0; i < size; i++)
         {
             int index = i;
-            lanes[i] = new Lane(i, this, macros);
+            lanes[i] = new Lane(i, this, macros, isPixel);
             start[i] = new SemaphoreSlim(0);
             threads[i] = new Thread(() => Loop(index), 4 << 20) { IsBackground = true, Name = $"Csl lane {i}" };
             threads[i].Start();

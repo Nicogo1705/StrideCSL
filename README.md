@@ -102,7 +102,7 @@ The demo's launch profiles (Visual Studio's start button list, or `dotnet run --
 | Profile | Does |
 |---------|------|
 | Gallery (GPU) | The window above. |
-| Gallery computed on the CPU | The same frame, every shader run by the CPU, drawn once and again on each save. |
+| Gallery computed on the CPU | The same gallery, every shader run by the CPU, animated at what the CPU manages (fps in the title). |
 | Debug a pixel on the CPU | One pixel of DemoClouds on the CPU, no GPU: under the debugger it stops before it, F11 steps into the shader. |
 | Compare CPU and GPU | Every demo drawn by both, compared; images and report in `cpu-check/`. |
 | Screenshot, GPU / CPU | One frame saved as `shot-gpu.png` / `shot-cpu.png`, window hidden. |
@@ -351,9 +351,14 @@ blur.Dispatch(40, 23);
   `min`/`max`/`saturate` of a NaN as D3D. Bit-exact but for `sin`/`cos`/`exp`/`log` (~1e-7) and
   `rsqrt`/`sqrt` (1-2 ulps), the hardware's own approximations.
 
-In the demo: `Csl.Demo --cpu` computes the whole gallery on the CPU, uploads and draws it, again on
-each save (1280x720: tiles 0.9 s, blur 1.8 s, about 0.4 frame per second: for looking, not for
-running); Ctrl+click on a tile runs that pixel on the CPU from the C# just saved and prints both
+Lanes first run straight on one thread each; only a derivative or a barrier makes the run start that
+quad or group again in lockstep (and every one after it), so a shader pays for lockstep only if it
+needs it. Groups without group-shared memory, and rows of quads, run in parallel.
+
+In the demo: `Csl.Demo --cpu` computes the gallery on the CPU in the background and draws each frame
+as it comes, animated, the rate in the title (1280x720 on 28 threads: about 1.4 frames per second,
+tiles 270 ms, blur 460 ms: the shaders' own maths, DemoClouds' 40 `sin` a pixel and the blur's 81
+`exp`); `--cpu-bench N` measures it; Ctrl+click on a tile runs that pixel on the CPU from the C# just saved and prints both
 colours, stopping in the debugger when one is attached; `--debug-pixel NAME X Y` does it without a
 GPU; `--cpu-check DIR` draws every demo on both and compares them. On Direct3D 11, 7 of the 10 demos
 match to one 8-bit step; over the whole frame, 96 % of the pixels.

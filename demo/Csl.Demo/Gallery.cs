@@ -370,11 +370,9 @@ internal sealed class Gallery : IDisposable
         int width = (int)MathF.Ceiling(viewport.X + viewport.Width) - x0, height = (int)MathF.Ceiling(viewport.Y + viewport.Height) - y0;
         var run = new Csl.Cpu.CpuImageEffect(type, width, height)
         {
-            PixelInputs = (shader, x, y) =>
-            {
-                Csl.Cpu.Members.Set(shader, "TexCoord", new Csl.Types.float2((x0 + x + 0.5f - viewport.X) / viewport.Width, (y0 + y + 0.5f - viewport.Y) / viewport.Height));
-                Csl.Cpu.Members.Set(shader, "ShadingPosition", new Csl.Types.float4(x0 + x + 0.5f, y0 + y + 0.5f, 0f, 1f));
-            },
+            Left = x0,
+            Top = y0,
+            Viewport = (viewport.X, viewport.Y, viewport.Width, viewport.Height),
         };
         run.Set("Time", time);
         if (Csl.Cpu.Members.InstanceFields(type).ContainsKey("Aspect"))
@@ -387,39 +385,94 @@ internal sealed class Gallery : IDisposable
 
     /// <summary>
     /// The whole frame computed by the CPU (Csl.Cpu), no shader on the GPU: every tile run over the pixels
-    /// its viewport covers, the blur dispatched over them, the result uploaded and drawn. Computed once,
-    /// then drawn as it is until the layout, the blur or the C# changes.
+    /// its viewport covers, the blur dispatched over them, the result uploaded and drawn. Animated, a
+    /// frame is computed in the background at the time it starts while the last one finished is drawn;
+    /// otherwise (a screenshot) it is computed now, at <paramref name="time"/>.
     /// </summary>
-    public void DrawOnCpu(RenderDrawContext context, Texture backBuffer, float time)
+    public void DrawOnCpu(RenderDrawContext context, Texture backBuffer, float time, bool animated)
     {
-        if (cpuFrame == null || cpuFrame.Width != backBuffer.Width || cpuFrame.Height != backBuffer.Height)
+        if (!animated)
         {
-            cpuFrame?.Dispose();
-            cpuFrame = Texture.New2D(context.GraphicsDevice, backBuffer.Width, backBuffer.Height, PixelFormat.R8G8B8A8_UNorm, ComputeCpuFrame(backBuffer.Width, backBuffer.Height, time));
+            Upload(context, ComputeCpuFrame(Snapshot(backBuffer.Width, backBuffer.Height, time)));
+        }
+        else
+        {
+            if (cpuTask is { IsCompleted: true } done)
+            {
+                cpuTask = null;
+                if (done.IsFaulted)
+                    Console.WriteLine("CPU frame failed: " + done.Exception!.GetBaseException().Message);
+                else
+                    Upload(context, done.Result);
+            }
+            // The next one starts from what the game shows now: layout, blur, the C# last saved, the time.
+            if (cpuTask == null)
+            {
+                var snapshot = Snapshot(backBuffer.Width, backBuffer.Height, time);
+                cpuTask = Task.Run(() => ComputeCpuFrame(snapshot));
+            }
         }
         context.CommandList.SetRenderTargetAndViewport(null, backBuffer);
-        context.GraphicsContext.DrawTexture(cpuFrame);
+        if (cpuFrame != null)
+            context.GraphicsContext.DrawTexture(cpuFrame);
+        else
+            context.CommandList.Clear(backBuffer, Background);
     }
 
-    private Texture? cpuFrame;
-    private object? cpuFrameSignature;
+    /// <summary>What the title says in CPU mode: how fast the frames come.</summary>
+    public string CpuStatus => lastCpuFrame is { } f
+        ? $"CPU {1.0 / f.Total.TotalSeconds:F1} fps (tiles {f.Tiles.TotalMilliseconds:F0} ms{(f.Blur > TimeSpan.Zero ? $", blur {f.Blur.TotalMilliseconds:F0} ms" : string.Empty)}), t = {f.Time:F1}"
+        : "CPU: first frame...";
 
-    private Color[] ComputeCpuFrame(int width, int height, float time)
+    private Texture? cpuFrame;
+    private Task<CpuFrame>? cpuTask;
+    private CpuFrame? lastCpuFrame;
+
+    private sealed record CpuFrame(Color[] Pixels, int Width, int Height, float Time, TimeSpan Tiles, TimeSpan Blur)
     {
+        public TimeSpan Total => Tiles + Blur;
+    }
+
+    private sealed record CpuSnapshot(int Width, int Height, float Time, List<(Tile Tile, Type? Type, Viewport Viewport)> Tiles, bool Blur, int Radius);
+
+    /// <summary>Everything a CPU frame reads, taken on the game's thread: the frame is computed on another.</summary>
+    private CpuSnapshot Snapshot(int width, int height, float time)
+    {
+        cpuChecker ??= new Csl.Cpu.CpuTexture(256, 256, format: Csl.Cpu.TexelFormat.Rgba8UNorm).FillRgba8(System.Runtime.InteropServices.MemoryMarshal.AsBytes(CheckerPixels(out _).AsSpan()));
+        var tilesNow = Layout(width, height).Select(l => (l.Tile, CpuType(l.Tile), l.Viewport)).ToList();
+        return new CpuSnapshot(width, height, time, tilesNow, blur.Enabled, blur.Radius);
+    }
+
+    private void Upload(RenderDrawContext context, CpuFrame frame)
+    {
+        if (cpuFrame == null || cpuFrame.Width != frame.Width || cpuFrame.Height != frame.Height)
+        {
+            cpuFrame?.Dispose();
+            cpuFrame = Texture.New2D(context.GraphicsDevice, frame.Width, frame.Height, PixelFormat.R8G8B8A8_UNorm, frame.Pixels);
+        }
+        else
+        {
+            cpuFrame.SetData(context.CommandList, frame.Pixels);
+        }
+        lastCpuFrame = frame;
+    }
+
+    private CpuFrame ComputeCpuFrame(CpuSnapshot snapshot)
+    {
+        int width = snapshot.Width, height = snapshot.Height;
         var watch = System.Diagnostics.Stopwatch.StartNew();
         var frame = new Csl.Cpu.CpuTexture(width, height, format: Csl.Cpu.TexelFormat.Rgba8UNorm);
         var clear = new Csl.Types.float4(Background.R, Background.G, Background.B, Background.A);
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
                 frame.Write(0, x, y, 0, clear);
-        foreach (var (tile, viewport) in Layout(width, height))
+        foreach (var (tile, type, viewport) in snapshot.Tiles)
         {
-            var type = CpuType(tile);
             if (type == null)
                 continue;
             try
             {
-                var image = CpuTile(type, viewport, time, out int left, out int top).Draw();
+                var image = CpuTile(type, viewport, snapshot.Time, out int left, out int top).Draw();
                 // The pixels whose centre is in the viewport, as the rasterizer covers them.
                 for (int y = 0; y < image.Height; y++)
                     for (int x = 0; x < image.Width; x++)
@@ -435,23 +488,43 @@ internal sealed class Gallery : IDisposable
             }
         }
         var tilesTime = watch.Elapsed;
-        if (blur.Enabled)
+        if (snapshot.Blur)
         {
             var output = new Csl.Cpu.CpuTexture(width, height, format: Csl.Cpu.TexelFormat.Rgba8UNorm);
             var run = new Csl.Cpu.CpuComputeShader(typeof(Shaders.DemoBlur));
             run.Set("Input", new Csl.Types.Texture2D<Csl.Types.float4>(frame));
             run.Set("Output", new Csl.Types.RWTexture2D<Csl.Types.float4>(output));
             run.Set("Size", new Csl.Types.int2(width, height));
-            run.Set("Radius", blur.Radius);
+            run.Set("Radius", snapshot.Radius);
             run.Dispatch((width + run.ThreadsX - 1) / run.ThreadsX, (height + run.ThreadsY - 1) / run.ThreadsY);
             frame = output;
         }
-        Console.WriteLine($"CPU frame {width}x{height} at t = {time:F3}: tiles {tilesTime.TotalSeconds:F2} s" + (blur.Enabled ? $", blur r{blur.Radius} {(watch.Elapsed - tilesTime).TotalSeconds:F2} s" : string.Empty));
+        var blurTime = watch.Elapsed - tilesTime;
         var texels = frame.ToArray();
         var pixels = new Color[texels.Length];
         for (int i = 0; i < texels.Length; i++)
             pixels[i] = new Color(texels[i].x, texels[i].y, texels[i].z, texels[i].w);
-        return pixels;
+        return new CpuFrame(pixels, width, height, snapshot.Time, tilesTime, snapshot.Blur ? blurTime : TimeSpan.Zero);
+    }
+
+    /// <summary>
+    /// <paramref name="count"/> CPU frames one after the other, time moving on: each one's cost, and the
+    /// median, what the animated CPU mode runs at.
+    /// </summary>
+    public void BenchCpu(int width, int height, float time, int count)
+    {
+        var frames = new List<CpuFrame>();
+        for (int i = 0; i < count; i++)
+        {
+            var frame = ComputeCpuFrame(Snapshot(width, height, time + i * 0.1f));
+            frames.Add(frame);
+            Console.WriteLine($"BENCH frame {i}: tiles {frame.Tiles.TotalMilliseconds:F0} ms, blur {frame.Blur.TotalMilliseconds:F0} ms, {1.0 / frame.Total.TotalSeconds:F2} fps");
+        }
+        // The first frames compile the accessors and the JIT's code: the median leaves them out.
+        var sorted = frames.Select(f => f.Total.TotalSeconds).Order().ToList();
+        var tiles = frames.Select(f => f.Tiles.TotalMilliseconds).Order().ToList();
+        var blurs = frames.Select(f => f.Blur.TotalMilliseconds).Order().ToList();
+        Console.WriteLine($"BENCH {width}x{height}, {count} frames: median {1.0 / sorted[sorted.Count / 2]:F2} fps (tiles {tiles[tiles.Count / 2]:F0} ms, blur {blurs[blurs.Count / 2]:F0} ms)");
     }
 
     private static LiveCompiler.ShaderKind KindOf(string name)

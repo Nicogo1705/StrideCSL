@@ -111,7 +111,7 @@ namespace Csl.Tests
         [Fact]
         public void QuadLanesExchangeDerivatives()
         {
-            using var team = new LaneTeam(4, Macros.Direct3D11());
+            using var team = new LaneTeam(4, Macros.Direct3D11(), isPixel: true);
             var fine = new float4[4];
             var coarse = new float4[4];
             team.Run(lane =>
