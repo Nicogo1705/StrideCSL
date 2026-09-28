@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>MaterialShader</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Stride.Core" Version="$(StrideVersion)" PrivateAssets="contentfiles;analyzers" />
+    <PackageReference Include="Stride.AssetCompiler" Version="$(StrideVersion)" IncludeAssets="build;buildTransitive" />
+    <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" PrivateAssets="contentfiles;analyzers" />
+    <PackageReference Include="Stride.Particles" Version="$(StrideVersion)" PrivateAssets="contentfiles;analyzers" />
+    <PackageReference Include="Stride.UI" Version="$(StrideVersion)" PrivateAssets="contentfiles;analyzers" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- StrideCSL: shaders written in C# (Shaders/), and the CPU debugging CslDebug.Register brings. -->
+    <ProjectReference Include="..\..\..\src\Csl.Types\Csl.Types.csproj" />
+    <ProjectReference Include="..\..\..\src\Csl.Engine\Csl.Engine.csproj" />
+    <ProjectReference Include="..\..\..\src\Csl.Runtime\Csl.Runtime.csproj" />
+    <ProjectReference Include="..\..\..\src\Csl.Debugging\Csl.Debugging.csproj" />
+    <ProjectReference Include="..\..\..\src\Csl.Generators\Csl.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>

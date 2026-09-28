@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -119,22 +120,82 @@ public static class CpuCapture
     /// <summary>A value's bytes (a constant buffer's, a parameter collection's) as the member's type: Stride's and Csl's types have the same layout; matrices are column-major.</summary>
     public static object? ValueOf(byte[] data, int offset, int count, Type type)
     {
-        if (type == typeof(bool))
-            return BitConverter.ToInt32(data, offset) != 0;
-        if (MatrixShape.Match(type.Name) is { Success: true } shape && type.Namespace == "Csl.Types")
-            return ColumnMajor(data, offset, type, int.Parse(shape.Groups[1].Value), int.Parse(shape.Groups[2].Value));
         if (type.IsArray)
         {
             var element = type.GetElementType()!;
-            int size = Marshal.SizeOf(element);
+            // A constant buffer starts each element of an array on a 16-byte register (float3[9]: 144 bytes).
+            int stride = (PackedSize(element) + 15) & ~15;
             var array = Array.CreateInstance(element, count);
-            for (int i = 0; i < count && offset + (i + 1) * size <= data.Length; i++)
-                array.SetValue(FromBytes(data, offset + i * size, element), i);
+            for (int i = 0; i < count && offset + i * stride < data.Length; i++)
+                array.SetValue(Packed(data, offset + i * stride, element), i);
             return array;
         }
-        if (!type.IsValueType || type.IsPrimitive == false && type.Namespace != "Csl.Types")
-            return type.IsPrimitive ? FromBytes(data, offset, type) : null;
-        return offset + Marshal.SizeOf(type) <= data.Length ? FromBytes(data, offset, type) : null;
+        if (!type.IsValueType)
+            return null;
+        return offset < data.Length ? Packed(data, offset, type) : null;
+    }
+
+    /// <summary>
+    /// A value laid out by HLSL's constant buffer packing: scalars of 4 bytes, a vector never across a
+    /// 16-byte register, a struct and each element of an array starting a register, a matrix a register
+    /// per column (column_major).
+    /// </summary>
+    private static object Packed(byte[] data, int offset, Type type)
+    {
+        if (type == typeof(bool))
+            return offset + 4 <= data.Length && BitConverter.ToInt32(data, offset) != 0;
+        if (type.IsPrimitive)
+            return offset + Marshal.SizeOf(type) <= data.Length ? FromBytes(data, offset, type) : Activator.CreateInstance(type)!;
+        if (MatrixShape.Match(type.Name) is { Success: true } shape && type.Namespace == "Csl.Types")
+            return ColumnMajor(data, offset, type, int.Parse(shape.Groups[1].Value), int.Parse(shape.Groups[2].Value));
+        if (type.Namespace == "Csl.Types" && VectorShape.IsMatch(type.Name))
+            return offset + Marshal.SizeOf(type) <= data.Length ? FromBytes(data, offset, type) : Activator.CreateInstance(type)!;
+        // A struct: its fields in order, each placed by the packing rules.
+        var value = Activator.CreateInstance(type)!;
+        int cursor = 0;
+        foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).OrderBy(f => Marshal.OffsetOf(type, f.Name).ToInt64()))
+        {
+            int size = PackedSize(field.FieldType);
+            if (StartsRegister(field.FieldType) || (cursor % 16) + size > 16)
+                cursor = (cursor + 15) & ~15;
+            if (field.FieldType.IsArray)
+            {
+                int length = field.GetCustomAttribute<SizeAttribute>()?.Sizes.FirstOrDefault() is { } n && int.TryParse(n, out var parsed) ? parsed : 0;
+                field.SetValue(value, ValueOf(data, offset + cursor, length, field.FieldType));
+            }
+            else
+            {
+                field.SetValue(value, Packed(data, offset + cursor, field.FieldType));
+            }
+            cursor += size;
+        }
+        return value;
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex VectorShape = new(@"^(bool|int|uint|half|float|double)[1-4]$");
+
+    private static bool StartsRegister(Type type) => type.IsArray || MatrixShape.IsMatch(type.Name) || (!type.IsPrimitive && type.Namespace != "Csl.Types");
+
+    /// <summary>The bytes a value takes in a constant buffer (without the padding after its last register).</summary>
+    private static int PackedSize(Type type)
+    {
+        if (type == typeof(bool) || type.IsPrimitive)
+            return 4;
+        if (MatrixShape.Match(type.Name) is { Success: true } shape && type.Namespace == "Csl.Types")
+            return (int.Parse(shape.Groups[2].Value) - 1) * 16 + int.Parse(shape.Groups[1].Value) * 4;
+        if (type.Namespace == "Csl.Types" && VectorShape.IsMatch(type.Name))
+            return Marshal.SizeOf(type);
+        if (type.IsArray)
+            return 16;
+        int cursor = 0;
+        foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).OrderBy(f => Marshal.OffsetOf(type, f.Name).ToInt64()))
+        {
+            int size = PackedSize(field.FieldType);
+            if (StartsRegister(field.FieldType) || (cursor % 16) + size > 16)
+                cursor = (cursor + 15) & ~15;
+            cursor += size;
+        }
+        return cursor;
     }
 
     private static readonly System.Text.RegularExpressions.Regex MatrixShape = new(@"^[a-z]+([1-4])x([1-4])$");
@@ -213,8 +274,66 @@ public static class CpuCapture
         return result;
     }
 
-    /// <summary>A GPU texture read back, every level and slice, decoded to what a shader reads.</summary>
+    /// <summary>
+    /// What the GPU decoding draws with (<see cref="ReadTexture"/>): set by whoever captures in a game.
+    /// Without, textures are read back and decoded here, for the formats <see cref="Decode"/> knows.
+    /// </summary>
+    public static GraphicsContext? GraphicsContext { get; set; }
+
+    private static readonly Dictionary<Texture, CpuTexture> TextureCache = new();
+
+    /// <summary>Forgets the textures read back: their content may have changed since.</summary>
+    public static void ClearCache()
+    {
+        lock (TextureCache)
+            TextureCache.Clear();
+    }
+
+    /// <summary>
+    /// A GPU texture read back, every level and slice, decoded to what a shader reads. With a
+    /// <see cref="GraphicsContext"/>, the GPU decodes it: each level drawn with a point sampler into a
+    /// float target of its size, texel centre on texel centre, whatever the format (block compressed,
+    /// sRGB). Cached until <see cref="ClearCache"/>.
+    /// </summary>
     public static CpuTexture ReadTexture(Texture texture, CommandList commandList)
+    {
+        lock (TextureCache)
+            if (TextureCache.TryGetValue(texture, out var known))
+                return known;
+        var read = GraphicsContext != null && texture.Dimension != TextureDimension.Texture3D && !texture.IsDepthStencil && !IsIntegerFormat(texture.Format) && texture.MultisampleCount == MultisampleCount.None
+            ? ReadThroughGpu(texture, GraphicsContext)
+            : ReadDirectly(texture, commandList);
+        lock (TextureCache)
+            TextureCache[texture] = read;
+        return read;
+    }
+
+    private static bool IsIntegerFormat(PixelFormat format) => format.ToString().EndsWith("Int", StringComparison.Ordinal);
+
+    private static CpuTexture ReadThroughGpu(Texture texture, GraphicsContext context)
+    {
+        var commandList = context.CommandList;
+        var device = commandList.GraphicsDevice;
+        var result = new CpuTexture(texture.Width, texture.Height, texture.ArraySize, texture.MipLevelCount, TexelFormat.Rgba32Float);
+        for (int level = 0; level < texture.MipLevelCount; level++)
+        {
+            int width = result.LevelWidth(level), height = result.LevelHeight(level);
+            using var target = Texture.New2D(device, width, height, PixelFormat.R32G32B32A32_Float, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+            for (int slice = 0; slice < texture.ArraySize; slice++)
+            {
+                using var view = texture.ToTextureView(ViewType.Single, slice, level);
+                commandList.SetRenderTargetAndViewport(null, target);
+                context.DrawTexture(view, device.SamplerStates.PointClamp);
+                commandList.ResetTargets();
+                var texels = target.GetData<Vector4>(commandList);
+                for (int i = 0; i < texels.Length && i < width * height; i++)
+                    result.Write(level, i % width, i / width, slice, new CslTypes.float4(texels[i].X, texels[i].Y, texels[i].Z, texels[i].W));
+            }
+        }
+        return result;
+    }
+
+    private static CpuTexture ReadDirectly(Texture texture, CommandList commandList)
     {
         var format = texture.Format;
         var cpuFormat = TexelFormatOf(format);
@@ -274,11 +393,14 @@ public static class CpuCapture
         _ => TexelFormat.Rgba32Float,
     };
 
-    private static CslTypes.float4 Decode(PixelFormat format, byte[] b, int at)
+    /// <summary>One element of that format at that byte, as a shader reads it (a texel, a vertex attribute): missing channels are (0, 0, 0, 1).</summary>
+    public static CslTypes.float4 Decode(PixelFormat format, byte[] b, int at)
     {
         float U8(int i) => b[at + i] / 255f;
         float F16(int i) => (float)BitConverter.ToHalf(b, at + i * 2);
         float F32(int i) => BitConverter.ToSingle(b, at + i * 4);
+        float S16(int i) => Math.Max(BitConverter.ToInt16(b, at + i * 2) / 32767f, -1f);
+        float S8(int i) => Math.Max((sbyte)b[at + i] / 127f, -1f);
         switch (format)
         {
             case PixelFormat.R8G8B8A8_UNorm or PixelFormat.R8G8B8A8_Typeless:
@@ -309,6 +431,27 @@ public static class CpuCapture
                 return new CslTypes.float4(U8(0), U8(1), 0f, 1f);
             case PixelFormat.R16_UNorm:
                 return new CslTypes.float4(BitConverter.ToUInt16(b, at) / 65535f, 0f, 0f, 1f);
+            case PixelFormat.R16G16_UNorm:
+                return new CslTypes.float4(BitConverter.ToUInt16(b, at) / 65535f, BitConverter.ToUInt16(b, at + 2) / 65535f, 0f, 1f);
+            case PixelFormat.R16G16B16A16_UNorm:
+                return new CslTypes.float4(BitConverter.ToUInt16(b, at) / 65535f, BitConverter.ToUInt16(b, at + 2) / 65535f, BitConverter.ToUInt16(b, at + 4) / 65535f, BitConverter.ToUInt16(b, at + 6) / 65535f);
+            // SNORM: -32768 and -32767 are both -1 (D3D).
+            case PixelFormat.R16_SNorm:
+                return new CslTypes.float4(S16(0), 0f, 0f, 1f);
+            case PixelFormat.R16G16_SNorm:
+                return new CslTypes.float4(S16(0), S16(1), 0f, 1f);
+            case PixelFormat.R16G16B16A16_SNorm:
+                return new CslTypes.float4(S16(0), S16(1), S16(2), S16(3));
+            case PixelFormat.R8G8B8A8_SNorm:
+                return new CslTypes.float4(S8(0), S8(1), S8(2), S8(3));
+            case PixelFormat.R8G8_SNorm:
+                return new CslTypes.float4(S8(0), S8(1), 0f, 1f);
+            case PixelFormat.R8G8B8A8_UInt:
+                return new CslTypes.float4(b[at], b[at + 1], b[at + 2], b[at + 3]);
+            case PixelFormat.R16G16B16A16_UInt:
+                return new CslTypes.float4(BitConverter.ToUInt16(b, at), BitConverter.ToUInt16(b, at + 2), BitConverter.ToUInt16(b, at + 4), BitConverter.ToUInt16(b, at + 6));
+            case PixelFormat.R32_UInt:
+                return new CslTypes.float4(BitConverter.ToUInt32(b, at), 0f, 0f, 1f);
             case PixelFormat.R10G10B10A2_UNorm:
             {
                 uint v = BitConverter.ToUInt32(b, at);

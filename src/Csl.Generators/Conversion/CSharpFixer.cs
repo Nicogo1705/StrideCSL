@@ -144,6 +144,17 @@ public static class CSharpFixer
                     break;
                 }
 
+                // Use of possibly unassigned field 'z' (of a vector local written component by component): the local gets = default.
+                case "CS0170":
+                {
+                    var fieldAccess = node as MemberAccessExpressionSyntax ?? node.FirstAncestorOrSelf<MemberAccessExpressionSyntax>();
+                    if (fieldAccess != null && model.GetSymbolInfo(fieldAccess.Expression, cancellation).Symbol is ILocalSymbol partial
+                        && partial.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellation) is VariableDeclaratorSyntax partialDeclarator
+                        && partialDeclarator.Initializer == null)
+                        change = new TextChange(new TextSpan(partialDeclarator.Identifier.Span.End, 0), " = default");
+                    break;
+                }
+
                 // Use of unassigned local variable 'x'
                 case "CS0165":
                     if (quoted.Count >= 1 && model.GetSymbolInfo(node, cancellation).Symbol is ILocalSymbol local
