@@ -1,4 +1,5 @@
 using Stride.Core.Diagnostics;
+using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
@@ -17,7 +18,11 @@ internal sealed class DemoGame : Game
     private readonly string? cpuCheckDirectory;
     private readonly bool onCpu;
     private readonly int cpuBench;
+    private readonly bool mesh;
+    private readonly string? meshCheckDirectory;
     private Gallery? gallery;
+    private MeshScene? meshScene;
+    private Vector2? meshPixel;
 
     /// <summary>What <see cref="CpuCheck"/> found: the number of shaders whose CPU run differs from the GPU.</summary>
     public int CpuCheckFailures { get; private set; }
@@ -27,8 +32,13 @@ internal sealed class DemoGame : Game
     /// <param name="cpuCheckDirectory">Run <see cref="CpuCheck"/> at <paramref name="shotTime"/>, write its images and report there, exit (hidden).</param>
     /// <param name="onCpu">Every shader run by the CPU (Csl.Cpu), frames computed in the background and drawn as they come (at <paramref name="shotTime"/> for a screenshot).</param>
     /// <param name="cpuBench">Compute that many CPU frames one after the other, print their cost, exit (hidden).</param>
-    public DemoGame(string? shotPath = null, float shotTime = 2.0f, int? blurRadius = null, string? cpuCheckDirectory = null, bool onCpu = false, int cpuBench = 0)
+    /// <param name="mesh">The mesh scene instead of the gallery: meshes drawn with a C# shader, Ctrl+click to run a pixel on the CPU.</param>
+    /// <param name="meshCheckDirectory">Compare a frame of the mesh scene drawn by the GPU and rasterized by the CPU, write it there, exit (hidden).</param>
+    public DemoGame(string? shotPath = null, float shotTime = 2.0f, int? blurRadius = null, string? cpuCheckDirectory = null, bool onCpu = false, int cpuBench = 0,
+        bool mesh = false, string? meshCheckDirectory = null)
     {
+        this.mesh = mesh;
+        this.meshCheckDirectory = meshCheckDirectory;
         this.onCpu = onCpu;
         this.cpuBench = cpuBench;
         this.shotPath = shotPath;
@@ -48,7 +58,7 @@ internal sealed class DemoGame : Game
     protected override void BeginRun()
     {
         base.BeginRun();
-        Window.Visible = shotPath == null && cpuCheckDirectory == null && cpuBench == 0;
+        Window.Visible = shotPath == null && cpuCheckDirectory == null && cpuBench == 0 && meshCheckDirectory == null;
         Window.AllowUserResizing = true;
         Window.Title = "StrideCSL demo";
     }
@@ -56,6 +66,13 @@ internal sealed class DemoGame : Game
     protected override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
+        if (mesh)
+        {
+            if (Input.IsMouseButtonPressed(Stride.Input.MouseButton.Left) && (Input.IsKeyDown(Stride.Input.Keys.LeftCtrl) || Input.IsKeyDown(Stride.Input.Keys.RightCtrl)))
+                meshPixel = Input.MousePosition;
+            Window.Title = "StrideCSL demo - meshes drawn with a C# shader - Ctrl+click: that pixel on the CPU (vertex, rasterizer, pixel shader)";
+            return;
+        }
         if (gallery != null && shotPath == null && cpuCheckDirectory == null)
         {
             gallery.Update(Input);
@@ -71,6 +88,31 @@ internal sealed class DemoGame : Game
         {
             CpuCheckFailures = CpuCheck.Run(Services, context.RenderContext, context.DrawContext, cpuCheckDirectory, shotTime);
             Exit();
+            return;
+        }
+        if (mesh || meshCheckDirectory != null)
+        {
+            meshScene ??= new MeshScene(GraphicsDevice, context.RenderContext);
+            if (meshCheckDirectory != null)
+            {
+                CpuCheckFailures = meshScene.Check(context.DrawContext, meshCheckDirectory, shotTime);
+                Exit();
+                return;
+            }
+            var target = GraphicsDevice.Presenter.BackBuffer;
+            meshScene.Draw(context.DrawContext, target, GraphicsDevice.Presenter.DepthStencilBuffer, shotPath != null ? shotTime : (float)gameTime.Total.TotalSeconds);
+            if (meshPixel is { } at)
+            {
+                meshPixel = null;
+                meshScene.DebugPixel(context.DrawContext, target, at);
+            }
+            if (shotPath != null)
+            {
+                using (var file = File.Create(shotPath))
+                    target.Save(context.CommandList, file, ImageFileType.Png);
+                Console.WriteLine($"SHOT {shotPath} (meshes) at t = {shotTime}");
+                Exit();
+            }
             return;
         }
         if (gallery == null)
@@ -118,6 +160,7 @@ internal sealed class DemoGame : Game
 
     protected override void Destroy()
     {
+        meshScene?.Dispose();
         gallery?.Dispose();
         base.Destroy();
     }

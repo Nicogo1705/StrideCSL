@@ -156,6 +156,38 @@ namespace Csl.Tests
             Assert.Equal(new uint[] { 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8 }, output);
         }
 
+        private static CpuMeshDraw Triangle(bool clockwise)
+        {
+            // Clip space straight to the 8x8 target: (-1, 1) is its top-left corner.
+            var positions = new[] { new float4(-1f, 1f, 0.5f, 1f), new float4(1f, 1f, 0.5f, 1f), new float4(-1f, -1f, 0.5f, 1f) };
+            var colors = new[] { new float4(1f, 0f, 0f, 1f), new float4(0f, 1f, 0f, 1f), new float4(0f, 0f, 1f, 1f) };
+            var mesh = new CpuMesh(3, clockwise ? new[] { 0, 1, 2 } : new[] { 0, 2, 1 }).Set("POSITION", positions).Set("COLOR", colors);
+            return new CpuMeshDraw(typeof(CpuShaders.CpuTestMesh), mesh) { Viewport = (0f, 0f, 8f, 8f, 0f, 1f) };
+        }
+
+        [Fact]
+        public void TrianglesAreRasterizedWithTheTopLeftRuleAndInterpolated()
+        {
+            var image = CpuScene.Draw(new[] { Triangle(clockwise: true) }, 8, 8, TexelFormat.Rgba32Float);
+            // The top-left half: (0, 0) is covered, near the first vertex, mostly red.
+            var corner = image.Read(0, 0, 0);
+            Assert.True(corner.x > 0.8f && corner.w == 1f);
+            // Its interpolated colours sum to one everywhere.
+            var middle = image.Read(0, 2, 3);
+            Assert.Equal(1f, middle.x + middle.y + middle.z, 4);
+            // The diagonal x + y = 8 in pixels: a centre on it (x + 0.5 + y + 0.5 = 8) is on the bottom-right
+            // edge, not a top or left one, so it is not covered.
+            Assert.Equal(0f, image.Read(0, 3, 4).w);
+            Assert.Equal(0f, image.Read(0, 7, 7).w);
+        }
+
+        [Fact]
+        public void BackFacesAreCulled()
+        {
+            var image = CpuScene.Draw(new[] { Triangle(clockwise: false) }, 8, 8, TexelFormat.Rgba32Float);
+            Assert.Equal(0f, image.Read(0, 0, 0).w);
+        }
+
         [Fact]
         public void MembersOfTheSameNameAreOne()
         {
@@ -183,6 +215,25 @@ namespace Csl.Tests.CpuShaders
             if (streams.ShadingPosition.x > 3.0f && streams.ShadingPosition.y > 1.0f)
                 discard();
             return new float4(dx, overlay, luma, 1.0f);
+        }
+    }
+
+    [Shader]
+    public partial class CpuTestMesh : ShaderBase
+    {
+        [Stage, Stream("POSITION")] public float4 Position;
+        [Stage, Stream("COLOR")] public float4 Color;
+
+        [Stage]
+        public override void VSMain()
+        {
+            streams.ShadingPosition = streams.Position;
+        }
+
+        [Stage]
+        public override void PSMain()
+        {
+            streams.ColorTarget = streams.Color;
         }
     }
 

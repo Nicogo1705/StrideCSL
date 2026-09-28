@@ -114,7 +114,7 @@ internal static class CpuCheck
         return Compare(report, "DemoBlur", gpu, cpu, size, size, directory, error, watch.Elapsed);
     }
 
-    private static int Compare(StringBuilder report, string name, Color[] gpu, CslTypes.float4[] cpu, int width, int height, string directory, string? error, TimeSpan elapsed)
+    internal static int Compare(StringBuilder report, string name, Color[] gpu, CslTypes.float4[] cpu, int width, int height, string directory, string? error, TimeSpan elapsed)
     {
         var cpuBytes = new Color[cpu.Length];
         var diff = new Color[cpu.Length];

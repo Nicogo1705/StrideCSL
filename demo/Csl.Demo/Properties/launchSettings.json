@@ -9,6 +9,16 @@
       "hotReloadEnabled": false,
       "commandLineArgs": "--cpu"
     },
+    "Meshes (GPU), Ctrl+click a pixel to debug it": {
+      "commandName": "Project",
+      "hotReloadEnabled": false,
+      "commandLineArgs": "--mesh"
+    },
+    "Compare meshes CPU and GPU (report in mesh-check)": {
+      "commandName": "Project",
+      "hotReloadEnabled": false,
+      "commandLineArgs": "--mesh-check mesh-check --time 2"
+    },
     "Benchmark the CPU frames (10 frames)": {
       "commandName": "Project",
       "hotReloadEnabled": false,

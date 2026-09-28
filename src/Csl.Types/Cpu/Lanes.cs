@@ -48,6 +48,9 @@ public sealed class Lane
 
     public bool IsHelper { get; internal set; }
 
+    /// <summary>A mesh pixel's depth, interpolated from its triangle's vertices.</summary>
+    public float Depth { get; internal set; }
+
     /// <summary>discard: the pixel is not written; the lane goes on for its neighbours' derivatives, as a helper does.</summary>
     public void Discard() => Discarded = true;
 

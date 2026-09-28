@@ -9,6 +9,10 @@ using Csl.Demo;
 //                                       the same, every shader run by the CPU (Csl.Cpu): frames computed in the
 //                                       background and drawn as they come (fps in the title); with --shot, one at T
 // Csl.Demo --cpu-bench N [--time T]     N CPU frames one after the other, their cost and the median fps (hidden)
+// Csl.Demo --mesh [--shot FILE.png]     meshes drawn with a C# shader; Ctrl+click runs that pixel on the CPU
+//                                       (vertex shader, rasterizer, pixel shader), stopping in the debugger
+// Csl.Demo --mesh-check DIR [--time T]  a frame of the meshes drawn by the GPU and rasterized by the CPU,
+//                                       compared; images and report in DIR (hidden)
 // Csl.Demo --debug-pixel NAME X Y [--time T]
 //                                       one pixel of a demo on the CPU (320x180), no GPU: under a debugger it stops
 //                                       right before the pixel, F11 steps into the shader's C#
@@ -16,6 +20,8 @@ string? shot = null;
 string? cpuCheck = null;
 (string Name, int X, int Y)? debugPixel = null;
 bool onCpu = args.Contains("--cpu");
+bool mesh = args.Contains("--mesh");
+string? meshCheck = null;
 int cpuBench = 0;
 float time = 2.0f;
 int? blur = null;
@@ -27,6 +33,8 @@ for (int i = 0; i < args.Length - 1; i++)
         debugPixel = (args[i + 1], int.Parse(args[i + 2]), int.Parse(args[i + 3]));
     else if (args[i] == "--cpu-bench")
         cpuBench = int.Parse(args[i + 1]);
+    else if (args[i] == "--mesh-check")
+        meshCheck = Path.GetFullPath(args[i + 1]);
     else if (args[i] == "--cpu-check")
         cpuCheck = Path.GetFullPath(args[i + 1]);
     else if (args[i] == "--time")
@@ -36,6 +44,6 @@ for (int i = 0; i < args.Length - 1; i++)
 }
 if (debugPixel is { } pixel)
     return CpuCheck.DebugPixel(pixel.Name, pixel.X, pixel.Y, time);
-using var game = new DemoGame(shot, time, blur, cpuCheck, onCpu, cpuBench);
+using var game = new DemoGame(shot, time, blur, cpuCheck, onCpu, cpuBench, mesh, meshCheck);
 game.Run();
 return game.CpuCheckFailures;

@@ -72,17 +72,29 @@ public abstract class Run
         throw new MissingFieldException(ShaderType.Name, name);
     }
 
-    protected void Invoke(object lane, bool breakHere)
+    protected void Invoke(object lane, bool breakHere) => Invoke(Entry, lane, breakHere);
+
+    /// <summary>Another entry point of the shader (VSMain for a mesh), run for one lane.</summary>
+    protected static void Invoke(Action<object> entry, object lane, bool breakHere)
     {
         currentShader = lane;
         try
         {
-            ShaderEntry.Call(Entry, lane, breakHere);
+            ShaderEntry.Call(entry, lane, breakHere);
         }
         finally
         {
             currentShader = null;
         }
+    }
+
+    /// <summary>A method of the shader without parameters, as a delegate on any instance.</summary>
+    protected static Action<object> CompileEntry(Type shader, string name)
+    {
+        var method = shader.GetMethod(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, Type.EmptyTypes, null)
+            ?? throw new MissingMethodException(shader.Name, name);
+        var parameter = Expression.Parameter(typeof(object));
+        return Expression.Lambda<Action<object>>(Expression.Call(Expression.Convert(parameter, method.DeclaringType!), method), parameter).Compile();
     }
 
     protected static void TrySet(object shader, string name, object value)

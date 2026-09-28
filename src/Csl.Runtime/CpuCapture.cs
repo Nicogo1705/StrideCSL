@@ -51,6 +51,40 @@ public static class CpuCapture
     }
 
     /// <summary>
+    /// A mesh draw as the GPU ran it: its vertices and indices read back (decoded by the declaration's
+    /// formats, as the input assembler reads them), the effect's parameters and resources, the viewport.
+    /// </summary>
+    public static CpuMeshDraw MeshDraw(EffectInstance effect, Type shaderType, CpuMesh mesh, Viewport viewport, CommandList commandList)
+    {
+        var draw = new CpuMeshDraw(shaderType, mesh)
+        {
+            Viewport = (viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth),
+        };
+        Apply(effect.Parameters, draw, commandList);
+        return draw;
+    }
+
+    /// <summary>The vertices of a vertex buffer and the triangle list of an index buffer, read back.</summary>
+    public static CpuMesh Mesh(Stride.Graphics.Buffer vertexBuffer, VertexDeclaration declaration, int vertexCount, Stride.Graphics.Buffer indexBuffer, bool is32Bits, int indexCount, CommandList commandList)
+    {
+        var vertexBytes = vertexBuffer.GetData<byte>(commandList);
+        var indexBytes = indexBuffer.GetData<byte>(commandList);
+        var indices = new int[indexCount];
+        for (int i = 0; i < indexCount; i++)
+            indices[i] = is32Bits ? BitConverter.ToInt32(indexBytes, i * 4) : BitConverter.ToUInt16(indexBytes, i * 2);
+        var mesh = new CpuMesh(vertexCount, indices);
+        int stride = declaration.VertexStride;
+        foreach (var element in declaration.EnumerateWithOffsets())
+        {
+            var values = new CslTypes.float4[vertexCount];
+            for (int v = 0; v < vertexCount; v++)
+                values[v] = Decode(element.VertexElement.Format, vertexBytes, v * stride + element.Offset);
+            mesh.Set(element.VertexElement.SemanticName + element.VertexElement.SemanticIndex, values);
+        }
+        return mesh;
+    }
+
+    /// <summary>
     /// Every parameter the collection holds that the shader has a member for (the key's last name:
     /// <c>Global.Time</c> is <c>Time</c>), converted to the member's type. Returns how many were set.
     /// </summary>
@@ -87,6 +121,8 @@ public static class CpuCapture
     {
         if (type == typeof(bool))
             return BitConverter.ToInt32(data, offset) != 0;
+        if (MatrixShape.Match(type.Name) is { Success: true } shape && type.Namespace == "Csl.Types")
+            return ColumnMajor(data, offset, type, int.Parse(shape.Groups[1].Value), int.Parse(shape.Groups[2].Value));
         if (type.IsArray)
         {
             var element = type.GetElementType()!;
@@ -99,6 +135,31 @@ public static class CpuCapture
         if (!type.IsValueType || type.IsPrimitive == false && type.Namespace != "Csl.Types")
             return type.IsPrimitive ? FromBytes(data, offset, type) : null;
         return offset + Marshal.SizeOf(type) <= data.Length ? FromBytes(data, offset, type) : null;
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex MatrixShape = new(@"^[a-z]+([1-4])x([1-4])$");
+
+    /// <summary>
+    /// A matrix as a constant buffer holds it: column_major, HLSL's default, one column per 16 bytes.
+    /// Stride's Matrix is laid out the same way (M11, M21, M31, M41 first), so the shader, and here the
+    /// CPU, see the matrix the game computed.
+    /// </summary>
+    private static object ColumnMajor(byte[] data, int offset, Type type, int rows, int columns)
+    {
+        var matrix = Activator.CreateInstance(type)!;
+        for (int r = 0; r < rows; r++)
+        {
+            var rowField = type.GetField("r" + r)!;
+            var row = Activator.CreateInstance(rowField.FieldType)!;
+            for (int c = 0; c < columns; c++)
+            {
+                int at = offset + c * 16 + r * 4;
+                if (at + 4 <= data.Length)
+                    rowField.FieldType.GetField("xyzw"[c].ToString())!.SetValue(row, BitConverter.ToSingle(data, at));
+            }
+            rowField.SetValue(matrix, row);
+        }
+        return matrix;
     }
 
     private static object FromBytes(byte[] data, int offset, Type type)
