@@ -37,7 +37,7 @@ internal sealed class LiveCompiler
     public Result Compile(CancellationToken cancellation = default)
     {
         var trees = System.IO.Directory.GetFiles(Directory, "*.cs").Order(StringComparer.Ordinal)
-            .Select(path => CSharpSyntaxTree.ParseText(ReadShared(path), ParseOptions, path, Encoding.UTF8, cancellation))
+            .Select(path => CSharpSyntaxTree.ParseText(ReadShared(path), ParseOptions, path, cancellation))
             .ToList();
         var compilation = CSharpCompilation.Create("CslDemos", trees, References.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
@@ -60,22 +60,22 @@ internal sealed class LiveCompiler
                     shaders.Add((translated.ShaderName, translated.Sdsl, tree.FilePath, KindOf(type)));
             }
         }
-        return new Result(shaders, errors.Distinct().ToList(), errors.Count == 0 ? Load(generated, trees, cancellation) : null);
+        return new Result(shaders, errors.Distinct().ToList(), errors.Count == 0 ? Load(generated, cancellation) : null);
     }
 
     /// <summary>
     /// The compilation as an assembly of its own, with a portable PDB pointing at the files: a debugger
-    /// binds its breakpoints in Shaders/*.cs to what the CPU runs. Collectible, the previous one goes when
+    /// binds its breakpoints in Shaders/*.cs to what the CPU runs and opens the files themselves (their
+    /// checksum is the bytes read, BOM included), to be edited. Collectible, the previous one goes when
     /// nothing uses it any more.
     /// </summary>
-    private static System.Reflection.Assembly? Load(Compilation compilation, List<SyntaxTree> trees, CancellationToken cancellation)
+    private static System.Reflection.Assembly? Load(Compilation compilation, CancellationToken cancellation)
     {
         using var pe = new MemoryStream();
         using var pdb = new MemoryStream();
-        var embedded = trees.Select(t => Microsoft.CodeAnalysis.EmbeddedText.FromSource(t.FilePath, t.GetText(cancellation)));
         var emitted = compilation.WithOptions(compilation.Options.WithOptimizationLevel(OptimizationLevel.Debug))
             .Emit(pe, pdb, options: new Microsoft.CodeAnalysis.Emit.EmitOptions(debugInformationFormat: Microsoft.CodeAnalysis.Emit.DebugInformationFormat.PortablePdb),
-                embeddedTexts: embedded, cancellationToken: cancellation);
+                cancellationToken: cancellation);
         if (!emitted.Success)
             return null;
         pe.Position = 0;
@@ -115,16 +115,18 @@ internal sealed class LiveCompiler
         return where + diagnostic.Id + " " + diagnostic.GetMessage();
     }
 
-    /// <summary>An editor may still hold the file it is saving: a few tries, sharing it.</summary>
-    private static string ReadShared(string path)
+    /// <summary>
+    /// An editor may still hold the file it is saving: a few tries, sharing it. Read from the bytes, so
+    /// the checksum the PDB records is the file's own.
+    /// </summary>
+    private static Microsoft.CodeAnalysis.Text.SourceText ReadShared(string path)
     {
         for (int attempt = 0; ; attempt++)
         {
             try
             {
                 using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                using var reader = new StreamReader(stream, Encoding.UTF8);
-                return reader.ReadToEnd();
+                return Microsoft.CodeAnalysis.Text.SourceText.From(stream, Encoding.UTF8, Microsoft.CodeAnalysis.Text.SourceHashAlgorithm.Sha256);
             }
             catch (IOException) when (attempt < 10)
             {
