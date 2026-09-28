@@ -63,7 +63,7 @@ internal sealed class MeshScene : IDisposable
             Matrix.RotationY(time * 0.6f) * Matrix.RotationX(0.4f) * Matrix.Translation(-0.85f, 0.0f, 0.0f),
             Matrix.RotationY(-time * 0.3f) * Matrix.Translation(0.85f, 0.0f, 0.0f),
         };
-        var materials = new[] { (Roughness: 0.45f, Metalness: 0.0f), (Roughness: 0.3f, Metalness: 1.0f) };
+        var materials = new[] { (Roughness: 0.5f, Metalness: 0.0f), (Roughness: 0.25f, Metalness: 1.0f) };
         for (int i = 0; i < models.Count; i++)
         {
             var parameters = models[i].Effect.Parameters;
@@ -71,7 +71,7 @@ internal sealed class MeshScene : IDisposable
             parameters.Set(DemoLitMeshKeys.WorldViewProjection, worlds[i] * viewProjection);
             parameters.Set(DemoLitMeshKeys.Eye, eye);
             parameters.Set(DemoLitMeshKeys.LightDirection, Vector3.Normalize(new Vector3(-0.5f, -1.0f, -0.6f)));
-            parameters.Set(DemoLitMeshKeys.LightColor, new Vector3(3.0f, 2.9f, 2.7f));
+            parameters.Set(DemoLitMeshKeys.LightColor, new Vector3(2.4f, 2.3f, 2.1f));
             parameters.Set(DemoLitMeshKeys.Roughness, materials[i].Roughness);
             parameters.Set(DemoLitMeshKeys.Metalness, materials[i].Metalness);
             parameters.Set(DemoLitMeshKeys.Albedo, albedo);
