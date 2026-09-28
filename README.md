@@ -113,6 +113,9 @@ The demo's launch profiles (Visual Studio's start button list, or `dotnet run --
 | Compare CPU and GPU | Every demo drawn by both, compared; images and report in `cpu-check/`. |
 | Screenshot, GPU / CPU | One frame saved as `shot-gpu.png` / `shot-cpu.png`, window hidden. |
 
+The profiles turn Visual Studio's Hot Reload off: the demo reloads `Shaders/` itself on save, and the SDSL
+constant the generator writes for each shader is a change Hot Reload cannot apply.
+
 Each image effect is an `ImageEffectShader` with `Shading()` overridden, directly or through
 `DemoTile`; the tiles draw into a texture that `DemoBlur` blurs into the back buffer. A new
 non-abstract `[Shader]` class in the folder gets a new tile; an abstract one is shared code.

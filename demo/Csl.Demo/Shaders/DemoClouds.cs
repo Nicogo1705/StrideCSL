@@ -18,6 +18,6 @@ public partial class DemoClouds : DemoTile
         float warp = DemoCommon.Fbm(q + Time * 0.1f);
         float density = smoothstep(0.4f, 0.75f, DemoCommon.Fbm(q + warp));
         float3 sky = lerp(new float3(0.2f, 0.4f, 0.85f), new float3(0.7f, 0.85f, 1.0f), p.y + 0.5f);
-        return lerp(sky, new float3(1.0f, 1.0f, 1.0f), density);
+        return lerp(sky, new float3(0.5f, 2.0f, 1.0f), density);
     }
 }

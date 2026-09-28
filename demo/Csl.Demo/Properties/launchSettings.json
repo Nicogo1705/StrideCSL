@@ -1,30 +1,37 @@
 {
   "profiles": {
     "Gallery (GPU)": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "hotReloadEnabled": false
     },
     "Gallery computed on the CPU": {
       "commandName": "Project",
+      "hotReloadEnabled": false,
       "commandLineArgs": "--cpu"
     },
     "Benchmark the CPU frames (10 frames)": {
       "commandName": "Project",
+      "hotReloadEnabled": false,
       "commandLineArgs": "--cpu-bench 10 --time 2"
     },
     "Debug a pixel on the CPU (DemoClouds 120 45)": {
       "commandName": "Project",
+      "hotReloadEnabled": false,
       "commandLineArgs": "--debug-pixel DemoClouds 120 45 --time 2"
     },
     "Compare CPU and GPU (report in cpu-check)": {
       "commandName": "Project",
+      "hotReloadEnabled": false,
       "commandLineArgs": "--cpu-check cpu-check --time 2"
     },
     "Screenshot, GPU (shot-gpu.png)": {
       "commandName": "Project",
+      "hotReloadEnabled": false,
       "commandLineArgs": "--shot shot-gpu.png --time 2"
     },
     "Screenshot, CPU (shot-cpu.png)": {
       "commandName": "Project",
+      "hotReloadEnabled": false,
       "commandLineArgs": "--cpu --shot shot-cpu.png --time 2"
     }
   }
