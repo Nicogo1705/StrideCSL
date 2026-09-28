@@ -19,4 +19,9 @@
     <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- CpuCapture hands what an effect had on the GPU to a CPU run (Csl.Cpu). -->
+    <ProjectReference Include="../Csl.Types/Csl.Types.csproj" />
+  </ItemGroup>
+
 </Project>

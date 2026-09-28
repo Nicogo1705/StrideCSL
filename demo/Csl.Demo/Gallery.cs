@@ -342,7 +342,9 @@ internal sealed class Gallery : IDisposable
         var gpu = target.GetData<Color>(context.CommandList)[py * target.Width + px];
         try
         {
-            var run = CpuTile(type, viewport, time, out int left, out int top);
+            // The effect as this frame drew it (CpuCapture: its parameters, Texture0 read back), on the C# last saved.
+            var run = tile.Effect != null ? CpuCapture.ImageEffect(tile.Effect, context.CommandList, viewport, type) : CpuTile(type, viewport, time, out _, out _);
+            int left = run.Left, top = run.Top;
             run.Break = System.Diagnostics.Debugger.IsAttached;
             var cpu = run.DrawPixel(px - left, py - top);
             var cpuColor = new Color(cpu.x, cpu.y, cpu.z, cpu.w);

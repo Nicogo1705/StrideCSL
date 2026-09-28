@@ -43,29 +43,24 @@ internal static class CpuCheck
 
             // GPU: the effect the build registered, into a target of its own.
             using var target = Texture.New2D(device, Width, Height, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
-            using (var effect = new ImageEffectShader(name))
-            {
-                effect.Initialize(renderContext);
-                effect.Parameters.Set(GlobalKeys.Time, time);
-                effect.Parameters.Set(DemoTileKeys.Aspect, Width / (float)Height);
-                effect.SetInput(0, checker);
-                effect.SetOutput(target);
-                effect.Draw(context);
-            }
+            using var effect = new ImageEffectShader(name);
+            effect.Initialize(renderContext);
+            effect.Parameters.Set(GlobalKeys.Time, time);
+            effect.Parameters.Set(DemoTileKeys.Aspect, Width / (float)Height);
+            effect.SetInput(0, checker);
+            effect.SetOutput(target);
+            effect.Draw(context);
             context.CommandList.ResetTargets();
             var gpu = target.GetData<Color>(context.CommandList);
 
-            // CPU: the same C# class, the same inputs.
+            // CPU: the same C# class, given what the effect had on the GPU (CpuCapture: its parameters,
+            // Texture0 read back): nothing set by hand.
             CslTypes.float4[] cpu;
             string? error = null;
             var watch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                var run = new CpuImageEffect(type!, Width, Height);
-                run.Set("Time", time);
-                if (Members.InstanceFields(type!).ContainsKey("Aspect"))
-                    run.Set("Aspect", Width / (float)Height);
-                run.Set("Texture0", new CslTypes.Texture2D(cpuChecker));
+                var run = CpuCapture.ImageEffect(effect, context.CommandList, new Viewport(0, 0, Width, Height), type);
                 cpu = run.Draw().ToArray();
             }
             catch (Exception e)
@@ -90,14 +85,12 @@ internal static class CpuCheck
     {
         const int radius = 3;
         using var output = Texture.New2D(context.GraphicsDevice, size, size, PixelFormat.R8G8B8A8_UNorm, TextureFlags.UnorderedAccess | TextureFlags.ShaderResource);
-        using (var effect = new DemoBlurEffect(services))
-        {
-            effect.Input = checker;
-            effect.Output = output;
-            effect.Size = new Int2(size, size);
-            effect.Radius = radius;
-            effect.Dispatch(size, size);
-        }
+        using var effect = new DemoBlurEffect(services);
+        effect.Input = checker;
+        effect.Output = output;
+        effect.Size = new Int2(size, size);
+        effect.Radius = radius;
+        effect.Dispatch(size, size);
         var gpu = output.GetData<Color>(context.CommandList);
 
         CslTypes.float4[] cpu;
@@ -105,12 +98,10 @@ internal static class CpuCheck
         var watch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
+            // What the wrapper had (CpuCapture), but a blank output: the one read back holds the GPU's result.
+            var run = CpuCapture.Compute(effect, context.CommandList, typeof(DemoBlur));
             var cpuOutput = new CpuTexture(size, size, format: TexelFormat.Rgba8UNorm);
-            var run = new CpuComputeShader(typeof(DemoBlur));
-            run.Set("Input", new CslTypes.Texture2D<CslTypes.float4>(cpuChecker));
             run.Set("Output", new CslTypes.RWTexture2D<CslTypes.float4>(cpuOutput));
-            run.Set("Size", new CslTypes.int2(size, size));
-            run.Set("Radius", radius);
             run.Dispatch((size + run.ThreadsX - 1) / run.ThreadsX, (size + run.ThreadsY - 1) / run.ThreadsY);
             cpu = cpuOutput.ToArray();
         }
