@@ -95,7 +95,9 @@ internal sealed class DemoGame : Game
             meshScene ??= new MeshScene(GraphicsDevice, context.RenderContext);
             if (meshCheckDirectory != null)
             {
-                CpuCheckFailures = meshScene.Check(context.DrawContext, meshCheckDirectory, shotTime);
+                CpuCheckFailures = Environment.GetCommandLineArgs().Contains("--flat")
+                    ? meshScene.CheckFlat(context.DrawContext, context.RenderContext.Effects, meshCheckDirectory, shotTime)
+                    : meshScene.Check(context.DrawContext, meshCheckDirectory, shotTime);
                 Exit();
                 return;
             }

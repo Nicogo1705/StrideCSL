@@ -160,6 +160,63 @@ internal sealed class MeshScene : IDisposable
         return failures;
     }
 
+    /// <summary>
+    /// As <see cref="Check"/>, the CPU running the effect as the engine mixed it (Csl.Debugging: SPIR-V,
+    /// SPIRV-Cross, the converter), bound by the mixer's reflection: the path a game's material takes.
+    /// </summary>
+    public int CheckFlat(RenderDrawContext context, EffectSystem effectSystem, string directory, float time)
+    {
+        const int width = 320, height = 180;
+        Directory.CreateDirectory(directory);
+        var device = context.GraphicsDevice;
+        using var target = Texture.New2D(device, width, height, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+        using var depth = Texture.New2D(device, width, height, PixelFormat.D32_Float, TextureFlags.DepthStencil);
+        Draw(context, target, depth, time);
+        context.CommandList.ResetTargets();
+        var gpu = target.GetData<Color>(context.CommandList);
+
+        var report = new StringBuilder();
+        report.AppendLine($"Meshes, the flat effect on the CPU against the GPU, {width}x{height}, t = {time}");
+        CslTypes.float4[] cpu;
+        string? error = null;
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            var loader = ShaderSourceRegistry.FindLocalCompiler(effectSystem.Compiler).GetFileShaderLoader();
+            var mixin = new Stride.Shaders.ShaderMixinSource();
+            mixin.Mixins.Add(new Stride.Shaders.ShaderClassSource(DemoLitMesh.ShaderName));
+            var flat = Csl.Debugging.FlatEffects.Compile(mixin, loader);
+            report.AppendLine($"flat C# in {flat.Directory}");
+            var draws = new List<CpuMeshDraw>();
+            var layout = new VertexPositionNormalTexture().GetLayout();
+            foreach (var model in models)
+            {
+                var primitive = model.Primitive;
+                model.Mesh ??= CpuCapture.Mesh(primitive.VertexBuffer, layout, primitive.VertexBuffer.SizeInBytes / layout.VertexStride,
+                    primitive.IndexBuffer, primitive.IsIndex32Bits, primitive.IndexBuffer.SizeInBytes / (primitive.IsIndex32Bits ? 4 : 2), context.CommandList);
+                var draw = new CpuMeshDraw(flat.Vertex, flat.Pixel, model.Mesh) { Viewport = (0, 0, width, height, 0, 1) };
+                var missing = Csl.Debugging.FlatBinding.Apply(flat, draw, model.Effect.Parameters, context.CommandList);
+                if (draws.Count == 0)
+                {
+                    report.AppendLine(Csl.Debugging.FlatBinding.Describe(flat, draw));
+                    if (missing.Count > 0)
+                        report.AppendLine("  not in the parameters: " + string.Join(", ", missing));
+                }
+                draws.Add(draw);
+            }
+            cpu = CpuScene.Draw(draws, width, height, TexelFormat.Rgba8UNorm, new CslTypes.float4(Clear.R, Clear.G, Clear.B, Clear.A)).ToArray();
+        }
+        catch (Exception e)
+        {
+            error = e.GetBaseException().GetType().Name + ": " + e.GetBaseException().Message;
+            cpu = new CslTypes.float4[width * height];
+        }
+        watch.Stop();
+        int failures = CpuCheck.Compare(report, "MeshFlat", gpu, cpu, width, height, directory, error, watch.Elapsed);
+        File.WriteAllText(Path.Combine(directory, "report-flat.txt"), report.ToString());
+        Console.Write(report.ToString());
+        return failures;
+    }
     /// <summary>The checkerboard with its whole mip chain, each level the 2x2 average of the one above.</summary>
     private static Texture MipmappedChecker(GraphicsDevice device)
     {

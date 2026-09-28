@@ -116,8 +116,8 @@ public static class CpuCapture
         return set;
     }
 
-    /// <summary>A value parameter's bytes as the member's type: Stride's and Csl's types have the same layout.</summary>
-    private static object? ValueOf(byte[] data, int offset, int count, Type type)
+    /// <summary>A value's bytes (a constant buffer's, a parameter collection's) as the member's type: Stride's and Csl's types have the same layout; matrices are column-major.</summary>
+    public static object? ValueOf(byte[] data, int offset, int count, Type type)
     {
         if (type == typeof(bool))
             return BitConverter.ToInt32(data, offset) != 0;
@@ -175,7 +175,7 @@ public static class CpuCapture
         }
     }
 
-    private static object? ResourceOf(object? value, Type type, CommandList commandList)
+    public static object? ResourceOf(object? value, Type type, CommandList commandList)
     {
         switch (value)
         {

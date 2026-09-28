@@ -79,7 +79,10 @@ public static class ShaderSourceRegistry
     /// compiler is protected, so this walks the chain by reflection; a remote or null compiler
     /// cannot take sources, and says so.
     /// </summary>
-    private static ShaderSourceManager FindSourceManager(IEffectCompiler compiler)
+    private static ShaderSourceManager FindSourceManager(IEffectCompiler compiler) => FindLocalCompiler(compiler).GetFileShaderLoader().SourceManager;
+
+    /// <summary>The game's local effect compiler, under its cache: its shader loader is what mixes effects.</summary>
+    public static EffectCompiler FindLocalCompiler(IEffectCompiler compiler)
     {
         object? current = compiler;
         var inner = typeof(EffectCompilerChain).GetProperty("Compiler", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -87,7 +90,7 @@ public static class ShaderSourceRegistry
         while (current is EffectCompilerChain chain)
             current = inner.GetValue(chain);
         if (current is EffectCompiler local)
-            return local.GetFileShaderLoader().SourceManager;
+            return local;
         throw new InvalidOperationException($"C# shaders need the local effect compiler (Stride.Shaders.Compiler.EffectCompiler); the game uses {current?.GetType().FullName ?? "none"}");
     }
 }

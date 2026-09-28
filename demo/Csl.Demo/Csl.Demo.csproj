@@ -26,6 +26,7 @@
     <!-- The generator, applied to Shaders/ at build time, and referenced as a library to do the same
          while the app runs. -->
     <ProjectReference Include="../../src/Csl.Generators/Csl.Generators.csproj" />
+    <ProjectReference Include="../../src/Csl.Debugging/Csl.Debugging.csproj" />
     <Analyzer Include="../../src/Csl.Generators/bin/$(Configuration)/netstandard2.0/Csl.Generators.dll" />
   </ItemGroup>
 

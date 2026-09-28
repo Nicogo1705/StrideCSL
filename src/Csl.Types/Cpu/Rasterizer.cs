@@ -40,6 +40,24 @@ public sealed class CpuMesh
 
 public enum CullMode { None, Front, Back }
 
+/// <summary>A stage of a draw as a class of its own: its entry point, and the members its inputs and outputs are, with their semantics.</summary>
+[System.Diagnostics.DebuggerNonUserCode]
+public sealed class StageProgram
+{
+    public StageProgram(Type type, string entryPoint, IReadOnlyList<(string Field, string Semantic)> inputs, IReadOnlyList<(string Field, string Semantic)> outputs)
+    {
+        Type = type;
+        EntryPoint = entryPoint;
+        Inputs = inputs;
+        Outputs = outputs;
+    }
+
+    public Type Type { get; }
+    public string EntryPoint { get; }
+    public IReadOnlyList<(string Field, string Semantic)> Inputs { get; }
+    public IReadOnlyList<(string Field, string Semantic)> Outputs { get; }
+}
+
 /// <summary>
 /// A draw call of a mesh run on the CPU, as Direct3D 11 rasterizes it: VSMain for every vertex, then
 /// for each triangle in order its vertices snapped to 1/256 of a pixel, back faces culled (clockwise is
@@ -53,17 +71,23 @@ public sealed class CpuMeshDraw : Run
 {
     private readonly Action<object> vertexEntry;
     private readonly (FieldInfo Field, string Semantic)[] inputs;
-    private readonly FieldInfo[] interpolated;
-    private readonly FieldInfo[] flat;
-    private readonly Action<object, float4>? setPosition;
-    private readonly Func<object, float4>? getPosition;
+    private readonly Func<object, float4>? getClip;
+    /// <summary>What the vertex stage hands the pixel stage: from a vertex's member to a pixel's, interpolated or flat.</summary>
+    private readonly (FieldInfo From, FieldInfo To, bool Interpolated)[] varyings;
+    private readonly Action<object, float4>? setFragCoord;
     private readonly Func<object, float4>? getColor;
     private readonly FieldInfo? frontFace;
     private volatile bool lockstep;
 
+    private static bool Interpolable(Type t) => t == typeof(float) || t == typeof(float2) || t == typeof(float3) || t == typeof(float4);
+
+    private static bool IsSystem(string? semantic) => semantic != null && semantic.StartsWith("SV_", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>A C# shader class with VSMain and PSMain: its streams, by their [Stream] semantics, are both stages' inputs and outputs.</summary>
     public CpuMeshDraw(Type shader, CpuMesh mesh) : base(shader, "PSMain")
     {
         Mesh = mesh;
+        VertexShader = Shader;
         vertexEntry = CompileEntry(shader, "VSMain");
         var type = Shader.GetType();
         var graph = ShaderInstances.MixinGraph(shader);
@@ -75,17 +99,51 @@ public sealed class CpuMeshDraw : Run
             if (attribute != null)
                 streams.Add((field, attribute));
         }
-        inputs = streams.Where(s => s.Attribute.Semantic != null && !s.Attribute.Semantic.StartsWith("SV_", StringComparison.OrdinalIgnoreCase))
+        inputs = streams.Where(s => s.Attribute.Semantic != null && !IsSystem(s.Attribute.Semantic))
             .Select(s => (s.Field, CpuMesh.Normalize(s.Attribute.Semantic!))).ToArray();
-        bool Interpolable(Type t) => t == typeof(float) || t == typeof(float2) || t == typeof(float3) || t == typeof(float4);
-        bool System(StreamAttribute a) => a.Semantic != null && a.Semantic.StartsWith("SV_", StringComparison.OrdinalIgnoreCase);
-        interpolated = streams.Where(s => !System(s.Attribute) && Interpolable(s.Field.FieldType)).Select(s => s.Field).ToArray();
-        flat = streams.Where(s => !System(s.Attribute) && !Interpolable(s.Field.FieldType) && s.Field.FieldType.IsValueType).Select(s => s.Field).ToArray();
-        setPosition = Members.Setter<float4>(type, "ShadingPosition");
-        getPosition = Members.Getter<float4>(type, "ShadingPosition");
+        varyings = streams.Where(s => !IsSystem(s.Attribute.Semantic) && s.Field.FieldType.IsValueType)
+            .Select(s => (s.Field, s.Field, Interpolable(s.Field.FieldType))).ToArray();
+        getClip = Members.Getter<float4>(type, "ShadingPosition");
+        setFragCoord = Members.Setter<float4>(type, "ShadingPosition");
         getColor = Members.Getter<float4>(type, "ColorTarget");
         frontFace = Members.InstanceFields(type).TryGetValue("IsFrontFace", out var f) && f.FieldType == typeof(bool) ? f : null;
     }
+
+    /// <summary>
+    /// Two classes, one per stage, as a mixed effect flattens to (FlatHlsl): each with its entry point and
+    /// the members its inputs and outputs are, by semantic. A pixel input takes the vertex output of the
+    /// same semantic; SV_Position is the clip position out of the vertex stage, the pixel's in the other.
+    /// </summary>
+    public CpuMeshDraw(StageProgram vertex, StageProgram pixel, CpuMesh mesh) : base(pixel.Type, pixel.EntryPoint)
+    {
+        Mesh = mesh;
+        VertexShader = ShaderInstances.Create(vertex.Type);
+        vertexEntry = CompileEntry(vertex.Type, vertex.EntryPoint);
+        var vertexFields = Members.InstanceFields(VertexShader.GetType());
+        var pixelFields = Members.InstanceFields(Shader.GetType());
+        inputs = vertex.Inputs.Where(i => !IsSystem(i.Semantic) && vertexFields.ContainsKey(i.Field))
+            .Select(i => (vertexFields[i.Field], CpuMesh.Normalize(i.Semantic))).ToArray();
+        var clip = vertex.Outputs.FirstOrDefault(o => string.Equals(o.Semantic, "SV_Position", StringComparison.OrdinalIgnoreCase));
+        getClip = clip.Field != null ? Members.Getter<float4>(VertexShader.GetType(), clip.Field) : null;
+        var list = new List<(FieldInfo, FieldInfo, bool)>();
+        foreach (var input in pixel.Inputs)
+        {
+            if (IsSystem(input.Semantic) || !pixelFields.TryGetValue(input.Field, out var to))
+                continue;
+            var output = vertex.Outputs.FirstOrDefault(o => string.Equals(CpuMesh.Normalize(o.Semantic), CpuMesh.Normalize(input.Semantic), StringComparison.OrdinalIgnoreCase));
+            if (output.Field != null && vertexFields.TryGetValue(output.Field, out var from) && from.FieldType == to.FieldType)
+                list.Add((from, to, Interpolable(to.FieldType)));
+        }
+        varyings = list.ToArray();
+        string? Pixel(string semantic) => pixel.Inputs.FirstOrDefault(i => string.Equals(i.Semantic, semantic, StringComparison.OrdinalIgnoreCase)).Field;
+        setFragCoord = Pixel("SV_Position") is { } position ? Members.Setter<float4>(Shader.GetType(), position) : null;
+        frontFace = Pixel("SV_IsFrontFace") is { } face && pixelFields.TryGetValue(face, out var ff) && ff.FieldType == typeof(bool) ? ff : null;
+        var target = pixel.Outputs.FirstOrDefault(o => string.Equals(o.Semantic, "SV_Target0", StringComparison.OrdinalIgnoreCase) || string.Equals(o.Semantic, "SV_Target", StringComparison.OrdinalIgnoreCase));
+        getColor = target.Field != null ? Members.Getter<float4>(Shader.GetType(), target.Field) : null;
+    }
+
+    /// <summary>The vertex stage's configured shader, which each vertex gets a copy of (the pixel stage's is <see cref="Run.Shader"/>; one object for a single class).</summary>
+    public object VertexShader { get; }
 
     public CpuMesh Mesh { get; }
 
@@ -120,7 +178,7 @@ public sealed class CpuMeshDraw : Run
         var (vx, vy, vw, vh, near, far) = Viewport;
         Parallel.For(0, Mesh.VertexCount, i =>
         {
-            var shader = ShaderInstances.Clone(Shader);
+            var shader = ShaderInstances.Clone(VertexShader);
             foreach (var (field, semantic) in inputs)
                 if (Mesh.Attributes.TryGetValue(semantic, out var values))
                     field.SetValue(shader, Narrow(values[i], field.FieldType));
@@ -134,7 +192,7 @@ public sealed class CpuMeshDraw : Run
             {
                 Lane.Leave();
             }
-            var clip = getPosition?.Invoke(shader) ?? default;
+            var clip = getClip?.Invoke(shader) ?? default;
             var v = new Vertex { Shader = shader, Clip = clip, Behind = clip.w <= 0f };
             if (!v.Behind)
             {
@@ -333,11 +391,9 @@ public sealed class CpuMeshDraw : Run
         p1 /= sum;
         p2 /= sum;
         var shader = ShaderInstances.Clone(Shader);
-        foreach (var field in interpolated)
-            field.SetValue(shader, Interpolate(field, t.A.Shader, t.B.Shader, t.C.Shader, p0, p1, p2));
-        foreach (var field in flat)
-            field.SetValue(shader, field.GetValue(t.Provoking.Shader));
-        setPosition?.Invoke(shader, new float4(px, py, z, 1f / sum));
+        foreach (var (from, to, interpolate) in varyings)
+            to.SetValue(shader, interpolate ? Interpolate(from, t.A.Shader, t.B.Shader, t.C.Shader, p0, p1, p2) : from.GetValue(t.Provoking.Shader));
+        setFragCoord?.Invoke(shader, new float4(px, py, z, 1f / sum));
         frontFace?.SetValue(shader, t.Front);
         return shader;
     }

@@ -15,8 +15,9 @@ namespace Csl.Generators.Conversion;
 /// </summary>
 public sealed class FlatHlsl
 {
-    private FlatHlsl(string className, string sdsl, string entryPoint, IReadOnlyList<(string Field, string Semantic)> inputs, IReadOnlyList<(string Field, string Semantic)> outputs)
+    private FlatHlsl(string className, string sdsl, string entryPoint, IReadOnlyList<(string Field, string Semantic)> inputs, IReadOnlyList<(string Field, string Semantic)> outputs, IReadOnlyList<(string Buffer, string Field, int Offset)> constants)
     {
+        Constants = constants;
         ClassName = className;
         Sdsl = sdsl;
         EntryPoint = entryPoint;
@@ -35,6 +36,9 @@ public sealed class FlatHlsl
     /// <summary>The members the stage reads its inputs from, with their semantics (TEXCOORD0, SV_Position…).</summary>
     public IReadOnlyList<(string Field, string Semantic)> Inputs { get; }
 
+    /// <summary>The constant buffer members: their buffer, their member, their byte offset (from packoffset): how the mixer's reflection finds them.</summary>
+    public IReadOnlyList<(string Buffer, string Field, int Offset)> Constants { get; }
+
     /// <summary>The members the stage writes its outputs to, with their semantics.</summary>
     public IReadOnlyList<(string Field, string Semantic)> Outputs { get; }
 
@@ -50,6 +54,7 @@ public sealed class FlatHlsl
         var text = hlsl.Replace("\r\n", "\n");
         var inputs = StructSemantics(text, "SPIRV_Cross_Input");
         var outputs = StructSemantics(text, "SPIRV_Cross_Output");
+        var constants = ConstantOffsets(text);
         text = RemoveBlock(text, "struct SPIRV_Cross_Input");
         text = RemoveBlock(text, "struct SPIRV_Cross_Output");
         text = RemoveBlock(text, "SPIRV_Cross_Output main(");
@@ -69,7 +74,22 @@ public sealed class FlatHlsl
         foreach (var line in text.Split('\n'))
             sdsl.Append("    ").AppendLine(line);
         sdsl.AppendLine("};");
-        return new FlatHlsl(className, sdsl.ToString(), entry, inputs, outputs);
+        return new FlatHlsl(className, sdsl.ToString(), entry, inputs, outputs, constants);
+    }
+
+    private static readonly Regex ConstantBuffer = new Regex(@"cbuffer\s+(\w+)[^{]*\{([^}]*)\}", RegexOptions.Compiled);
+    private static readonly Regex PackOffset = new Regex(@"(\w+)(\s*\[\s*\d+\s*\])?\s*:\s*packoffset\(\s*c(\d+)(?:\.([xyzw]))?\s*\)", RegexOptions.Compiled);
+
+    private static List<(string, string, int)> ConstantOffsets(string text)
+    {
+        var result = new List<(string, string, int)>();
+        foreach (Match buffer in ConstantBuffer.Matches(text))
+            foreach (Match member in PackOffset.Matches(buffer.Groups[2].Value))
+            {
+                int component = member.Groups[4].Success ? "xyzw".IndexOf(member.Groups[4].Value[0]) : 0;
+                result.Add((buffer.Groups[1].Value, member.Groups[1].Value, int.Parse(member.Groups[3].Value) * 16 + component * 4));
+            }
+        return result;
     }
 
     /// <summary>The fields of a struct with their semantics, its members prefixed as main copies them (stage_input.X → X).</summary>
