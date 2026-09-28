@@ -75,7 +75,7 @@ internal sealed class EffectContext
         FillCompositions();
         StubAbstractMethods();
         EngineCompiler.Result result = null!;
-        for (int attempt = 0; attempt < 80; attempt++)
+        for (int attempt = 0; attempt < 200; attempt++)
         {
             result = SettleOnce(sources);
             if (result.Success || !NextMemberNames())
@@ -146,7 +146,7 @@ internal sealed class EffectContext
         }
         var values = new List<string>();
         if (swizzle)
-            values.AddRange(new[] { "rgba", "r" });
+            values.AddRange(new[] { "rgba", "rgb", "r", "rg" });
         if (stream)
         {
             // The streams the shader sees, float4 first.
@@ -255,23 +255,44 @@ internal sealed class EffectContext
             .GroupBy(a => a.Method.Name + "/" + a.Method.Parameters.Count).Select(g => g.First()).ToList();
     }
 
-    /// <summary>How the tested shader's bases name this shader, its generic parameters replaced by the sample arguments.</summary>
+    /// <summary>
+    /// How the tested shader's bases name this shader, each generic parameter on the way replaced by
+    /// what the shader below passes it (the sample arguments at the bottom).
+    /// </summary>
     private string? ReferenceTo(string name)
     {
-        foreach (var owner in new[] { shader }.Concat(index.AllBases(shader)))
+        var arguments = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (int i = 0; i < shader.GenericParameters.Count; i++)
+            arguments[shader.GenericParameters[i].Name] = GenericArguments[i];
+        return ReferenceTo(name, shader, arguments, new HashSet<string>(StringComparer.Ordinal));
+    }
+
+    private string? ReferenceTo(string name, SdslShaderDeclaration owner, Dictionary<string, string> arguments, HashSet<string> seen)
+    {
+        if (!seen.Add(owner.Name))
+            return null;
+        foreach (var reference in owner.Bases)
         {
-            var reference = owner.Bases.FirstOrDefault(b => b.Name == name);
-            if (reference == null)
+            var passed = reference.GenericArguments.Select(a => Substitute(a, arguments)).ToList();
+            if (reference.Name == name)
+                return passed.Count == 0 ? name : name + "<" + string.Join(", ", passed) + ">";
+            var declaration = index.Find(reference.Name);
+            if (declaration == null || declaration.GenericParameters.Count != passed.Count)
                 continue;
-            var text = reference.Text;
-            if (owner == shader)
-                for (int i = 0; i < shader.GenericParameters.Count; i++)
-                    text = Regex.Replace(text, @"\b" + Regex.Escape(shader.GenericParameters[i].Name) + @"\b", GenericArguments[i]);
-            // Deeper, usable when the arguments are fixed (none is a generic parameter of that base).
-            bool fixedArguments = reference.GenericArguments.All(a => !owner.GenericParameters.Any(p => Regex.IsMatch(a, @"\b" + Regex.Escape(p.Name) + @"\b")));
-            return owner == shader || fixedArguments ? text : null;
+            var inner = new Dictionary<string, string>(StringComparer.Ordinal);
+            for (int i = 0; i < passed.Count; i++)
+                inner[declaration.GenericParameters[i].Name] = passed[i];
+            if (ReferenceTo(name, declaration, inner, seen) is { } found)
+                return found;
         }
         return null;
+    }
+
+    private static string Substitute(string text, Dictionary<string, string> arguments)
+    {
+        foreach (var pair in arguments)
+            text = Regex.Replace(text, @"\b" + Regex.Escape(pair.Key) + @"\b", pair.Value);
+        return text;
     }
 
     private static string StubShader(string name, string baseText, List<(SdslShaderDeclaration Owner, SdslMethod Method)> methods)

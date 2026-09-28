@@ -43,13 +43,23 @@ public static class CSharpFixer
                 case "CS0266":
                 case "CS0029":
                     if (quoted.Count >= 2 && Expression(node, span) is { } converted)
+                    {
+                        // uint += uint * int: C# widens the right side to long, HLSL keeps it uint.
+                        if (converted is AssignmentExpressionSyntax compound && !compound.IsKind(SyntaxKind.SimpleAssignmentExpression))
+                            converted = compound.Right;
                         change = Convert(converted, quoted[0], quoted[1], model, cancellation);
+                    }
                     break;
 
                 // Argument n: cannot convert from 'A' to 'B'. Only a change of scalar type is safe to make
                 // explicit: the compiler names the candidate it liked best, which may not be the overload
                 // HLSL picks, and a cast to its vector size would change the values.
                 case "CS1503":
+                    if (node.FirstAncestorOrSelf<InvocationExpressionSyntax>() is { } mulCall && FixMul(mulCall, model, cancellation) is { } mulChange)
+                    {
+                        change = mulChange;
+                        break;
+                    }
                     if (quoted.Count >= 2 && (SameShape(quoted[0], quoted[1]) || (Truncates(quoted[0], quoted[1]) && SingleCandidate(node, model, cancellation))))
                     {
                         if (node is ArgumentSyntax argument && argument.RefKindKeyword.IsKind(SyntaxKind.None))
@@ -122,7 +132,9 @@ public static class CSharpFixer
                 case "CS8331":
                 case "CS8332":
                 {
-                    if (model.GetSymbolInfo(node, cancellation).Symbol is IParameterSymbol { RefKind: RefKind.In } written
+                    // A write to an in parameter binds to no symbol, only to a candidate.
+                    var writtenInfo = model.GetSymbolInfo(node, cancellation);
+                    if ((writtenInfo.Symbol ?? writtenInfo.CandidateSymbols.FirstOrDefault()) is IParameterSymbol { RefKind: RefKind.In } written
                         && written.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellation) is ParameterSyntax writtenSyntax)
                     {
                         var inKeyword = writtenSyntax.Modifiers.FirstOrDefault(m => m.IsKind(SyntaxKind.InKeyword));
@@ -279,6 +291,40 @@ public static class CSharpFixer
         if (expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.NumericLiteralExpression) && to == "float" && literal.Token.Value is double)
             return new TextChange(expression.Span, literal.Token.Text.TrimEnd('d', 'D', 'm', 'M') + "f");
         return new TextChange(expression.Span, "Sdsl.Implicit<" + to + ">(" + expression + ")");
+    }
+
+    /// <summary>
+    /// mul(float4 v, float3x3 m): HLSL truncates the vector to the matrix side it multiplies (its rows
+    /// on the left, its columns on the right); C# finds no overload.
+    /// </summary>
+    private static TextChange? FixMul(InvocationExpressionSyntax call, SemanticModel model, CancellationToken cancellation)
+    {
+        if (call.Expression is not IdentifierNameSyntax { Identifier.ValueText: "mul" } || call.ArgumentList.Arguments.Count != 2)
+            return null;
+        var left = call.ArgumentList.Arguments[0].Expression;
+        var right = call.ArgumentList.Arguments[1].Expression;
+        var leftType = HlslType.Match(TypeName(model.GetTypeInfo(left, cancellation).Type?.ToDisplayString() ?? string.Empty));
+        var rightType = HlslType.Match(TypeName(model.GetTypeInfo(right, cancellation).Type?.ToDisplayString() ?? string.Empty));
+        if (!leftType.Success || !rightType.Success)
+            return null;
+        ExpressionSyntax vector;
+        Match vectorType;
+        int size;
+        if (leftType.Groups[2].Success && !leftType.Groups[3].Success && rightType.Groups[3].Success)
+        {
+            (vector, vectorType) = (left, leftType);
+            size = int.Parse(rightType.Groups[2].Value, CultureInfo.InvariantCulture);
+        }
+        else if (rightType.Groups[2].Success && !rightType.Groups[3].Success && leftType.Groups[3].Success)
+        {
+            (vector, vectorType) = (right, rightType);
+            size = int.Parse(leftType.Groups[3].Value.Substring(1), CultureInfo.InvariantCulture);
+        }
+        else
+            return null;
+        if (int.Parse(vectorType.Groups[2].Value, CultureInfo.InvariantCulture) <= size)
+            return null;
+        return new TextChange(vector.Span, "Sdsl.Implicit<" + vectorType.Groups[1].Value + size.ToString(CultureInfo.InvariantCulture) + ">(" + vector + ")");
     }
 
     private static TextChange? FixBinary(BinaryExpressionSyntax binary, string left, string right)
