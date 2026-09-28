@@ -108,7 +108,7 @@ The demo's launch profiles (Visual Studio's start button list, or `dotnet run --
 |---------|------|
 | Gallery (GPU) | The window above. |
 | Gallery computed on the CPU | The same gallery, every shader run by the CPU, animated at what the CPU manages (fps in the title). |
-| Meshes (GPU), Ctrl+click a pixel to debug it | A cube and a sphere drawn with a C# shader (`MeshShaders/DemoLitMesh`, the engine's GGX terms mixed in); Ctrl+click runs that pixel on the CPU, vertex shader, rasterizer and pixel shader, from what the GPU had. |
+| Meshes (GPU), Ctrl+click a pixel to debug it | A cube and a sphere drawn with a C# PBR shader (`MeshShaders/DemoLitMesh`: the engine's GGX terms mixed in, a sky for the ambient light, ACES); Ctrl+click runs that pixel on the CPU, vertex shader, rasterizer and pixel shader, from what the GPU had. |
 | Compare meshes CPU and GPU | A frame of the meshes drawn by the GPU and rasterized by the CPU, compared; images and report in `mesh-check/`. |
 | Benchmark the CPU frames | 10 CPU frames one after the other, their cost and the median rate, window hidden. |
 | Debug a pixel on the CPU | One pixel of DemoClouds on the CPU, no GPU: under the debugger it stops before it, F11 steps into the shader. |
@@ -393,8 +393,9 @@ pixel, back faces culled (clockwise is the front), pixel centres covered by the 
 tested (LessEqual) and written, streams interpolated with perspective, PSMain in 2x2 quads whose
 uncovered pixels are helpers with extrapolated streams. `CpuScene.DebugPixel` finds the triangle a
 pixel shows across the draws and runs its quad. On the demo's meshes, the coverage is the GPU's
-exactly; the colours differ by 2 steps on 167 pixels of 57600, where a texture's mip changes (the
-hardware's level-of-detail precision). Not yet: clipping against the near plane (a triangle crossing
+exactly; the colours are 0.05 of an 8-bit step off on average, at most 10 steps on a few pixels,
+where a texture's mip changes (the hardware's level-of-detail precision) and through `pow`, `exp2`
+and the tone mapping (the hardware's approximations). Not yet: clipping against the near plane (a triangle crossing
 it is left out), blending, MSAA, other topologies than triangle lists.
 
 What the CPU cannot reproduce, because the GPU does not run the C# as written:
